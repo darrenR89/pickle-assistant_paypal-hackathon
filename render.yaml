@@ -1,0 +1,22 @@
+# Render Blueprint. Postgres, Key Value and the cron job get added as the build plan reaches them.
+services:
+  - type: web
+    name: pickle-assistant
+    runtime: node
+    plan: free # move to starter before judging so the app doesn't sleep
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
