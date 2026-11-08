@@ -8,7 +8,7 @@ services:
     runtime: node
     region: oregon
     buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm workflow
+    startCommand: ./node_modules/.bin/tsx src/workflows/main.ts
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -29,7 +29,7 @@ services:
     region: oregon
     schedule: "*/10 * * * *"
     buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm trigger
+    startCommand: ./node_modules/.bin/tsx src/workflows/trigger.ts
     envVars:
       - key: NODE_VERSION
         value: "22"
