@@ -104,7 +104,7 @@ async function createGame(groupId: string, organizerId: string, text: string) {
   const total = parsed.priceIsTotal ? parsed.priceCents! : parsed.priceCents! * spots;
   const share = Math.ceil(total / spots);
   const cancelBy = new Date(startsAt.getTime() - CANCEL_BY_HOURS * 3600_000);
-  const slug = `${shortWhen(startsAt).toLowerCase().replace(/\s+/g, "-")}-${newToken().slice(0, 5)}`;
+  const slug = `${shortWhen(startsAt).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${newToken().slice(0, 5)}`;
   const gameId = newId("game");
   const organizerToken = newToken();
 
