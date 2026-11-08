@@ -107,12 +107,15 @@ export const tick = task(
       ...toRenew.map((s) => ctx.run(reauthorizeHold, s.id)),
     ]);
 
-    return {
+    const summary = {
       reminders: reminders.length,
       gameDayReminders: gameDay.length,
       settled: toSettle.length,
       holdsRenewed: toRenew.length,
       failed: results.filter((r) => r.status === "rejected").length,
     };
+    console.log(`tick ${JSON.stringify(summary)}`);
+    for (const r of results) if (r.status === "rejected") console.error("tick item failed:", r.reason);
+    return summary;
   },
 );
