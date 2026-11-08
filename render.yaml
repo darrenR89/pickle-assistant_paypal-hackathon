@@ -1,4 +1,7 @@
-# Render Blueprint. Postgres, Key Value and the cron job get added as the build plan reaches them.
+# Render Blueprint. Key Value and the cron job get added as the build plan reaches them.
+databases:
+  - name: pickle-assistant-db
+    plan: free # free Postgres expires after 30 days; upgrade to basic-256mb before judging
 services:
   - type: web
     name: pickle-assistant
@@ -20,3 +23,9 @@ services:
         generateValue: true
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: APP_URL
+        value: https://pickle-assistant.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pickle-assistant-db
+          property: connectionString

@@ -1,22 +1,33 @@
 import { NextResponse } from "next/server";
+import { one, q } from "@/lib/db";
+import { type Game, roster } from "@/lib/games";
 import { authorizeOrder, firstAuthorization } from "@/lib/paypal";
+import { playerJoined } from "@/bot/assistant";
 import { errorResponse } from "@/lib/http";
 
-// Step 2 of a hold: the player approved in PayPal or Venmo; place the authorization.
+// Step 2 of joining: the player approved in PayPal or Venmo. Place the hold and add them.
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const pending = await one<{ order_id: string; game_id: string; person_id: string; hold_cents: number }>(
+      "select * from pending_orders where order_id = $1",
+      [id],
+    );
+    if (!pending) return NextResponse.json({ error: "Unknown order" }, { status: 404 });
+    const game = await one<Game>("select * from games where id = $1", [pending.game_id]);
+    if (!game) return NextResponse.json({ error: "Unknown game" }, { status: 404 });
+
+    // Already processed (double click, retry): return the existing hold.
+    const existing = (await roster(game.id)).find((e) => e.order_id === id && e.status === "in");
+    if (existing) return NextResponse.json({ authorizationId: existing.authorization_id, status: "CREATED" });
+
     const order = await authorizeOrder(id);
     const auth = firstAuthorization(order);
     if (!auth) return NextResponse.json({ error: "No authorization returned" }, { status: 502 });
-    // TODO(build plan, Sat): save the authorization against the player and game in Postgres.
-    return NextResponse.json({
-      orderId: order.id,
-      authorizationId: auth.id,
-      status: auth.status,
-      amount: auth.amount,
-      expiresAt: auth.expiration_time,
-    });
+
+    await playerJoined(game, pending.person_id, auth.id, pending.hold_cents, id);
+    await q("delete from pending_orders where order_id = $1", [id]);
+    return NextResponse.json({ authorizationId: auth.id, status: auth.status, expiresAt: auth.expiration_time });
   } catch (err) {
     return errorResponse(err);
   }

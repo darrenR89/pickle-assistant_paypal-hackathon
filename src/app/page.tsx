@@ -3,12 +3,23 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main>
+      <p className="eyebrow">PayPal AI Hackathon · work in progress</p>
       <h1>Pickleball assistant</h1>
-      <p className="muted">Games that settle themselves. Work in progress for the PayPal AI Hackathon.</p>
+      <p className="muted">
+        Lives in your group chat. Saying you&apos;re in and putting a PayPal or Venmo hold on your share are one tap, so the
+        organizer never fronts the court. After the game, it settles itself.
+      </p>
       <div className="card">
         <p>
-          Sandbox test game: <Link href="/g/thu-6pm">/g/thu-6pm</Link>
+          <strong>Try it in a sample group chat</strong>
         </p>
+        <p className="muted small">
+          You can switch between seven friends. Create a game as Alex, then join as the others with PayPal sandbox
+          accounts.
+        </p>
+        <Link href="/play">
+          <button>Open the playground</button>
+        </Link>
       </div>
     </main>
   );

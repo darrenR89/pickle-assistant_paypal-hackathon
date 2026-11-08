@@ -7,5 +7,7 @@ export function GET() {
     ok: true,
     paypalEnv: process.env.PAYPAL_ENV ?? "sandbox",
     paypalConfigured: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET),
+    databaseConfigured: Boolean(process.env.DATABASE_URL),
+    claudeConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
   });
 }
