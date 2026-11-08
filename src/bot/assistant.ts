@@ -90,7 +90,8 @@ export async function handleGroupMessage(groupId: string, senderId: string, text
 async function createGame(groupId: string, organizerId: string, text: string) {
   const organizer = await personById(organizerId);
   const parsed = await parseGameRequest(text);
-  const missing = new Set(parsed.missing);
+  // Decide what's missing from the values themselves, not from the model's list.
+  const missing = new Set<string>();
   if (!parsed.startsAt) missing.add("starts_at");
   if (!parsed.spots) missing.add("spots");
   if (!parsed.priceCents) missing.add("price");
