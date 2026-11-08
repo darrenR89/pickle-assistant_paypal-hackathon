@@ -35,6 +35,17 @@ cloudflared tunnel --url http://localhost:3000
 
 `src/bot/assistant.ts` holds the chat behavior and doesn't depend on the chat channel, so real channels (iMessage through Blooio, via Chat SDK) can call the same functions.
 
+## Scheduled work (Render Workflows)
+
+`src/workflows/tasks.ts` defines Render Workflow tasks with the Render SDK. A cron job (`pnpm trigger`) starts the `tick` task every 10 minutes; `tick` finds what's due and fans out one task run per item:
+
+- `sendCancelByReminder`: one reminder in the group, in the 3 hours before free cancel ends, to people who said "in" but haven't confirmed
+- `sendGameDayReminder`: "Game in 2 hours" in the group
+- `settleGame`: settles a game 3 hours after it starts if the organizer hasn't
+- `reauthorizeHold`: renews a PayPal hold after its 3-day honor period while the game is still ahead
+
+Each task retries on its own and is safe to run twice. `render.workflows.yaml` is the Blueprint for the workflow service and the cron job. Try the logic locally with `pnpm tick:local`.
+
 ## Test endpoints (sandbox only)
 
 Release or charge a hold, using the `ADMIN_TOKEN` from your `.env`:

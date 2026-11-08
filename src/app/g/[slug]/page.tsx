@@ -49,7 +49,7 @@ export default async function GamePage({ params, searchParams }: Props) {
 
   return (
     <main>
-      <p className="eyebrow">{open ? "Pickleball" : game.status === "settled" ? "Played" : "Cancelled"}</p>
+      <p className="eyebrow">{open ? "Pickleball" : game.status === "settled" ? "Played" : game.status === "settling" ? "Settling up" : "Cancelled"}</p>
       <h1>{whenLabel(game.starts_at)}</h1>
       <p className="muted">{game.place}</p>
 

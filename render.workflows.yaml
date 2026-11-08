@@ -1,0 +1,39 @@
+# Render Blueprint for the timed parts of a game: a Workflow service whose tasks send
+# reminders, settle finished games and renew old holds, plus a cron job that starts the
+# workflow's `tick` task every 10 minutes. Kept separate from render.yaml so it can be
+# added without touching the existing web service and database.
+services:
+  - type: workflow
+    name: pickle-assistant-workflows
+    runtime: node
+    region: oregon
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm workflow
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: APP_URL
+        value: https://pickle-assistant.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+
+  - type: cron
+    name: pickle-assistant-tick
+    runtime: node
+    region: oregon
+    schedule: "*/10 * * * *"
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm trigger
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: WORKFLOW_SLUG
+        value: pickle-assistant-workflows
+      - key: RENDER_API_KEY
+        sync: false

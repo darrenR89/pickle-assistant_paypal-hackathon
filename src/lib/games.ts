@@ -16,7 +16,9 @@ export type Game = {
   cancel_by: Date;
   organizer_pays: boolean;
   organizer_token: string;
-  status: "open" | "cancelled" | "settled";
+  status: "open" | "settling" | "cancelled" | "settled";
+  cancel_reminder_sent: boolean;
+  gameday_reminder_sent: boolean;
   created_at: Date;
 };
 
@@ -33,6 +35,7 @@ export type Spot = {
   hold_status: "none" | "held" | "voided" | "captured";
   captured_cents: number | null;
   late_cancel: null | "pending" | "charged" | "covered";
+  authorized_at: Date | null;
   created_at: Date;
 };
 

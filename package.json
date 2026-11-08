@@ -12,14 +12,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "workflow": "tsx src/workflows/main.ts",
+    "trigger": "tsx src/workflows/trigger.ts",
+    "tick:local": "tsx scripts/run-tick-locally.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
+    "@renderinc/sdk": "^1.8.0",
     "next": "^16.4.5",
     "pg": "^8.23.1",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/node": "^22",

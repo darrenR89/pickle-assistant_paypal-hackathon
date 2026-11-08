@@ -80,6 +80,9 @@ create table if not exists spots (
   updated_at timestamptz not null default now(),
   unique (game_id, person_id)
 );
+alter table games add column if not exists cancel_reminder_sent boolean not null default false;
+alter table games add column if not exists gameday_reminder_sent boolean not null default false;
+alter table spots add column if not exists authorized_at timestamptz;
 -- Binds a PayPal order to the game and person server-side, so the browser can't swap them.
 create table if not exists pending_orders (
   order_id text primary key,

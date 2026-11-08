@@ -172,10 +172,10 @@ async function saidIn(game: Game, personId: string) {
 /** Called once a player's hold is approved. */
 export async function playerJoined(game: Game, personId: string, authorizationId: string, holdCentsValue: number, orderId: string) {
   await q(
-    `insert into spots (id, game_id, person_id, status, order_id, authorization_id, hold_cents, hold_status)
-     values ($1, $2, $3, 'in', $4, $5, $6, 'held')
+    `insert into spots (id, game_id, person_id, status, order_id, authorization_id, hold_cents, hold_status, authorized_at)
+     values ($1, $2, $3, 'in', $4, $5, $6, 'held', now())
      on conflict (game_id, person_id) do update set status = 'in', order_id = $4, authorization_id = $5,
-       hold_cents = $6, hold_status = 'held', late_cancel = null, updated_at = now()`,
+       hold_cents = $6, hold_status = 'held', late_cancel = null, authorized_at = now(), updated_at = now()`,
     [newId("spot"), game.id, personId, orderId, authorizationId, holdCentsValue],
   );
   await q("delete from intents where game_id = $1 and person_id = $2", [game.id, personId]);
@@ -310,7 +310,19 @@ export async function updateTerms(game: Game, change: TermsChange) {
  * game ran short (never more than the cap). The organizer absorbs what's left.
  */
 export async function settleGame(game: Game) {
-  if (game.status !== "open") return;
+  // Claim the game so a scheduled run and the organizer's button can't both settle it.
+  const claimed = await q("update games set status = 'settling' where id = $1 and status = 'open' returning id", [game.id]);
+  if (!claimed.length) return;
+  try {
+    await settleClaimed(game);
+  } catch (err) {
+    // Captures already done are recorded per player; a retry continues with the rest.
+    await q("update games set status = 'open' where id = $1 and status = 'settling'", [game.id]);
+    throw err;
+  }
+}
+
+async function settleClaimed(game: Game) {
   const entries = await roster(game.id);
   const playing = inPlayers(entries);
   const payers = playing.filter((e) => e.person_id !== game.organizer_id && e.hold_status === "held");
@@ -336,8 +348,10 @@ export async function settleGame(game: Game) {
     await voidAuthorization(e.authorization_id!);
     await q("update spots set late_cancel = 'covered', hold_status = 'voided' where id = $1", [e.id]);
   }
-  const lateCharged = entries.filter((e) => e.late_cancel === "charged").reduce((s, e) => s + (e.captured_cents ?? 0), 0);
-  collected += lateCharged;
+  const alreadyCaptured = entries
+    .filter((e) => e.hold_status === "captured" && !payers.some((p) => p.id === e.id))
+    .reduce((s, e) => s + (e.captured_cents ?? 0), 0);
+  collected += alreadyCaptured;
 
   await q("update games set status = 'settled' where id = $1", [game.id]);
   await logEvent(game.id, null, "settled", { collected, extraEach });

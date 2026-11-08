@@ -139,6 +139,21 @@ export function captureAuthorization(authorizationId: string, amountCents?: numb
   );
 }
 
+/**
+ * Renew a hold after PayPal's 3-day honor period (allowed on days 4–29).
+ * Returns the new authorization; the old one is no longer used.
+ */
+export function reauthorize(authorizationId: string, amountCents: number) {
+  return call<{ id: string; status: string; expiration_time?: string }>(
+    `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/reauthorize`,
+    {
+      method: "POST",
+      requestId: `reauthorize-${authorizationId}`,
+      body: { amount: { currency_code: "USD", value: (amountCents / 100).toFixed(2) } },
+    },
+  );
+}
+
 export function firstAuthorization(order: Order) {
   return order.purchase_units?.[0]?.payments?.authorizations?.[0];
 }
