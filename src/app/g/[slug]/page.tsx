@@ -14,7 +14,7 @@ import {
   roster,
   whenLabel,
 } from "@/lib/games";
-import Ring from "../../Ring";
+import WhoIsIn from "./WhoIsIn";
 import JoinPanel from "./JoinPanel";
 import OrganizerPanel from "./OrganizerPanel";
 
@@ -59,6 +59,7 @@ export default async function GamePage({ params, searchParams }: Props) {
     .toLowerCase();
   const statusWord = open ? "Pickleball" : game.status === "settled" ? "Played" : game.status === "settling" ? "Settling up" : "Cancelled";
   const iAmIn = mine?.status === "in";
+  const whoNames = playing.map((e) => ({ name: e.name, organizer: e.person_id === game.organizer_id }));
   const orgData = isOrganizer ? await organizerData(game.id, game) : undefined;
 
   return (
@@ -88,7 +89,7 @@ export default async function GamePage({ params, searchParams }: Props) {
               {iAmIn && !isOrganizer ? `${dayWord} ${timeWord} · ${game.place}` : game.place}
             </span>
           </div>
-          <Ring filled={playing.length} total={game.spots} />
+          <WhoIsIn variant="ring" names={whoNames} spots={game.spots} />
         </div>
         {orgData ? (
           <>
@@ -126,29 +127,7 @@ export default async function GamePage({ params, searchParams }: Props) {
         <OrganizerPanel slug={slug} o={o!} data={orgData} />
       ) : (
         <div className="body">
-          {!iAmIn && (
-            <section>
-              <div className="section-head">
-                <span className="label">Who&apos;s in</span>
-                <span className="count">
-                  {playing.length} of {game.spots}
-                </span>
-              </div>
-              <div className="ledger">
-                {playing.map((e) => (
-                  <div key={e.id} className="row">
-                    <span>{e.name}</span>
-                    <span className="amt">{e.person_id === game.organizer_id ? "organizer" : "in"}</span>
-                  </div>
-                ))}
-              </div>
-              {game.spots - playing.length > 0 && (
-                <p className="muted small" style={{ margin: "10px 0 0" }}>
-                  {game.spots - playing.length} spot{game.spots - playing.length === 1 ? "" : "s"} open
-                </p>
-              )}
-            </section>
-          )}
+          {!orgData && <WhoIsIn variant="link" names={whoNames} spots={game.spots} />}
           {open && (
             <JoinPanel
               slug={slug}

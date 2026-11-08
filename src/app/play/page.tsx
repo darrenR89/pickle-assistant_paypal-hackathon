@@ -30,8 +30,10 @@ export default function PlayStart() {
   }, [router]);
 
   return (
-    <main>
-      <p className="muted">{error ?? "Setting up your group chat…"}</p>
-    </main>
+    <div className="sim">
+      <div className="sim-banner">
+        <strong>Demo simulator.</strong> {error ?? "Setting up a simulated group chat…"}
+      </div>
+    </div>
   );
 }
