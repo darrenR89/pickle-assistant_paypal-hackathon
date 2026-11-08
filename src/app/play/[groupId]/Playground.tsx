@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type Person = { id: string; name: string; token: string };
 type Msg = { id: string; sender_id: string | null; dm_to: string | null; text: string; game_slug: string | null };
-type Card = { title: string; subtitle: string };
+type Card = { title: string; subtitle: string; when: string; spots: string };
 type Data = { group: { name: string }; people: Person[]; messages: Msg[]; cards: Record<string, Card> };
 
 const SUGGESTIONS = ["@Assistant Thu 6pm Riverside courts 3–4, 8 spots, $64", "in", "out"];
@@ -95,8 +95,14 @@ export default function Playground({ groupId }: { groupId: string }) {
           {m.text}
           {card && m.game_slug && (
             <a className="link-card" href={linkFor(m.game_slug)} target="_blank" rel="noreferrer">
-              <span className="link-title">{card.title}</span>
-              <span className="link-sub">{m.game_slug.includes("?o=") ? "Organizer view · private" : card.subtitle}</span>
+              <span className="link-hero">
+                <span className="when">{card.when}</span>
+                <span className="spots">{m.game_slug.includes("?o=") ? "organizer" : card.spots}</span>
+              </span>
+              <span className="link-meta">
+                <span className="link-title">{card.title}</span>
+                <span className="link-sub">{m.game_slug.includes("?o=") ? "Organizer view · private link" : card.subtitle}</span>
+              </span>
             </a>
           )}
         </div>
@@ -107,12 +113,14 @@ export default function Playground({ groupId }: { groupId: string }) {
   return (
     <div className="play">
       <header className="play-head">
-        <div>
-          <strong>{data.group.name}</strong>
-          <span className="muted small"> · group chat playground</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span className="label">Group chat playground</span>
+          <span className="name">{data.group.name}</span>
         </div>
         <div className="personas">
-          <span className="muted small">Viewing as</span>
+          <span className="label" style={{ marginRight: 4 }}>
+            Viewing as
+          </span>
           {data.people.map((p) => (
             <button key={p.id} className={p.id === viewerId ? "persona on" : "persona"} onClick={() => setViewerId(p.id)}>
               {p.name}
@@ -145,8 +153,11 @@ export default function Playground({ groupId }: { groupId: string }) {
       </section>
 
       <aside className="inbox">
-        <p className="eyebrow">{viewer.name}&apos;s private messages</p>
-        <p className="muted small">Money details only ever arrive here, never in the group.</p>
+        <span className="label">Private messages</span>
+        <p className="inbox-title">{viewer.name}&apos;s inbox</p>
+        <p className="muted small" style={{ marginTop: 0 }}>
+          Money details only ever arrive here, never in the group.
+        </p>
         {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="muted small">Nothing yet.</p>}
       </aside>
     </div>

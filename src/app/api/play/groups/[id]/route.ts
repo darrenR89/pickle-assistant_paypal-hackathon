@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { one, q } from "@/lib/db";
-import { type Game, inPlayers, money, roster, whenLabel } from "@/lib/games";
+import { type Game, inPlayers, money, roster, shortWhen, whenLabel } from "@/lib/games";
 import { groupPeople } from "@/lib/playground";
 import { errorResponse } from "@/lib/http";
 
@@ -31,6 +31,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       if (!game) continue;
       const playing = inPlayers(await roster(game.id));
       cards[slug] = {
+        when: shortWhen(new Date(game.starts_at)),
+        spots: `${playing.length}/${game.spots}`,
         title: `${whenLabel(game.starts_at)} · ${game.place}`,
         subtitle:
           game.status === "open"

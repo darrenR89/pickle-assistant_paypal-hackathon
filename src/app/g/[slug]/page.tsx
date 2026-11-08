@@ -8,10 +8,13 @@ import {
   inPlayers,
   isBeforeCancelBy,
   money,
+  personById,
   personByToken,
+  shortWhen,
   roster,
   whenLabel,
 } from "@/lib/games";
+import Ring from "../../Ring";
 import JoinPanel from "./JoinPanel";
 import OrganizerPanel from "./OrganizerPanel";
 
@@ -47,61 +50,124 @@ export default async function GamePage({ params, searchParams }: Props) {
   const full = playing.length >= game.spots;
   const open = game.status === "open";
 
+  const organizer = await personById(game.organizer_id);
+  const dayWord = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: TZ }).format(new Date(game.starts_at));
+  const timeWord = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ })
+    .format(new Date(game.starts_at))
+    .replace(":00", "")
+    .replace(" ", "")
+    .toLowerCase();
+  const statusWord = open ? "Pickleball" : game.status === "settled" ? "Played" : game.status === "settling" ? "Settling up" : "Cancelled";
+  const iAmIn = mine?.status === "in";
+  const orgData = isOrganizer ? await organizerData(game.id, game) : undefined;
+
   return (
     <main>
-      <p className="eyebrow">{open ? "Pickleball" : game.status === "settled" ? "Played" : game.status === "settling" ? "Settling up" : "Cancelled"}</p>
-      <h1>{whenLabel(game.starts_at)}</h1>
-      <p className="muted">{game.place}</p>
-
-      <div className="card">
-        <div className="row">
-          <span>Who&apos;s in</span>
-          <span className="status">
-            {playing.length} of {game.spots}
-          </span>
-        </div>
-        <div className="chips">
-          {playing.map((e) => (
-            <span key={e.id} className="chip">
-              {e.name}
-              {e.person_id === game.organizer_id ? " · organizer" : ""}
+      <header className="pass">
+        <div className="pass-top">
+          <div className="pass-title">
+            <span className="label">
+              {isOrganizer ? `Organizer · ${statusWord}` : iAmIn && open ? "Your pass" : `${statusWord} · hosted by ${organizer?.name ?? "the organizer"}`}
             </span>
-          ))}
-          {Array.from({ length: Math.max(0, game.spots - playing.length) }).map((_, i) => (
-            <span key={`open-${i}`} className="chip open">
-              open
+            <h1>
+              {iAmIn && !isOrganizer && open ? (
+                <>
+                  You&apos;re in,
+                  <br />
+                  <i>{viewer?.name}</i>
+                </>
+              ) : (
+                <>
+                  {dayWord},
+                  <br />
+                  <i>{timeWord}</i>
+                </>
+              )}
+            </h1>
+            <span className="sub">
+              {iAmIn && !isOrganizer ? `${dayWord} ${timeWord} · ${game.place}` : game.place}
             </span>
-          ))}
+          </div>
+          <Ring filled={playing.length} total={game.spots} />
         </div>
-        <div className="row">
-          <span>Each</span>
-          <span>{money(game.share_cents)}</span>
-        </div>
-        <div className="row">
-          <span>Free cancel until</span>
-          <span>{whenLabel(game.cancel_by)}</span>
-        </div>
-      </div>
+        {orgData ? (
+          <>
+            <div className="tiles">
+              <div className="tile">
+                <span className="label">Shares in</span>
+                <span className="value">
+                  {money(orgData.sharesInCents)} <span style={{ fontSize: 16, color: "var(--mint)" }}>of {money(orgData.totalCents)}</span>
+                </span>
+              </div>
+              <div className="tile">
+                <span className="label">On hold</span>
+                <span className="value">{money(orgData.heldCents)}</span>
+              </div>
+            </div>
+            <div className="bar">
+              <div style={{ width: `${Math.min(100, Math.round((orgData.sharesInCents / orgData.totalCents) * 100))}%` }} />
+            </div>
+          </>
+        ) : (
+          <div className="tiles">
+            <div className="tile">
+              <span className="label">{iAmIn ? "On hold" : "Your share"}</span>
+              <span className="value">{money(iAmIn ? (mine?.hold_cents ?? 0) : game.share_cents)}</span>
+            </div>
+            <div className="tile">
+              <span className="label">Free cancel until</span>
+              <span className="value">{shortWhen(new Date(game.cancel_by))}</span>
+            </div>
+          </div>
+        )}
+      </header>
 
-      {isOrganizer ? (
-        <OrganizerPanel slug={slug} o={o!} data={await organizerData(game.id, game)} />
+      {orgData ? (
+        <OrganizerPanel slug={slug} o={o!} data={orgData} />
       ) : (
-        open && (
-          <JoinPanel
-            slug={slug}
-            clientId={process.env.PAYPAL_CLIENT_ID ?? ""}
-            p={viewer?.token}
-            viewerName={viewer?.name}
-            isIn={mine?.status === "in"}
-            isOrganizer={viewer?.id === game.organizer_id}
-            holdCents={mine?.hold_cents ?? holdCents(game)}
-            shareCents={game.share_cents}
-            capCents={game.cap_cents}
-            full={full}
-            beforeCancelBy={isBeforeCancelBy(game)}
-            cancelByLabel={whenLabel(game.cancel_by)}
-          />
-        )
+        <div className="body">
+          {!iAmIn && (
+            <section>
+              <div className="section-head">
+                <span className="label">Who&apos;s in</span>
+                <span className="count">
+                  {playing.length} of {game.spots}
+                </span>
+              </div>
+              <div className="ledger">
+                {playing.map((e) => (
+                  <div key={e.id} className="row">
+                    <span>{e.name}</span>
+                    <span className="amt">{e.person_id === game.organizer_id ? "organizer" : "in"}</span>
+                  </div>
+                ))}
+              </div>
+              {game.spots - playing.length > 0 && (
+                <p className="muted small" style={{ margin: "10px 0 0" }}>
+                  {game.spots - playing.length} spot{game.spots - playing.length === 1 ? "" : "s"} open
+                </p>
+              )}
+            </section>
+          )}
+          {open && (
+            <JoinPanel
+              slug={slug}
+              clientId={process.env.PAYPAL_CLIENT_ID ?? ""}
+              p={viewer?.token}
+              viewerName={viewer?.name}
+              isIn={iAmIn}
+              isOrganizer={viewer?.id === game.organizer_id}
+              holdCents={mine?.hold_cents ?? holdCents(game)}
+              shareCents={game.share_cents}
+              capCents={game.cap_cents}
+              full={full}
+              beforeCancelBy={isBeforeCancelBy(game)}
+              cancelByLabel={whenLabel(game.cancel_by)}
+              startsAtIso={new Date(game.starts_at).toISOString()}
+              place={game.place}
+            />
+          )}
+        </div>
       )}
     </main>
   );
@@ -134,6 +200,7 @@ async function organizerData(gameId: string, game: Awaited<ReturnType<typeof get
   return {
     status: game.status,
     totalCents: game.total_cents,
+    shareCents: game.share_cents,
     sharesInCents: Math.min(sharesIn, game.total_cents),
     heldCents: held,
     spots: game.spots,

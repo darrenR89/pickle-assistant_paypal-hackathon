@@ -55,6 +55,8 @@ type Props = {
   full: boolean;
   beforeCancelBy: boolean;
   cancelByLabel: string;
+  startsAtIso: string;
+  place: string;
 };
 
 export default function JoinPanel(props: Props) {
@@ -122,7 +124,7 @@ export default function JoinPanel(props: Props) {
           [paypal.FUNDING.VENMO, venmoRef.current],
         ] as const) {
           if (!el) continue;
-          const b = paypal.Buttons({ ...common, fundingSource: source, style: { shape: "pill", height: 45 } });
+          const b = paypal.Buttons({ ...common, fundingSource: source, style: { shape: "rect", height: 46 } });
           if (b.isEligible()) {
             rendered.push(b);
             b.render(el).catch(() => {});
@@ -153,56 +155,106 @@ export default function JoinPanel(props: Props) {
   if (props.isOrganizer) {
     return (
       <div className="card">
-        <p className="status">You&apos;re in · organizer</p>
-        <p className="muted">Use the organizer link in your private messages to manage the game.</p>
+        <span className="card-title">You&apos;re the organizer</span>
+        <p className="muted small" style={{ margin: 0 }}>
+          Manage the game from the organizer link in your private messages.
+        </p>
       </div>
     );
   }
 
   if (props.isIn) {
+    const extra = Math.max(0, props.holdCents - props.shareCents);
     return (
-      <div className="card ticket">
-        <p className="status">You&apos;re in{props.viewerName ? `, ${props.viewerName}` : ""}</p>
-        <p className="muted">
-          {money(props.holdCents)} is on hold. Your share is {money(props.shareCents)}; you&apos;re charged after the game.
-        </p>
-        <button className="secondary" onClick={cancelSpot} disabled={busy}>
-          Can&apos;t make it ·{" "}
-          {props.beforeCancelBy ? `free until ${props.cancelByLabel}` : `organizer decides about your ${money(props.shareCents)}`}
-        </button>
+      <section className="stack" style={{ gap: 16 }}>
+        <div>
+          <div className="section-head">
+            <span className="label">Receipt</span>
+          </div>
+          <div className="ledger">
+            <Row k="Your share" v={money(props.shareCents)} />
+            <Row k="If the game runs short" v={`up to ${money(extra)}`} />
+            <Row k="Held with PayPal" v={money(props.holdCents)} strong />
+            <Row k="Charged now" v="$0" />
+          </div>
+        </div>
+        <div className="stack">
+          <a className="button dark" href={calendarUrl(props.startsAtIso, props.place)} target="_blank" rel="noreferrer">
+            Add to calendar
+          </a>
+          <button className="secondary" onClick={cancelSpot} disabled={busy}>
+            Can&apos;t make it ·{" "}
+            {props.beforeCancelBy ? `free until ${props.cancelByLabel}` : `organizer decides on your ${money(props.shareCents)}`}
+          </button>
+        </div>
         {error && <p className="error">{error}</p>}
-      </div>
+        <p className="muted small" style={{ margin: 0 }}>
+          Money updates arrive privately. The group only sees who&apos;s playing.
+        </p>
+      </section>
     );
   }
 
   if (props.full) {
     return (
       <div className="card">
-        <p className="status">The game is full</p>
+        <span className="card-title">The game is full</span>
       </div>
     );
   }
 
   return (
-    <div className="card">
-      <p>
-        <strong>I&apos;m in · {money(props.shareCents)}</strong>
-      </p>
-      <p className="muted">
-        We hold up to {money(props.shareCents + props.capCents)} ({money(props.shareCents)} share + up to{" "}
-        {money(props.capCents)} if the game runs short). Nothing is charged until after the game. Free cancel until{" "}
-        {props.cancelByLabel}.
-      </p>
+    <section className="card">
+      <div className="card-head">
+        <span className="card-title">I&apos;m in · {money(props.shareCents)}</span>
+        {props.p && props.viewerName && <span className="muted small">as {props.viewerName}</span>}
+      </div>
+      <div className="ledger">
+        <Row k="Your share" v={money(props.shareCents)} />
+        <Row k="If the game runs short" v={`up to ${money(props.capCents)}`} />
+        <Row k="Held today" v={money(props.shareCents + props.capCents)} strong />
+        <Row k="Charged now" v="$0" />
+      </div>
       {!props.p && (
         <div className="fields">
-          <input ref={nameRef} placeholder="Your name" autoComplete="given-name" />
-          <input ref={phoneRef} placeholder="Phone number" type="tel" autoComplete="tel" />
+          <label>
+            Your name
+            <input ref={nameRef} autoComplete="given-name" />
+          </label>
+          <label>
+            Phone number
+            <input ref={phoneRef} type="tel" autoComplete="tel" />
+          </label>
         </div>
       )}
-      {props.p && props.viewerName && <p className="muted">Joining as {props.viewerName}.</p>}
       {error && <p className="error">{error}</p>}
       <div ref={paypalRef} />
-      <div ref={venmoRef} style={{ marginTop: 8 }} />
+      <div ref={venmoRef} />
+      <p className="muted small" style={{ margin: 0 }}>
+        Held, not charged. You&apos;re charged after the game. Free cancel until {props.cancelByLabel}.
+      </p>
+    </section>
+  );
+}
+
+function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
+  return (
+    <div className="row">
+      <span>{k}</span>
+      <span className={strong ? "amt strong" : "amt"}>{v}</span>
     </div>
   );
+}
+
+function calendarUrl(startIso: string, place: string) {
+  const start = new Date(startIso);
+  const end = new Date(start.getTime() + 2 * 3600_000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: "Pickleball",
+    dates: `${fmt(start)}/${fmt(end)}`,
+    location: place,
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
 }
