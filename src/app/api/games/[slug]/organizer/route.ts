@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getGame } from "@/lib/games";
 import { zonedTime } from "@/bot/parse";
-import { cancelGame, nudgeUnfinished, resolveLateCancel, settleGame, updateTerms } from "@/bot/assistant";
+import { cancelGame, declineInvite, grantInvite, nudgeUnfinished, resolveLateCancel, settleGame, updateTerms } from "@/bot/assistant";
+import { one } from "@/lib/db";
 import { errorResponse } from "@/lib/http";
 
 type Body = {
   o?: string;
-  action?: "nudge" | "settle" | "cancel" | "terms" | "late";
+  action?: "nudge" | "settle" | "cancel" | "terms" | "late" | "invite" | "decline";
+  personId?: string;
   spotId?: string;
   decision?: "charge" | "cover";
   cancelBy?: string; // "YYYY-MM-DDTHH:mm" in the game's time zone
@@ -46,6 +48,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         if (!body.spotId || !body.decision) return NextResponse.json({ error: "spotId and decision required" }, { status: 400 });
         await resolveLateCancel(game, body.spotId, body.decision);
         return NextResponse.json({ ok: true });
+      case "invite":
+      case "decline": {
+        const member = body.personId
+          ? await one("select 1 from group_members where group_id = $1 and person_id = $2", [game.group_id, body.personId])
+          : null;
+        if (!member) return NextResponse.json({ error: "Unknown person" }, { status: 400 });
+        if (body.action === "invite") await grantInvite(game, body.personId!);
+        else await declineInvite(game, body.personId!);
+        return NextResponse.json({ ok: true });
+      }
       case "terms": {
         let cancelBy: Date | undefined;
         if (body.cancelBy) {

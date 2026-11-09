@@ -50,6 +50,14 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   const [formErr, setFormErr] = useState<string | null>(null);
   const [fund, setFund] = useState<"paypal" | "venmo">("paypal");
   const org = v.organizer;
+  const [asked, setAsked] = useState(v.asked);
+  async function askToJoin() {
+    const res = await fetch(`/api/games/${v.slug}/request`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p: v.p }) });
+    if (res.ok) {
+      setAsked(true);
+      setToast(`Asked ${v.hostName} privately.`);
+    }
+  }
 
   const count = v.players.length;
   const left = Math.max(0, v.spots - count);
@@ -159,7 +167,8 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
         )}
         {v.inviteOnly && (
           <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center", font: "500 15px/1.35 var(--sans)", color: "var(--muted)" }}>
-            <Icon name="lock" size={18} /> Invite-only{v.invited.length ? `: ${v.invited.join(", ")}` : ""}
+            <Icon name="lock" size={18} /> Invite-only
+            {v.invited.length ? `: ${v.invited.length > 5 ? `${v.invited.slice(0, 4).join(", ")} and ${v.invited.length - 4} more` : v.invited.join(", ")}` : ""}
           </div>
         )}
       </div>
@@ -255,7 +264,17 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   if (v.me === "charged") notices.push(<Notice key="ch" tone="red" icon="receipt" title={`Your ${money(v.shareCents)} share was charged`} body={`${v.hostName} charged the late cancel. The rest of your hold was released.`} />);
   if (v.me === "covered") notices.push(<Notice key="co" icon="check" title={`${v.hostName} covered your spot`} body="Your hold was released in full. You weren’t charged." />);
   if (v.me === "out" && v.status === "open") notices.push(<Notice key="o" icon="check" title="You’re out" body="Your hold was released. Changed your mind? Tap I’m in again while there’s space." />);
-  if (v.inviteOnly && !v.canJoin && !org && v.p) notices.push(<Notice key="i" tone="lav" icon="lock" title="This game is invite-only" body={`${v.hostName} chose who’s playing. Ask them to add you.`} />);
+  if (v.inviteOnly && !v.canJoin && !org && v.p)
+    notices.push(
+      <Notice
+        key="i"
+        tone="lav"
+        icon="lock"
+        title="This game is invite-only"
+        body={asked ? `We asked ${v.hostName} privately. You’ll get your link in the group if they add you.` : `${v.hostName} chose who’s playing. You can ask to join; only ${v.hostName} sees the request.`}
+        action={asked ? undefined : { label: `Ask ${v.hostName}`, onClick: askToJoin }}
+      />,
+    );
 
   // ---------- bottom bar ----------
   let bar: React.ReactNode = null;
@@ -316,7 +335,16 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
       {header}
       <main className="scroll">
         {notices}
-        {org && <OrganizerCard v={v} onLate={(spotId, decision) => organizerAct("late", { spotId, decision })} busy={busy} />}
+        {org && (
+          <OrganizerCard
+            v={v}
+            busy={busy}
+            onLate={(spotId, decision) => organizerAct("late", { spotId, decision })}
+            onInvite={async (personId, yes) => {
+              if (await organizerAct(yes ? "invite" : "decline", { personId })) setToast(yes ? "Added. They got their link in the group." : "Okay. Nothing was posted.");
+            }}
+          />
+        )}
         {playersCard}
         {locationCard}
         {(!org || v.status === "open") && moneyCard}
@@ -479,13 +507,18 @@ function SheetHead({ title, close }: { title: string; close?: () => void }) {
   );
 }
 
-function Notice({ icon, title, body, tone }: { icon: "alert" | "receipt" | "check" | "lock"; title: string; body: string; tone?: "lav" | "red" }) {
+function Notice({ icon, title, body, tone, action }: { icon: "alert" | "receipt" | "check" | "lock"; title: string; body: string; tone?: "lav" | "red"; action?: { label: string; onClick: () => void } }) {
   return (
     <div className={`notice${tone ? ` ${tone}` : ""}`} role={tone === "red" ? "alert" : undefined}>
       <Icon name={icon} color={tone === "red" ? "var(--danger)" : "currentColor"} />
       <div className="tx">
         <span className="ttl">{title}</span>
         <span className="sub">{body}</span>
+        {action && (
+          <button className="cta" style={{ marginTop: 8, alignSelf: "flex-start", fontSize: 20, height: 50 }} onClick={action.onClick}>
+            {action.label}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -687,7 +720,7 @@ function ErrorSheet({ err, v, retry, close }: { err: { kind: ErrKind; text?: str
     closed: ["No hold placed", "You closed the checkout before approving. Nothing was held and you’re not in yet.", "Try again"],
     declined: ["Hold declined", "Your bank or card declined the hold. Nothing was charged. Try another card in PayPal, or use Venmo.", "Try again"],
     full: ["Someone beat you to it", "The last spot was taken while you were checking out. Nothing was held. Say “waitlist me” in the group and you’ll be tagged if a spot opens.", null],
-    invite: ["Invite-only game", `${v.hostName} chose who’s playing. Ask them to add you in the group.`, null],
+    invite: ["Invite-only game", `${v.hostName} chose who’s playing. Say “I’m in” in the group and we’ll ask ${v.hostName} privately.`, null],
     other: ["Something went wrong", err.text ?? "Nothing was charged. Please try again.", "Try again"],
   };
   const [title, body, action] = copy[err.kind];
@@ -708,11 +741,28 @@ function ErrorSheet({ err, v, retry, close }: { err: { kind: ErrKind; text?: str
   );
 }
 
-function OrganizerCard({ v, onLate, busy }: { v: ViewData; onLate: (spotId: string, d: "charge" | "cover") => void; busy: boolean }) {
+function OrganizerCard({ v, onLate, onInvite, busy }: { v: ViewData; onLate: (spotId: string, d: "charge" | "cover") => void; onInvite: (personId: string, yes: boolean) => void; busy: boolean }) {
   const org = v.organizer!;
   const settled = v.status === "settled";
   return (
     <>
+      {org.waiting
+        .filter((w) => w.kind === "request")
+        .map((w) => (
+          <div key={w.id} className="notice lav" style={{ flexDirection: "column" }}>
+            <div style={{ display: "flex", gap: 14 }}>
+              <Icon name="lock" />
+              <div className="tx">
+                <span className="ttl">{w.name} wants to join</span>
+                <span className="sub">It’s invite-only. Add them and the group sees they’re invited; say not now and nothing is posted.</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="cta" style={{ flex: 1, fontSize: 20 }} disabled={busy} onClick={() => onInvite(w.id, true)}>Add {w.name}</button>
+              <button className="cta ghost" style={{ flex: 1, fontSize: 20 }} disabled={busy} onClick={() => onInvite(w.id, false)}>Not now</button>
+            </div>
+          </div>
+        ))}
       {org.players
         .filter((p) => p.late)
         .map((p) => (
@@ -767,13 +817,15 @@ function OrganizerCard({ v, onLate, busy }: { v: ViewData; onLate: (spotId: stri
               </span>
             </div>
           ))}
-          {org.waiting.map((w) => (
-            <div key={w.name} className="o">
-              <span className="av sm open" aria-hidden="true" />
-              <span className="nm" style={{ color: "var(--muted)", fontWeight: 500 }}>{w.name}</span>
-              <span className="st">{w.kind === "waitlist" ? "Waitlist" : w.kind === "maybe" ? "Maybe" : "Said in, not confirmed"}</span>
-            </div>
-          ))}
+          {org.waiting
+            .filter((w) => w.kind !== "request")
+            .map((w) => (
+              <div key={w.name} className="o">
+                <span className="av sm open" aria-hidden="true" />
+                <span className="nm" style={{ color: "var(--muted)", fontWeight: 500 }}>{w.name}</span>
+                <span className="st">{w.kind === "waitlist" ? "Waitlist" : w.kind === "maybe" ? "Maybe" : "Said in, not confirmed"}</span>
+              </div>
+            ))}
         </div>
       </section>
     </>

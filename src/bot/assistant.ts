@@ -185,10 +185,13 @@ async function actOn(ctx: GroupContext, d: Decision, text: string) {
           "select p.id from people p join group_members m on m.person_id = p.id where m.group_id = $1 and p.name = $2",
           [groupId, member.name],
         );
-        if (p) await q("insert into invites (game_id, person_id) values ($1, $2) on conflict do nothing", [game.id, p.id]);
-        return say(`${member.name}, you're invited to ${whenLabel(game.starts_at)}. Tap to play:`, true);
+        if (p) return grantInvite(game, p.id);
+        return;
       }
-      if (game.invite_only && !ctx.isOrganizer) return say(`This one's invite-only, so ${organizer?.name ?? "the organizer"} decides who comes.`);
+      // Asking to bring someone to an invite-only game: the organizer decides, privately.
+      if (game.invite_only && !ctx.isOrganizer) {
+        return postDm(groupId, game.organizer_id, `${me.name} asked in the group: "${text.slice(0, 200)}". It's invite-only, so it's your call.`, `${game.slug}?o=${game.organizer_token}`, { always: true });
+      }
       if (left <= 0) return say(`It's full right now. ${d.target ?? "Your friend"} can join the waitlist from the game page:`, true);
       return say(`${d.target ?? "They"} can join from the game page: add a name and number, then approve the hold. ${left === 1 ? "One spot" : `${left} spots`} left:`, true);
     }
@@ -375,11 +378,7 @@ async function saidIn(game: Game, personId: string) {
     await postGroup(game.group_id, `${person?.name}, you're already in.`);
     return;
   }
-  if (!(await isInvited(game, personId))) {
-    const host = await personById(game.organizer_id);
-    await postGroup(game.group_id, `${person?.name}, this one's invite-only. ${host?.name ?? "The organizer"} can add you.`);
-    return;
-  }
+  if (!(await isInvited(game, personId))) return requestInvite(game, personId);
   if (inPlayers(entries).length >= game.spots) {
     await postGroup(game.group_id, `Sorry ${person?.name}, the game is full. Say "waitlist me" and I'll tag you if a spot opens.`);
     return;
@@ -389,6 +388,44 @@ async function saidIn(game: Game, personId: string) {
     [game.id, personId],
   );
   await postGroup(game.group_id, `${person?.name}, tap to confirm you're in:`, game.slug);
+}
+
+/**
+ * Someone not on an invite-only list wants in. Ask the organizer privately first; the group
+ * hears nothing unless the organizer says yes.
+ */
+export async function requestInvite(game: Game, personId: string) {
+  const person = await personById(personId);
+  const existing = await one<{ kind: string }>("select kind from intents where game_id = $1 and person_id = $2", [game.id, personId]);
+  if (existing?.kind === "request") return;
+  await q(
+    "insert into intents (game_id, person_id, kind) values ($1, $2, 'request') on conflict (game_id, person_id) do update set kind = 'request', said_at = now()",
+    [game.id, personId],
+  );
+  await logEvent(game.id, personId, "invite_requested");
+  await postDm(
+    game.group_id,
+    game.organizer_id,
+    `${person?.name} wants to join ${whenLabel(game.starts_at)}. It's invite-only, so it's your call: add them on your organizer page, or say "add ${person?.name}" in the chat.`,
+    `${game.slug}?o=${game.organizer_token}`,
+    { always: true },
+  );
+}
+
+/** The organizer said yes: add them to the list and tell the group. */
+export async function grantInvite(game: Game, personId: string) {
+  const person = await personById(personId);
+  const host = await personById(game.organizer_id);
+  await q("insert into invites (game_id, person_id) values ($1, $2) on conflict do nothing", [game.id, personId]);
+  await q("delete from intents where game_id = $1 and person_id = $2 and kind = 'request'", [game.id, personId]);
+  await logEvent(game.id, personId, "invited");
+  await postGroup(game.group_id, `${person?.name}, ${host?.name ?? "the organizer"} added you to ${whenLabel(game.starts_at)}. Tap to play:`, game.slug);
+}
+
+/** The organizer said not this time: nothing is posted in the group. */
+export async function declineInvite(game: Game, personId: string) {
+  await q("delete from intents where game_id = $1 and person_id = $2 and kind = 'request'", [game.id, personId]);
+  await logEvent(game.id, personId, "invite_declined");
 }
 
 /** Called once a player's hold is approved. */

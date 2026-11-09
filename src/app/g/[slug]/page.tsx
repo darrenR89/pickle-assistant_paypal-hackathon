@@ -114,6 +114,7 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
     inviteOnly: game.invite_only,
     invited: game.invite_only ? await inviteeNames(game.id) : [],
     canJoin: viewer ? await isInvited(game, viewer.id) : !game.invite_only,
+    asked: viewer ? !!(await q("select 1 from intents where game_id = $1 and person_id = $2 and kind = 'request'", [game.id, viewer.id])).length : false,
     viewerName: viewer?.name ?? null,
     viewerIsHost: viewer?.id === game.organizer_id,
     me,
@@ -129,8 +130,8 @@ async function organizerData(game: Game) {
   const playing = inPlayers(entries);
   const held = entries.filter((e) => e.hold_status === "held").reduce((s, e) => s + (e.hold_cents ?? 0), 0);
   const collected = entries.filter((e) => e.hold_status === "captured").reduce((s, e) => s + (e.captured_cents ?? 0), 0);
-  const waiting = await q<{ name: string; kind: string }>(
-    "select p.name, i.kind from intents i join people p on p.id = i.person_id where i.game_id = $1 order by i.said_at",
+  const waiting = await q<{ id: string; name: string; kind: string }>(
+    "select p.id, p.name, i.kind from intents i join people p on p.id = i.person_id where i.game_id = $1 order by i.said_at",
     [game.id],
   );
   const cancelLocal = fmt(new Date(game.cancel_by), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -156,7 +157,7 @@ async function organizerData(game: Game) {
         holdCents: e.hold_cents ?? 0,
         capturedCents: e.captured_cents ?? 0,
       })),
-    waiting: waiting.map((w) => ({ name: w.name, kind: w.kind })),
+    waiting: waiting.map((w) => ({ id: w.id, name: w.name, kind: w.kind })),
   };
 }
 
