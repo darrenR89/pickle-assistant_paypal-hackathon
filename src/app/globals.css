@@ -508,23 +508,23 @@ a{color:var(--link)}
 
 /* Desktop: the link opened on a computer (e.g. from iMessage on a Mac) uses the full width */
 @media (min-width: 900px) {
-  .app { max-width: none; box-shadow: none; }
-  .hdr { padding: 34px 24px 34px; border-radius: 0 0 44px 44px; }
-  .hdr .status { display: none; }
-  .eyebrow { font-size: 24px; margin-bottom: 14px; }
-  .eyebrow .div { height: 24px; }
-  .time { font-size: 220px; }
-  .time.long { font-size: 190px; }
-  .pm { font-size: 44px; padding-bottom: 10px; }
-  .facts { font-size: 18px; margin-top: 18px; }
-  .scroll {
+  .app:not(.has-demo) { max-width: none; box-shadow: none; }
+  .app:not(.has-demo) .hdr { padding: 34px 24px 34px; border-radius: 0 0 44px 44px; }
+  .app:not(.has-demo) .hdr .status { display: none; }
+  .app:not(.has-demo) .eyebrow { font-size: 24px; margin-bottom: 14px; }
+  .app:not(.has-demo) .eyebrow .div { height: 24px; }
+  .app:not(.has-demo) .time { font-size: 220px; }
+  .app:not(.has-demo) .time.long { font-size: 190px; }
+  .app:not(.has-demo) .pm { font-size: 44px; padding-bottom: 10px; }
+  .app:not(.has-demo) .facts { font-size: 18px; margin-top: 18px; }
+  .app:not(.has-demo) .scroll {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     gap: 22px;
     padding: 32px max(24px, calc((100% - 1200px) / 2)) 48px;
   }
-  .content {
+  .app:not(.has-demo) .content {
     flex: 1;
     min-width: 0;
     display: grid;
@@ -532,11 +532,11 @@ a{color:var(--link)}
     align-items: start;
     gap: 22px;
   }
-  .content > * { grid-column: 1 / -1; }
-  .content > .half { grid-column: auto; }
-  .content > .tall { grid-row: span 2; }
-  .rail { flex: none; width: 300px; position: sticky; top: 0; }
-  .rail .bar {
+  .app:not(.has-demo) .content > * { grid-column: 1 / -1; }
+  .app:not(.has-demo) .content > .half { grid-column: auto; }
+  .app:not(.has-demo) .content > .tall { grid-row: span 2; }
+  .app:not(.has-demo) .rail { flex: none; width: 300px; position: sticky; top: 0; }
+  .app:not(.has-demo) .rail .bar {
     position: static;
     flex-direction: column;
     align-items: stretch;
@@ -549,11 +549,11 @@ a{color:var(--link)}
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .rail .bar .cta { width: 100%; }
-  .rail .orgbar { grid-template-columns: 1fr 1fr; }
-  .scrim { align-items: center; padding: 24px; }
-  .sheet { max-width: 520px; border-radius: 28px; padding-bottom: 24px; }
-  .toast { max-width: 520px; }
+  .app:not(.has-demo) .rail .bar .cta { width: 100%; }
+  .app:not(.has-demo) .rail .orgbar { grid-template-columns: 1fr 1fr; }
+  .app:not(.has-demo) .scrim { align-items: center; padding: 24px; }
+  .app:not(.has-demo) .sheet { max-width: 520px; border-radius: 28px; padding-bottom: 24px; }
+  .app:not(.has-demo) .toast { max-width: 520px; }
 }
 
 /* ---------- phone demo (judge's phone) ---------- */
@@ -572,7 +572,7 @@ a{color:var(--link)}
 .dp-tabs button{height:36px;border:none;border-radius:9px;background:transparent;font:600 15px/1 -apple-system,system-ui,sans-serif;color:#3a3a40;display:flex;align-items:center;justify-content:center;gap:6px}
 .dp-tabs button.on{background:#fff;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .dp-dot{min-width:20px;height:20px;border-radius:10px;background:#0a7cff;color:#fff;font:700 12px/20px system-ui;padding:0 6px}
-.dp-role{margin:7px 0 0;text-align:center;font:500 13px/1.2 -apple-system,system-ui,sans-serif;color:#6b6b73}
+.dp-role{margin:7px 0 0;padding-right:96px;text-align:left;font:500 13px/1.2 -apple-system,system-ui,sans-serif;color:#6b6b73}
 .dp-banner{margin:8px 12px 0;padding:10px 12px;border-radius:12px;background:var(--lav);color:var(--ink);font:600 14px/1.3 var(--sans);text-align:center}
 .dp-body{flex:1;padding:12px 12px 8px;overflow-y:auto}
 .dp-body .im-bubble{max-width:82%}
@@ -583,7 +583,7 @@ a{color:var(--link)}
 .dp-compose input{flex:1;height:40px;border-radius:20px;border:1px solid #d1d1d6;padding:0 14px;font:400 17px -apple-system,system-ui,sans-serif;min-width:0}
 .dp-compose button{width:36px;height:36px;border-radius:18px;border:none;background:#0a7cff;color:#fff;font:700 18px/1 system-ui}
 .dp-compose button:disabled{background:#b9d6ff}
-.demo-back{position:fixed;z-index:30;top:calc(10px + env(safe-area-inset-top));left:10px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--ink);font:700 15px/1 var(--sans);text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.demo-back{position:fixed;z-index:5;top:calc(10px + env(safe-area-inset-top));left:10px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--ink);font:700 15px/1 var(--sans);text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 
 /* ---------- desktop remote for the phone demo ---------- */
 .dr{min-height:100vh;background:var(--glow);padding:32px max(24px,calc((100% - 1120px)/2)) 64px;font-family:var(--sans);color:var(--ink)}
@@ -702,3 +702,19 @@ a{color:var(--link)}
 .dp-sheet-note{margin:4px 0 0;padding:10px 12px;border-radius:12px;background:var(--lav);font:500 15px/1.4 var(--sans)}
 .dr-onphone{display:none}
 @media (max-width:820px),(pointer:coarse){.dr-onphone{display:block;margin:0 0 20px;padding:16px 18px;border-radius:18px;background:var(--btn);color:#fff!important;text-decoration:none;font:500 17px/1.4 var(--sans)}}
+
+/* Phone demo opened on a computer: draw it inside a phone so it reads as a phone.
+   transform makes the frame the containing block for fixed bars, sheets and toasts. */
+@media (pointer:fine) and (min-width:440px) and (min-height:700px){
+  html:has(.dp),html:has(.app.has-demo),body:has(.dp),body:has(.app.has-demo){background:radial-gradient(90% 60% at 20% 0%,#0F4C5C 0%,transparent 60%),radial-gradient(90% 70% at 100% 100%,#6E2A63 0%,transparent 65%),#1C1640;min-height:100vh;background-attachment:fixed}
+  body:has(.dp),body:has(.app.has-demo){padding:24px 0}
+  .dp,.app.has-demo{position:relative;width:390px;height:min(844px,calc(100vh - 48px));min-height:0;margin:0 auto;border-radius:54px;border:12px solid #0d0b18;outline:2px solid #3a3456;box-shadow:0 30px 70px rgba(0,0,0,.5);overflow:hidden;transform:translateZ(0)}
+  .dp::before,.app.has-demo::before{content:"";position:absolute;z-index:60;top:10px;left:50%;transform:translateX(-50%);width:108px;height:30px;border-radius:20px;background:#0d0b18}
+  .dp.dp-center{padding-top:56px}
+  .dp-top{padding-top:48px}
+  .dp-ctl{top:94px}
+  .dp-body{overflow-y:auto}
+  .has-demo .demo-back{top:48px}
+  .has-demo .hdr{padding-top:96px}
+  .has-demo .sheet{max-height:calc(100% - 56px)}
+}

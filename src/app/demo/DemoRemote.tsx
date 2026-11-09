@@ -182,7 +182,7 @@ export default function DemoRemote() {
           )}
           <a className="dr-link" href={phoneUrl} target="pickle-phone" onClick={(e) => {
             e.preventDefault();
-            window.open(phoneUrl, "pickle-phone", "width=400,height=860");
+            window.open(phoneUrl, "pickle-phone", "width=470,height=940");
           }}>
             No phone handy? Open the phone view in a window
           </a>

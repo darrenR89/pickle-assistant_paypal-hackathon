@@ -53,7 +53,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   const [wide, setWide] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 900px)");
-    const on = () => setWide(mq.matches);
+    const on = () => setWide(mq.matches && !demo);
     on();
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
