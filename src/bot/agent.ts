@@ -58,7 +58,7 @@ export type GroupContext = {
 
 const MENTION = /@(assistant|pickle\w*|bot)\b/i;
 const GAME_WORDS =
-  /\b(in|out|play(ing)?|spot|spots|court|courts|game|tonight|tomorrow|mon|tue|wed|thu|fri|sat|sun\w*|time|when|where|cancel|sub|swap|take my|waitlist|wait list|late|running|eta|who'?s|how many|price|cost|pay|paid|charge|refund|venmo|paypal|hold|partner|doubles|singles|level|park|parking|address|rain|weather|can'?t|cannot|make it|maybe|count me|\+1|bring|friend|guest|down|bail|sick|injured|hurt|tweaked|move|moving|push|reschedule|change|switch|later|earlier|\d{1,2}\s?(am|pm)|help|rain|rained|off)\b/i;
+  /\b(in|out|play(ing)?|spot|spots|court|courts|game|tonight|tomorrow|mon|tue|wed|thu|fri|sat|sun\w*|time|when|where|cancel|sub|swap|take my|waitlist|wait list|late|running|eta|who'?s|how many|price|cost|pay|paid|charge|refund|venmo|paypal|hold|partner|doubles|singles|level|park|parking|address|rain|weather|can'?t|cannot|make it|maybe|count me|\+1|bring|friend|guest|down|bail|sick|injured|hurt|tweaked|move|moving|push|reschedule|change|switch|later|earlier|\d{1,2}\s?(am|pm)|help|rain|rained|off|lights?|nets?|balls?|paddles?|bathrooms?|restrooms?|weather|forecast|smoke|still on)\b/i;
 
 /** Cheap filter so most chatter never reaches the model (cost and latency). */
 export function worthReading(text: string, assistantSpokeRecently: boolean) {
