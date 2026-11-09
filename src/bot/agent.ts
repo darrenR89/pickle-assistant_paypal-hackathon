@@ -110,7 +110,8 @@ async function withClaude(ctx: GroupContext, text: string): Promise<Decision> {
       "You are the assistant in a friends' pickleball group chat. You keep track of who's playing.",
       "Decide what the newest message means for the game by calling the decide tool once.",
       "Most messages are small talk: choose ignore. Only reply when it helps the group.",
-      "Never invent facts. If the facts below don't answer a question, use ask_organizer (it is passed to the organizer privately; leave reply empty).",
+      "Never invent facts. If the facts below don't answer a question about the game, use ask_organizer: it is passed to the organizer privately, so leave reply empty.",
+      "ask_organizer covers venue details (parking, lights, bathrooms, nets), equipment (balls, paddles), rules, and whether the game is still on (weather, rain, smoke). Skip it only when the message is already addressed to the organizer by name, or the organizer sent it.",
       "Never mention anyone's money, holds or charges in the group. Money questions about the sender's own payment are private_money.",
       "You cannot move money, refund, or change the game yourself. Changes and cancellations by the organizer are change_request or call_off.",
       "Replies: one or two short, friendly sentences, plain text, no emoji, no markdown. Use first names.",
@@ -143,7 +144,7 @@ async function withClaude(ctx: GroupContext, text: string): Promise<Decision> {
   const block = res.content.find((b) => b.type === "tool_use");
   if (!block || block.type !== "tool_use") throw new Error("no decision");
   const d = block.input as Partial<Decision>;
-  return {
+  const decision: Decision = {
     action: ACTIONS.includes(d.action as Action) ? (d.action as Action) : "ignore",
     target: d.target?.trim() || undefined,
     field: d.field,
@@ -152,6 +153,8 @@ async function withClaude(ctx: GroupContext, text: string): Promise<Decision> {
     confidence: typeof d.confidence === "number" ? d.confidence : 0.5,
     source: "claude",
   };
+  console.log("agent decision", JSON.stringify({ action: decision.action, confidence: decision.confidence, source: "claude" }));
+  return decision;
 }
 
 /** Works without an API key, and as a safety net if the model call fails. */
@@ -176,7 +179,7 @@ export function withRules(ctx: GroupContext, raw: string): Decision {
   if (/\b(can'?t|cannot|won'?t) (make|come|play)|\bi'?m out\b|^out\b|drop me|count me out|have to bail|bail(ing)?\b/.test(t)) return d("leave");
   if (/^(in|i'?m in|me|me too|count me in|\+1|i can play|i'?ll play|i'?m down|im down|down|i'?m there|i'?ll be there|sign me up)\b/.test(t)) return d("join");
   if (/\b(running|be) (\d+ (min|mins|minutes) )?late\b|\beta\b|on my way|omw/.test(t)) return d("ignore");
-  if (/\b(parking|ball|balls|bring|rules|dupr|level|lights|bathroom|water)\b.*\?/.test(t)) return d("ask_organizer");
+  if (/\b(parking|ball|balls|rules|dupr|lights|bathroom|nets?|rain|raining|weather|smoke|still on)\b/.test(t) && !/^alex\b/.test(t)) return d("ask_organizer");
   if (/\?/.test(t) && /\b(when|what time|where|who'?s|how many|spots|price|cost|cancel)\b/.test(t)) return d("answer");
   return d("ignore", { confidence: 0.6 });
 }
