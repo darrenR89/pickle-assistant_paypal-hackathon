@@ -14,8 +14,13 @@ export type Details = {
   setting?: "indoor" | "outdoor";
   courts?: string; // "Courts 3–4", as a label
   courtCount?: number;
+  /** "invite only" in plain English: the invite list is whoever is in the chat right now. */
+  inviteOnly?: boolean;
+  /** Optional: "just Sam, Priya and Jo" narrows it to those people. */
   invitees?: string[];
 };
+
+const NOT_NAMES = new Set(["Mon","Tue","Wed","Thu","Fri","Sat","Sun","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Today","Tonight","Tomorrow","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Sept","Oct","Nov","Dec","Court","Courts","Mixed","Singles","Doubles","Women","Men","Indoor","Outdoor","Invite","Only","Just","The","Us"]);
 
 export const KIND_LABEL: Record<Kind, string> = {
   mixed: "Mixed doubles",
@@ -74,8 +79,16 @@ export function extractDetails(text: string): Details {
     if (n) d.courtCount = WORDS[n[1].toLowerCase()] ?? Number(n[1]);
   }
 
-  const inv = text.match(/\b(?:invite[- ]only|just|only)\s*(?:for|with)?\s*:?\s*((?:[A-Z][a-z]+)(?:\s*(?:,|&|and)\s*(?:[A-Z][a-z]+))*)/);
-  if (inv) d.invitees = inv[1].split(/\s*(?:,|&|\band\b)\s*/).map((s) => s.trim()).filter(Boolean);
+  if (/\binvite[- ]only\b|\binvites? only\b|\bprivate game\b|\bjust (us|this group|the group|the crew)\b|\bmembers only\b/i.test(text)) d.inviteOnly = true;
+  // Names are optional. Only "just Sam, Priya and Jo" style lists count, and days or places never do.
+  const inv = text.match(/\b(?:just|only)\s+(?:for\s+|with\s+)?((?:[A-Z][a-z]+)(?:\s*(?:,|&|and)\s*(?:[A-Z][a-z]+))*)/);
+  if (inv) {
+    const names = inv[1].split(/\s*(?:,|&|\band\b)\s*/).map((s) => s.trim()).filter((s) => s && !NOT_NAMES.has(s));
+    if (names.length) {
+      d.invitees = names;
+      d.inviteOnly = true;
+    }
+  }
 
   return d;
 }
@@ -96,9 +109,10 @@ export function cleanPlace(place: string) {
     .replace(/\b(all levels|beginners?|intermediate|advanced)\b/gi, " ")
     .replace(/\b\d(?:\.\d)?\s*(?:hrs?|hours?)\b|\b\d{2,3}\s*(?:min|mins|minutes)\b/gi, " ")
     .replace(/\b(indoors?|outdoors?)\b/gi, " ")
-    .replace(/\b(?:invite[- ]only|just|only)\s*(?:for|with)?\s*:?\s*(?:[A-Z][a-z]+)(?:\s*(?:,|&|and)?\s*[A-Z][a-z]+)*/g, " ")
+    .replace(/\binvite[- ]only\b|\binvites? only\b|\bprivate game\b|\bjust (us|this group|the group|the crew)\b|\bmembers only\b/gi, " ")
+    .replace(/\b(?:just|only)\s+(?:for\s+|with\s+)?(?:[A-Z][a-z]+)(?:\s*(?:,|&|and)?\s*[A-Z][a-z]+)*/g, (m) => (/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/.test(m) ? m : " "))
     .replace(/(?:\s*[,·-]\s*){2,}/g, ", ")
     .replace(/\s{2,}/g, " ")
-    .replace(/^[\s,·-]+|[\s,·-]+$/g, "")
+    .replace(/^[\s,·:-]+|[\s,·:-]+$/g, "")
     .trim();
 }

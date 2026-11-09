@@ -300,12 +300,13 @@ async function createGame(groupId: string, organizerId: string, text: string) {
     if (e > startsAt) endsAt = e;
   }
 
-  // Invite-only: every name must be someone in this group.
+  // Invite-only. "invite only" alone means everyone in the chat right now; a name list narrows it.
   const groupPeople = await q<{ id: string; name: string }>(
     "select p.id, p.name from group_members m join people p on p.id = m.person_id where m.group_id = $1",
     [groupId],
   );
   const invited: Array<{ id: string; name: string }> = [];
+  if (parsed.inviteOnly && !parsed.invitees?.length) invited.push(...groupPeople.filter((p) => p.id !== organizerId));
   if (parsed.invitees?.length) {
     const unknown: string[] = [];
     for (const n of parsed.invitees) {
@@ -346,7 +347,11 @@ async function createGame(groupId: string, organizerId: string, text: string) {
   await postGroup(
     groupId,
     `${what}${whenLabel(startsAt)} · ${where} · ${spots} spots · ${money(share)} each, free cancel until ${whenLabel(cancelBy)}.` +
-      (invited.length ? ` Invite-only: ${listWords(invited.map((p) => p.name))}. Tap to play:` : " Tap to play:"),
+      (!invited.length
+        ? " Tap to play:"
+        : parsed.invitees?.length
+          ? ` Invite-only: ${listWords(invited.map((p) => p.name))}. Tap to play:`
+          : ` Invite-only for everyone in this chat. Anyone added later, ask ${organizer?.name ?? "the organizer"}. Tap to play:`),
     slug,
   );
   await postDm(
