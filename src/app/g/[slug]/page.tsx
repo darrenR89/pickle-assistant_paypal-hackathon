@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string; o?: string }>;
+  searchParams: Promise<{ p?: string; o?: string; demo?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -60,10 +60,10 @@ export type MeStatus = "none" | "in" | "out" | "late" | "charged" | "covered" | 
 
 export default async function GamePage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { p, o } = await searchParams;
+  const { p, o, demo } = await searchParams;
   const game = await getGame(slug);
   if (!game) notFound();
-  return <GameScreen view={await buildView(game, slug, p, o)} />;
+  return <GameScreen view={await buildView(game, slug, p, o)} demo={demo && /^grp_[a-f0-9]+$/.test(demo) ? demo : null} />;
 }
 
 async function buildView(game: Game, slug: string, p?: string, o?: string) {

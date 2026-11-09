@@ -103,6 +103,9 @@ alter table spots add column if not exists authorized_at timestamptz;
 alter table people add column if not exists texts_opt_in boolean not null default false;
 -- Demo groups made by /play. Testing shortcuts (simulated holds, moving the clock) only work on these.
 alter table groups add column if not exists playground boolean not null default false;
+-- Phone demo: who the phone is currently acting as, and the judge's name once their phone connects.
+alter table groups add column if not exists demo_viewer text;
+alter table groups add column if not exists demo_name text;
 alter table people add column if not exists texts_welcomed boolean not null default false;
 -- Binds a PayPal order to the game and person server-side, so the browser can't swap them.
 create table if not exists pending_orders (

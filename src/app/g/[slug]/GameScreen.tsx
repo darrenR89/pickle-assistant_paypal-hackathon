@@ -40,7 +40,7 @@ const money = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
 type Sheet = null | "who" | "join" | "placing" | "success" | "manage" | "cancel" | "explain" | "error" | "edit" | "more" | "settle" | "calloff";
 type ErrKind = "closed" | "declined" | "full" | "invite" | "other";
 
-export default function GameScreen({ view: v }: { view: ViewData }) {
+export default function GameScreen({ view: v, demo = null }: { view: ViewData; demo?: string | null }) {
   const router = useRouter();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [err, setErr] = useState<{ kind: ErrKind; text?: string } | null>(null);
@@ -373,7 +373,12 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   }
 
   return (
-    <div className="app">
+    <div className={demo ? "app has-demo" : "app"}>
+      {demo && (
+        <a className="demo-back" href={`/demo/${demo}/phone`}>
+          ‹ Chat
+        </a>
+      )}
       {header}
       <main className="scroll">
         <div className="content">
