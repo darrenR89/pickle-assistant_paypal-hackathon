@@ -11,6 +11,7 @@ import {
   gameUrl,
   getGame,
   holdCents,
+  inviteeNames,
   isInvited,
   inPlayers,
   isBeforeCancelBy,
@@ -23,7 +24,7 @@ import {
   whenLabel,
 } from "@/lib/games";
 import { captureAuthorization, voidAuthorization } from "@/lib/paypal";
-import { parseGameRequest } from "./parse";
+import { parseGameRequest, zonedTime } from "./parse";
 import { type Decision, type GroupContext, buildContext, resolveMember, understand, worthReading } from "./agent";
 import { KIND_LABEL, perCourt } from "./details";
 
@@ -253,9 +254,6 @@ export async function spotOfferFor(gameId: string, personId: string) {
 async function createGame(groupId: string, organizerId: string, text: string) {
   const organizer = await personById(organizerId);
   const parsed = await parseGameRequest(text);
-  // Decide what's missing from the values themselves, not from the model's list.
-  const missing = new Set<string>();
-  if (!parsed.startsAt) missing.add("starts_at");
   // Spots and courts imply each other: 2 courts of doubles is 8 players, 8 players of singles is 4 courts.
   const each = perCourt(parsed.kind);
   let spotsNote = "";
@@ -268,29 +266,26 @@ async function createGame(groupId: string, organizerId: string, text: string) {
   } else if (parsed.spots && parsed.courtCount && parsed.spots > parsed.courtCount * each) {
     spotsNote = `${parsed.spots} players on ${parsed.courtCount} court${parsed.courtCount === 1 ? "" : "s"} means ${parsed.spots - parsed.courtCount * each} sit out each round.`;
   }
-  if (!parsed.spots) missing.add("spots");
-  if (!parsed.priceCents) missing.add("price");
-  if (!parsed.place) missing.add("place");
-
-  if (missing.size) {
-    const words: Record<string, string> = {
-      starts_at: "when",
-      place: "where",
-      spots: "how many spots (or how many courts)",
-      price: "the court cost",
-    };
-    const ask = [...missing].map((m) => words[m] ?? m);
-    await postGroup(
-      groupId,
-      `${organizer?.name ?? "Hey"}, I can set that up. I just need ${listWords(ask)}. ` +
-        `For example: "@Assistant Thu 6pm Riverside courts 3–4, 8 spots, $64"`,
-    );
-    return;
+  // Prefill what we can. No spot or court count: assume 2 courts.
+  if (!parsed.spots) {
+    parsed.spots = 2 * each;
+    spotsNote = `I put ${parsed.spots} spots, for 2 courts of ${parsed.kind === "singles" ? "singles" : "doubles"}.`;
   }
+  // Anything the organizer didn't say that we can't guess: when, where, the court cost.
+  // Then the game starts as a draft, and the link only goes to the group once those are in.
+  const needs: string[] = [];
+  if (!parsed.startsAt || !parsed.timeGiven) needs.push("when");
+  if (!parsed.place) needs.push("place");
+  if (!parsed.priceCents) needs.push("price");
+  // Drafts the organizer abandoned in this chat give way to the new request.
+  await q("update games set status = 'cancelled' where group_id = $1 and organizer_id = $2 and status = 'draft'", [groupId, organizerId]);
 
-  const spots = parsed.spots!;
-  const startsAt = parsed.startsAt!;
-  const total = parsed.priceIsTotal ? parsed.priceCents! : parsed.priceCents! * spots;
+  const spots = parsed.spots;
+  // A day without a time gets a 6pm placeholder; nothing at all gets tomorrow at 6pm.
+  const startsAt = parsed.startsAt && parsed.timeGiven
+    ? parsed.startsAt
+    : sixPm(parsed.startsAt && parsed.dayGiven ? parsed.startsAt : new Date(Date.now() + 86400_000));
+  const total = !parsed.priceCents ? 0 : parsed.priceIsTotal ? parsed.priceCents : parsed.priceCents * spots;
   const share = Math.ceil(total / spots);
   const kind = parsed.kind ?? null;
   const partners = kind && kind !== "singles" ? (parsed.partners ?? "rotating") : null;
@@ -329,10 +324,10 @@ async function createGame(groupId: string, organizerId: string, text: string) {
 
   await q(
     `insert into games (id, slug, group_id, organizer_id, starts_at, place, spots, total_cents, share_cents,
-       cap_cents, cancel_by, organizer_token, address, kind, partners, level, ends_at, setting, courts, invite_only)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
-    [gameId, slug, groupId, organizerId, startsAt, parsed.place, spots, total, share, DEFAULT_CAP_CENTS, cancelBy, organizerToken,
-      parsed.address ?? null, kind, partners, parsed.level ?? null, endsAt, parsed.setting ?? null, parsed.courts ?? null, invited.length > 0],
+       cap_cents, cancel_by, organizer_token, address, kind, partners, level, ends_at, setting, courts, invite_only, status, needs)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+    [gameId, slug, groupId, organizerId, startsAt, parsed.place ?? "", spots, total, share, DEFAULT_CAP_CENTS, cancelBy, organizerToken,
+      parsed.address ?? null, kind, partners, parsed.level ?? null, endsAt, parsed.setting ?? null, parsed.courts ?? null, invited.length > 0, needs.length ? "draft" : "open", needs],
   );
   // The organizer is automatically in. They paid the court, so they don't need a hold.
   await q(
@@ -345,18 +340,21 @@ async function createGame(groupId: string, organizerId: string, text: string) {
   await logEvent(gameId, organizerId, "created", { text, invited: invited.map((p) => p.name) });
 
   const game = (await getGame(slug))!;
-  const where = [game.place, game.courts?.toLowerCase()].filter(Boolean).join(" ");
-  const what = kind ? `${KIND_LABEL[kind]} · ` : "";
-  await postGroup(
-    groupId,
-    `${what}${whenLabel(startsAt)} · ${where} · ${spots} spots · ${money(share)} each, free cancel until ${whenLabel(cancelBy)}.` +
-      (!invited.length
-        ? " Tap to play:"
-        : parsed.invitees?.length
-          ? ` Invite-only: ${listWords(invited.map((p) => p.name))}. Tap to play:`
-          : ` Invite-only for everyone in this chat. Anyone added later, ask ${organizer?.name ?? "the organizer"}. Tap to play:`),
-    slug,
-  );
+  if (needs.length) {
+    const day = parsed.dayGiven && parsed.startsAt ? dayName(startsAt) : null;
+    await postGroup(groupId, `On it. ${organizer?.name ?? "The organizer"} is finishing the details${day ? ` for ${day}` : ""}, then I'll post the game here.`);
+    await postDm(
+      groupId,
+      organizerId,
+      `I started your game${day ? ` for ${day}` : ""} and filled in what I could.` +
+        (spotsNote ? ` ${spotsNote}` : "") +
+        ` Add ${listWords(needs.map((n) => NEED_WORDS[n] ?? n))} here and I'll post it to the group:`,
+      `${slug}?o=${organizerToken}`,
+      { always: true },
+    );
+    return;
+  }
+  await announce(game);
   await postDm(
     groupId,
     organizerId,
@@ -365,6 +363,37 @@ async function createGame(groupId: string, organizerId: string, text: string) {
       ` Change anything here (only you can see this link):`,
     `${slug}?o=${organizerToken}`,
     { always: true },
+  );
+}
+
+const NEED_WORDS: Record<string, string> = { when: "the time", place: "where you're playing", price: "the court cost" };
+
+function sixPm(d: Date) {
+  const [m, day, y] = d.toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", year: "numeric", month: "numeric", day: "numeric" }).split("/").map(Number);
+  return zonedTime(y, m, day, 18, 0);
+}
+function dayName(d: Date) {
+  return d.toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long" });
+}
+
+/** Post the game link to the group. */
+async function announce(game: Game) {
+  const organizer = await personById(game.organizer_id);
+  const host = organizer?.name ?? "the organizer";
+  const where = [game.place, game.courts?.toLowerCase()].filter(Boolean).join(" ");
+  const what = game.kind ? `${KIND_LABEL[game.kind]} · ` : "";
+  let tail = " Tap to play:";
+  if (game.invite_only) {
+    const names = await inviteeNames(game.id);
+    const members = await one<{ n: number }>("select count(*)::int as n from group_members where group_id = $1", [game.group_id]);
+    tail = names.length >= (members?.n ?? 1) - 1
+      ? ` Invite-only for everyone in this chat. Anyone added later, ask ${host}. Tap to play:`
+      : ` Invite-only: ${listWords(names)}. Tap to play:`;
+  }
+  await postGroup(
+    game.group_id,
+    `${what}${whenLabel(game.starts_at)} · ${where} · ${game.spots} spots · ${money(game.share_cents)} each, free cancel until ${whenLabel(game.cancel_by)}.${tail}`,
+    game.slug,
   );
 }
 
@@ -560,6 +589,7 @@ export async function nudgeUnfinished(game: Game) {
 // ---------- terms ----------
 
 export type TermsChange = {
+  startsAt?: Date;
   cancelBy?: Date;
   capCents?: number;
   totalCents?: number;
@@ -576,8 +606,18 @@ export type TermsChange = {
 export async function updateTerms(game: Game, change: TermsChange) {
   const entries = await roster(game.id);
   const playersHolding = entries.some((e) => e.hold_status === "held");
+  const draft = game.status === "draft";
+  const oldStart = new Date(game.starts_at);
+  const startsAt = change.startsAt ?? oldStart;
+  const moved = startsAt.getTime() - oldStart.getTime();
+  if (moved) {
+    // Moving the game moves its end too. Free cancel moves with it, but never earlier for people already in.
+    const endsAt = game.ends_at ? new Date(new Date(game.ends_at).getTime() + moved) : null;
+    await q("update games set starts_at = $2, ends_at = $3, gameday_reminder_sent = false where id = $1", [game.id, startsAt, endsAt]);
+  }
+  const shiftedCancel = new Date(new Date(game.cancel_by).getTime() + (moved > 0 || !playersHolding ? moved : 0));
   const next = {
-    cancelBy: change.cancelBy ?? new Date(game.cancel_by),
+    cancelBy: change.cancelBy ?? (draft ? new Date(startsAt.getTime() - CANCEL_BY_HOURS * 3600_000) : shiftedCancel),
     capCents: change.capCents ?? game.cap_cents,
     totalCents: change.totalCents ?? game.total_cents,
     spots: change.spots ?? game.spots,
@@ -620,6 +660,20 @@ export async function updateTerms(game: Game, change: TermsChange) {
   if (partners !== game.partners && partners) parts.push(partners === "fixed" ? "partners are fixed" : "partners rotate each round");
   if (level !== game.level && level) parts.push(`level ${level}`);
   if (next.capCents !== game.cap_cents) parts.push(`short-game extra is now up to ${money(next.capCents)}`);
+  if (draft) {
+    // Still a draft: tick off what the organizer filled in, and post the game once nothing's missing.
+    const needs = game.needs.filter((n) => !(n === "when" && change.startsAt) && !(n === "place" && place) && !(n === "price" && next.totalCents > 0));
+    await q("update games set needs = $2 where id = $1", [game.id, needs]);
+    if (!needs.length) {
+      const posted = await q("update games set status = 'open' where id = $1 and status = 'draft' returning id", [game.id]);
+      if (posted.length) {
+        await announce((await getGame(game.slug))!);
+        await postDm(game.group_id, game.organizer_id, "Your game is posted in the group.", undefined, { always: true });
+      }
+    }
+    return;
+  }
+  if (moved) parts.unshift(`moved to ${whenLabel(startsAt)}`);
   if (parts.length) await postGroup(game.group_id, `Update: ${parts.join(", ")}.`, game.slug);
 }
 
@@ -689,6 +743,11 @@ async function settleClaimed(game: Game) {
 }
 
 export async function cancelGame(game: Game) {
+  if (game.status === "draft") {
+    // Never posted, so there's nothing to tell the group.
+    await q("update games set status = 'cancelled' where id = $1", [game.id]);
+    return;
+  }
   if (game.status !== "open") return;
   const entries = await roster(game.id);
   for (const e of entries.filter((x) => x.hold_status === "held" && x.authorization_id)) {

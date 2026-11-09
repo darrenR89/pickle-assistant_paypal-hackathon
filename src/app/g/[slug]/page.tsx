@@ -137,7 +137,13 @@ async function organizerData(game: Game) {
   const cancelLocal = fmt(new Date(game.cancel_by), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const [d, t] = cancelLocal.split(", ");
   const [mm, dd, yyyy] = d.split("/");
+  const startLocal = fmt(new Date(game.starts_at), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const [sd, st] = startLocal.split(", ");
+  const [smm, sdd, syyyy] = sd.split("/");
   return {
+    needs: game.needs ?? [],
+    startDate: `${syyyy}-${smm}-${sdd}`,
+    startTime: st,
     totalCents: game.total_cents,
     sharesInCents: Math.min(playing.length * game.share_cents, game.total_cents),
     heldCents: held,

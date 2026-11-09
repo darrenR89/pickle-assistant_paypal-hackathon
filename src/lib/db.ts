@@ -91,6 +91,8 @@ alter table games add column if not exists ends_at timestamptz;
 alter table games add column if not exists setting text;
 alter table games add column if not exists courts text;
 alter table games add column if not exists invite_only boolean not null default false;
+-- A draft game is waiting on the organizer for these (when, place, price) before it's posted.
+alter table games add column if not exists needs text[] not null default '{}';
 create table if not exists invites (
   game_id text not null,
   person_id text not null,

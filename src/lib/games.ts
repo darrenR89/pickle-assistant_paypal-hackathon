@@ -19,6 +19,7 @@ export type Game = {
   /** Court label, e.g. "Courts 3–4". `place` is the venue name. */
   courts: string | null;
   invite_only: boolean;
+  needs: string[];
   spots: number;
   total_cents: number;
   share_cents: number;
@@ -26,7 +27,7 @@ export type Game = {
   cancel_by: Date;
   organizer_pays: boolean;
   organizer_token: string;
-  status: "open" | "settling" | "cancelled" | "settled";
+  status: "draft" | "open" | "settling" | "cancelled" | "settled";
   cancel_reminder_sent: boolean;
   gameday_reminder_sent: boolean;
   created_at: Date;

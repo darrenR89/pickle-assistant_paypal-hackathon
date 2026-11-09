@@ -10,6 +10,9 @@ export type ParsedGame = {
   priceCents?: number;
   priceIsTotal?: boolean;
   missing: string[];
+  /** The message named a clock time ("6pm", "6:30", "at 6"). Without one, starts_at is only a guess. */
+  timeGiven?: boolean;
+  dayGiven?: boolean;
 } & Details;
 
 const MODEL = "claude-haiku-5-5";
@@ -32,7 +35,11 @@ export async function parseGameRequest(text: string, now = new Date()): Promise<
   let place = base.place ? cleanPlace(base.place) || base.place : undefined;
   // "Riverside 2 courts" can leave a stray count behind once "courts" is gone.
   if (place && details.courtCount && !details.courts) place = place.replace(new RegExp(`\\s+${details.courtCount}$`), "").trim();
-  return { ...base, ...details, place };
+  // Cleaning can leave nothing when the message had no place at all ("let's play Thursday").
+  if (base.place && !cleanPlace(base.place)) place = undefined;
+  const timeGiven = /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b|\bat\s+\d{1,2}\b|\b(noon|midday)\b|\b\d{1,2}\s*(-|–|to)\s*\d{1,2}\b/i.test(cleaned);
+  const dayGiven = /\b(today|tonight|tomorrow|sun|mon|tue|wed|thu|fri|sat)[a-z]*\b|\b\d{1,2}\/\d{1,2}\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}\b/i.test(cleaned);
+  return { ...base, ...details, place, timeGiven, dayGiven };
 }
 
 async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {

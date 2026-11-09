@@ -49,6 +49,15 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   const [busy, setBusy] = useState(false);
   const [formErr, setFormErr] = useState<string | null>(null);
   const [fund, setFund] = useState<"paypal" | "venmo">("paypal");
+  // On a computer the bottom bar becomes the right-hand column.
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 900px)");
+    const on = () => setWide(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
   const org = v.organizer;
   const [asked, setAsked] = useState(v.asked);
   async function askToJoin() {
@@ -59,6 +68,10 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
     }
   }
 
+  const draft = v.status === "draft";
+  const needs = org?.needs ?? [];
+  const NEED: Record<string, string> = { when: "the time", place: "where you’re playing", price: "the court cost" };
+  const needWords = listWords(needs.map((n) => NEED[n] ?? n));
   const count = v.players.length;
   const left = Math.max(0, v.spots - count);
   const iAmIn = v.me === "in" || v.me === "paid";
@@ -125,10 +138,16 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
           </>
         )}
       </div>
-      <h1 className="timerow" aria-label={`${v.clock} ${v.meridiem}`} style={{ margin: 0 }}>
-        <span className={`time${v.clock.length > 4 ? " long" : ""}`}>{v.clock}</span>
-        <span className="pm">{v.meridiem}</span>
-      </h1>
+      {draft && needs.includes("when") ? (
+        <h1 className="timerow" aria-label="Time not set yet" style={{ margin: 0 }}>
+          <span className="time" style={{ fontSize: "clamp(64px, 18vw, 120px)", opacity: 0.55, padding: "18px 0 6px" }}>Time?</span>
+        </h1>
+      ) : (
+        <h1 className="timerow" aria-label={`${v.clock} ${v.meridiem}`} style={{ margin: 0 }}>
+          <span className={`time${v.clock.length > 4 ? " long" : ""}`}>{v.clock}</span>
+          <span className="pm">{v.meridiem}</span>
+        </h1>
+      )}
       {v.facts && <span className="facts">{v.facts}</span>}
       {flag && <span className="flag">{flag}</span>}
     </header>
@@ -145,7 +164,7 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   const segs = Array.from({ length: v.spots }, (_, i) => (
     <span key={i} className={i < count ? "on" : i < count + sharesLate.length ? "late" : ""} />
   ));
-  const playersTitle = v.status === "cancelled" ? `${count} were in` : v.status !== "open" || v.over ? `${count} played` : left === 0 ? "Game’s full" : `${left} spot${left === 1 ? "" : "s"} left`;
+  const playersTitle = v.status === "cancelled" ? `${count} were in` : v.status === "draft" ? `${v.spots} spots` : v.status !== "open" || v.over ? `${count} played` : left === 0 ? "Game’s full" : `${left} spot${left === 1 ? "" : "s"} left`;
 
   const playersCard = (
     <section className="card half tall" aria-label="Players">
@@ -205,10 +224,18 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
         <Icon name="pin" />
         <div className="tx">
           <div className="line">
-            <span className="ttl">{v.courts ?? v.place}</span>
-            <a className="lnk" href={v.mapsUrl} target="_blank" rel="noreferrer">
-              Open in Maps <Icon name="ext" size={18} />
-            </a>
+            <span className="ttl">{v.courts ?? (v.place || "Where are you playing?")}</span>
+            {v.place ? (
+              <a className="lnk" href={v.mapsUrl} target="_blank" rel="noreferrer">
+                Open in Maps <Icon name="ext" size={18} />
+              </a>
+            ) : (
+              org && (
+                <button className="lnk" style={{ background: "none", border: "none", padding: 0 }} onClick={() => { setFormErr(null); setSheet("edit"); }}>
+                  Add
+                </button>
+              )
+            )}
           </div>
           {v.courts && <span className="strong">{v.place}</span>}
           {v.address && <span className="sub">{v.address}</span>}
@@ -243,6 +270,19 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   );
 
   const notices: React.ReactNode[] = [];
+  if (draft && !org)
+    notices.push(<Notice key="dn" tone="lav" icon="alert" title="Not posted yet" body={`${v.hostName} is still setting this game up. You’ll get the link in the group when it’s ready.`} />);
+  if (draft && org)
+    notices.push(
+      <Notice
+        key="d"
+        tone="lav"
+        icon="alert"
+        title="Not posted yet"
+        body={`Add ${needWords} and I’ll post the game to the group. Nobody sees it until then.`}
+        action={{ label: "Add details", onClick: () => { setFormErr(null); setSheet("edit"); } }}
+      />,
+    );
   if (v.status === "cancelled")
     notices.push(
       <Notice key="c" tone="lav" icon="alert" title={`${v.hostName} called off this game`} body={org ? "Every hold was released. Nobody was charged." : "Any hold you had was released. Nobody was charged."} />,
@@ -278,7 +318,9 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
 
   // ---------- bottom bar ----------
   let bar: React.ReactNode = null;
-  if (org && v.status === "open") {
+  if (org && draft) {
+    // The notice at the top carries the one action.
+  } else if (org && v.status === "open") {
     bar = (
       <nav className="bar" aria-label="Organizer actions" style={{ padding: "12px 12px calc(18px + env(safe-area-inset-bottom))" }}>
         <div className="orgbar" style={{ padding: 0, width: "100%" }}>
@@ -334,8 +376,9 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
     <div className="app">
       {header}
       <main className="scroll">
+        <div className="content">
         {notices}
-        {org && (
+        {org && !draft && (
           <OrganizerCard
             v={v}
             busy={busy}
@@ -347,9 +390,11 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
         )}
         {playersCard}
         {locationCard}
-        {(!org || v.status === "open") && moneyCard}
+        {(!org || v.status === "open" || (draft && !needs.includes("price"))) && moneyCard}
+        </div>
+        {wide && bar && <aside className="rail">{bar}</aside>}
       </main>
-      {bar}
+      {!wide && bar}
 
       {sheet && (
         <div className="scrim" onClick={(e) => e.target === e.currentTarget && sheet !== "placing" && setSheet(null)}>
@@ -441,7 +486,7 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
               </>
             )}
             {sheet === "error" && err && <ErrorSheet err={err} v={v} retry={() => { setErr(null); setSheet("join"); }} close={() => setSheet(null)} />}
-            {sheet === "edit" && org && <EditSheet v={v} busy={busy} formErr={formErr} save={async (body) => { if (await organizerAct("terms", body)) { setSheet(null); setToast("Saved. The group got an update."); } }} close={() => setSheet(null)} />}
+            {sheet === "edit" && org && <EditSheet v={v} busy={busy} formErr={formErr} save={async (body) => { if (await organizerAct("terms", body)) { setSheet(null); setToast(draft ? "Posted to the group." : "Saved. The group got an update."); } }} close={() => setSheet(null)} />}
             {sheet === "more" && org && (
               <>
                 <SheetHead title="More" close={() => setSheet(null)} />
@@ -834,6 +879,7 @@ function OrganizerCard({ v, onLate, onInvite, busy }: { v: ViewData; onLate: (sp
 
 function EditSheet({ v, busy, formErr, save, close }: { v: ViewData; busy: boolean; formErr: string | null; save: (b: Record<string, unknown>) => void; close: () => void }) {
   const org = v.organizer!;
+  const draft = v.status === "draft";
   const ref = useRef<HTMLFormElement>(null);
   return (
     <form
@@ -843,6 +889,7 @@ function EditSheet({ v, busy, formErr, save, close }: { v: ViewData; busy: boole
         const f = new FormData(e.currentTarget);
         const g = (k: string) => String(f.get(k) ?? "");
         save({
+          startsAt: g("date") && g("time") ? `${g("date")}T${g("time")}` : undefined,
           place: g("place"),
           courts: g("courts"),
           address: g("address"),
@@ -850,7 +897,7 @@ function EditSheet({ v, busy, formErr, save, close }: { v: ViewData; busy: boole
           partners: g("partners") || undefined,
           level: g("level"),
           setting: g("setting") || undefined,
-          cancelBy: g("cancelBy"),
+          cancelBy: g("cancelBy") || undefined,
           spots: Number(g("spots")),
           totalCents: Math.round(Number(g("total")) * 100),
           capCents: Math.round(Number(g("cap")) * 100),
@@ -858,9 +905,17 @@ function EditSheet({ v, busy, formErr, save, close }: { v: ViewData; busy: boole
       }}
       style={{ display: "contents" }}
     >
-      <SheetHead title="Edit the game" close={close} />
-      <p className="sh-p">Once someone is in, money changes can only help players. Where and what kind of game can change any time.</p>
+      <SheetHead title={draft ? "Finish the game" : "Edit the game"} close={close} />
+      <p className="sh-p">
+        {draft
+          ? "I filled in what I could from the chat. Check it, add what’s missing, and I’ll post it to the group."
+          : "Once someone is in, money changes can only help players. Where and what kind of game can change any time."}
+      </p>
       <div style={{ display: "grid", gap: 12, margin: "0 8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <label className="field">Day<input name="date" type="date" defaultValue={org.startDate} required /></label>
+          <label className="field">Start time<input name="time" type="time" defaultValue={draft && org.needs.includes("when") ? "" : org.startTime} required autoFocus={draft && org.needs.includes("when")} /></label>
+        </div>
         <label className="field">Place name<input name="place" defaultValue={v.place} required /></label>
         <label className="field">Courts (optional)<input name="courts" defaultValue={v.courts ?? ""} placeholder="e.g. Courts 3–4" /></label>
         <label className="field">Street address<input name="address" defaultValue={v.address ?? ""} autoComplete="street-address" /></label>
@@ -891,15 +946,19 @@ function EditSheet({ v, busy, formErr, save, close }: { v: ViewData; busy: boole
             <option value="indoor">Indoor</option>
           </select>
         </label>
-        <label className="field">Free cancel until<input name="cancelBy" type="datetime-local" defaultValue={org.cancelByLocal} /></label>
+        {!draft && <label className="field">Free cancel until<input name="cancelBy" type="datetime-local" defaultValue={org.cancelByLocal} /></label>}
         <label className="field">Spots<input name="spots" type="number" min={2} max={32} defaultValue={v.spots} /></label>
-        <label className="field">Court cost ($)<input name="total" type="number" min={0} step="0.01" defaultValue={org.totalCents / 100} /></label>
+        <label className="field">Court cost, total ($)<input name="total" type="number" min={draft ? 1 : 0} step="0.01" defaultValue={org.totalCents ? org.totalCents / 100 : ""} required={draft} /></label>
         <label className="field">Short-game extra, up to ($)<input name="cap" type="number" min={0} step="0.01" defaultValue={v.capCents / 100} /></label>
       </div>
       {formErr && <p className="err" style={{ margin: "0 8px" }} role="alert">{formErr}</p>}
       <div style={{ margin: "0 4px" }}>
-        <button className="cta wide" disabled={busy}>Save changes</button>
+        <button className="cta wide" disabled={busy}>{draft ? "Post to the group" : "Save changes"}</button>
       </div>
     </form>
   );
+}
+
+function listWords(xs: string[]) {
+  return xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
 }

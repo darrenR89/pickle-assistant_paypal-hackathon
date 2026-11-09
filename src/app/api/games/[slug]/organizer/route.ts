@@ -12,6 +12,7 @@ type Body = {
   spotId?: string;
   decision?: "charge" | "cover";
   cancelBy?: string; // "YYYY-MM-DDTHH:mm" in the game's time zone
+  startsAt?: string; // same format
   capCents?: number;
   totalCents?: number;
   spots?: number;
@@ -33,7 +34,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     if (!game || !body.o || body.o !== game.organizer_token) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (game.status !== "open") return NextResponse.json({ error: "This game is already closed" }, { status: 409 });
+    if (game.status === "draft" && !["terms", "cancel"].includes(body.action ?? ""))
+      return NextResponse.json({ error: "Add the missing details first" }, { status: 409 });
+    if (game.status !== "open" && game.status !== "draft") return NextResponse.json({ error: "This game is already closed" }, { status: 409 });
 
     switch (body.action) {
       case "nudge":
@@ -65,8 +68,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
           if (!m) return NextResponse.json({ error: "Bad cancel-by time" }, { status: 400 });
           cancelBy = zonedTime(+m[1], +m[2], +m[3], +m[4], +m[5]);
         }
+        let startsAt: Date | undefined;
+        if (body.startsAt) {
+          const m = body.startsAt.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+          if (!m) return NextResponse.json({ error: "Bad start time" }, { status: 400 });
+          startsAt = zonedTime(+m[1], +m[2], +m[3], +m[4], +m[5]);
+          if (startsAt.getTime() < Date.now()) return NextResponse.json({ error: "That time has already passed" }, { status: 400 });
+          if (game.status !== "draft" && startsAt.getTime() === new Date(game.starts_at).getTime()) startsAt = undefined;
+        }
         try {
           await updateTerms(game, {
+            startsAt,
             cancelBy,
             capCents: num(body.capCents),
             totalCents: num(body.totalCents),

@@ -31,11 +31,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       if (!game) continue;
       const playing = inPlayers(await roster(game.id));
       cards[slug] = {
-        when: shortWhen(new Date(game.starts_at)),
+        when: game.status === "draft" && game.needs?.includes("when") ? "Draft" : shortWhen(new Date(game.starts_at)),
         spots: `${playing.length}/${game.spots}`,
-        title: `${whenLabel(game.starts_at)} · ${game.place}`,
+        title: game.status === "draft" ? `${game.place || "New game"} · details needed` : `${whenLabel(game.starts_at)} · ${game.place}`,
         subtitle:
-          game.status === "open"
+          game.status === "draft"
+            ? "Not posted yet · organizer view"
+            : game.status === "open"
             ? `${playing.length} of ${game.spots} in · ${money(game.share_cents)} each`
             : game.status === "settled"
               ? "Played and settled"

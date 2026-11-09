@@ -264,7 +264,7 @@ export default function Playground({ groupId }: { groupId: string }) {
           ))}
 
           <div className="sim-field">
-            <span className="sim-label">Game {data.game ? `· ${data.game.when}` : ""}</span>
+            <span className="sim-label">Game {data.game ? (data.game.status === "draft" ? "· not posted yet" : `· ${data.game.when}`) : ""}</span>
             {data.game ? (
               <>
                 <a className="sim-btn ghost" href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">
