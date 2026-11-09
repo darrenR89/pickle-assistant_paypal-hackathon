@@ -179,7 +179,7 @@ export function withRules(ctx: GroupContext, raw: string): Decision {
   if (/\b(can'?t|cannot|won'?t) (make|come|play)|\bi'?m out\b|^out\b|drop me|count me out|have to bail|bail(ing)?\b/.test(t)) return d("leave");
   if (/^(in|i'?m in|me|me too|count me in|\+1|i can play|i'?ll play|i'?m down|im down|down|i'?m there|i'?ll be there|sign me up)\b/.test(t)) return d("join");
   if (/\b(running|be) (\d+ (min|mins|minutes) )?late\b|\beta\b|on my way|omw/.test(t)) return d("ignore");
-  if (/\b(parking|ball|balls|rules|dupr|lights|bathroom|nets?|rain|raining|weather|smoke|still on)\b/.test(t) && !/^alex\b/.test(t)) return d("ask_organizer");
+  if (/\b(parking|ball|balls|rules|dupr|lights|bathroom|nets?|rain|raining|weather|smoke|still on)\b/.test(t) && !ctx.isOrganizer) return d("ask_organizer");
   if (/\?/.test(t) && /\b(when|what time|where|who'?s|how many|spots|price|cost|cancel)\b/.test(t)) return d("answer");
   return d("ignore", { confidence: 0.6 });
 }
