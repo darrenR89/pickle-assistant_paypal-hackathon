@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getGame } from "@/lib/games";
-import { zonedTime } from "@/bot/parse";
+import { toHalfHour, zonedTime } from "@/bot/parse";
 import { cancelGame, declineInvite, grantInvite, nudgeUnfinished, resolveLateCancel, settleGame, updateTerms } from "@/bot/assistant";
 import { one } from "@/lib/db";
 import { errorResponse } from "@/lib/http";
@@ -72,7 +72,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         if (body.startsAt) {
           const m = body.startsAt.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
           if (!m) return NextResponse.json({ error: "Bad start time" }, { status: 400 });
-          startsAt = zonedTime(+m[1], +m[2], +m[3], +m[4], +m[5]);
+          startsAt = toHalfHour(zonedTime(+m[1], +m[2], +m[3], +m[4], +m[5]));
           if (startsAt.getTime() < Date.now()) return NextResponse.json({ error: "That time has already passed" }, { status: 400 });
           if (game.status !== "draft" && startsAt.getTime() === new Date(game.starts_at).getTime()) startsAt = undefined;
         }

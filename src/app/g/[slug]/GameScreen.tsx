@@ -919,7 +919,7 @@ function EditSheet({ v, busy, formErr, save, close }: { v: ViewData; busy: boole
       <div style={{ display: "grid", gap: 12, margin: "0 8px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label className="field">Day<input name="date" type="date" defaultValue={org.startDate} required /></label>
-          <label className="field">Start time<input name="time" type="time" defaultValue={draft && org.needs.includes("when") ? "" : org.startTime} required autoFocus={draft && org.needs.includes("when")} /></label>
+          <label className="field">Start time<input name="time" type="time" step={1800} defaultValue={draft && org.needs.includes("when") ? "" : org.startTime} required autoFocus={draft && org.needs.includes("when")} /></label>
         </div>
         <label className="field">Place name<input name="place" defaultValue={v.place} required /></label>
         <label className="field">Courts (optional)<input name="courts" defaultValue={v.courts ?? ""} placeholder="e.g. Courts 3–4" /></label>

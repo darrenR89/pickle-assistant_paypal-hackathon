@@ -39,7 +39,7 @@ export async function parseGameRequest(text: string, now = new Date()): Promise<
   if (base.place && !cleanPlace(base.place)) place = undefined;
   const timeGiven = /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b|\bat\s+\d{1,2}\b|\b(noon|midday)\b|\b\d{1,2}\s*(-|–|to)\s*\d{1,2}\b/i.test(cleaned);
   const dayGiven = /\b(today|tonight|tomorrow|sun|mon|tue|wed|thu|fri|sat)[a-z]*\b|\b\d{1,2}\/\d{1,2}\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}\b/i.test(cleaned);
-  return { ...base, ...details, place, timeGiven, dayGiven };
+  return { ...base, ...details, place, timeGiven, dayGiven, startsAt: base.startsAt && toHalfHour(base.startsAt) };
 }
 
 async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {
@@ -186,6 +186,13 @@ function localParts(d: Date) {
 }
 
 /** A wall-clock time in TZ as a real Date. */
+/** Games start on the hour or half hour. (Pacific offsets are whole hours, so rounding in UTC is safe.) */
+export function toHalfHour(d: Date, mode: "nearest" | "floor" = "nearest") {
+  const step = 30 * 60_000;
+  const t = d.getTime();
+  return new Date(mode === "floor" ? Math.floor(t / step) * step : Math.round(t / step) * step);
+}
+
 export function zonedTime(year: number, month: number, day: number, hour: number, minute: number) {
   const guess = new Date(Date.UTC(year, month - 1, day, hour, minute));
   const asLocal = new Date(guess.toLocaleString("en-US", { timeZone: TZ }));

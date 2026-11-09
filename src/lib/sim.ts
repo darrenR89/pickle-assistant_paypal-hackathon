@@ -6,6 +6,7 @@ import { newToken, one, q } from "./db";
 import { type Game, holdCents, inPlayers, isInvited, logEvent, roster, whenLabel } from "./games";
 import { newSimulatedAuthorization } from "./paypal";
 import { nudgeUnfinished, playerJoined, postGroup, settleGame, spotOfferFor } from "@/bot/assistant";
+import { toHalfHour } from "@/bot/parse";
 
 const HOUR = 3_600_000;
 
@@ -52,7 +53,8 @@ export type ClockMode = "before" | "gameday" | "soon" | "over";
 export async function moveClock(game: Game, mode: ClockMode) {
   const len = game.ends_at ? new Date(game.ends_at).getTime() - new Date(game.starts_at).getTime() : 2 * HOUR;
   const now = Date.now();
-  const start = mode === "before" ? now + 3 * 24 * HOUR : mode === "gameday" ? now + 5 * HOUR : mode === "soon" ? now + 90 * 60_000 : now - 4 * HOUR;
+  const raw = mode === "before" ? now + 3 * 24 * HOUR : mode === "gameday" ? now + 5 * HOUR : mode === "soon" ? now + 90 * 60_000 : now - 4 * HOUR;
+  const start = toHalfHour(new Date(raw), "floor").getTime();
   await q(
     `update games set starts_at = $2, ends_at = $3, cancel_by = $4,
        cancel_reminder_sent = $5, gameday_reminder_sent = $6 where id = $1`,
