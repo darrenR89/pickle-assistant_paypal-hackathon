@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { q } from "@/lib/db";
 import {
+  type Game,
   TZ,
   getGame,
   holdCents,
   inPlayers,
+  inviteeNames,
   isBeforeCancelBy,
+  isInvited,
   mapsUrl,
   money,
   personById,
@@ -14,11 +17,8 @@ import {
   roster,
   whenLabel,
 } from "@/lib/games";
-import Icon from "../../Icon";
-import WhoIsIn from "./WhoIsIn";
-import JoinPanel from "./JoinPanel";
-import JoinBar from "./JoinBar";
-import OrganizerPanel from "./OrganizerPanel";
+import { KIND_LABEL } from "@/bot/details";
+import GameScreen from "./GameScreen";
 
 // Read env and the live roster at request time.
 export const dynamic = "force-dynamic";
@@ -32,185 +32,133 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const game = await getGame((await params).slug);
   if (!game) return {};
   const playing = inPlayers(await roster(game.id));
-  const title = `${whenLabel(game.starts_at)} · ${game.place}`;
+  const kind = game.kind ? `${KIND_LABEL[game.kind]} · ` : "";
+  const title = `${kind}${whenLabel(game.starts_at)} · ${game.place}`;
   const description = `${playing.length} of ${game.spots} in · ${money(game.share_cents)} each, free cancel until ${whenLabel(game.cancel_by)}`;
   // Open Graph tags drive the rich link preview in Messages and WhatsApp. No private money here.
   return { title, description, openGraph: { title, description } };
 }
+
+const fmt = (d: Date, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-US", { timeZone: TZ, ...o }).format(d);
+
+function factsLine(game: Game) {
+  const start = new Date(game.starts_at);
+  const t = (d: Date) => fmt(d, { hour: "numeric", minute: "2-digit" }).replace(":00", "").toLowerCase();
+  const parts: string[] = [];
+  if (game.ends_at) {
+    const end = new Date(game.ends_at);
+    const sameHalf = t(start).slice(-2) === t(end).slice(-2);
+    parts.push(`${sameHalf ? t(start).replace(/ ?[ap]m$/, "") : t(start)}–${t(end)}`);
+  }
+  if (game.level) parts.push(/^\d/.test(game.level) ? `Level ${game.level}` : game.level);
+  if (game.setting) parts.push(game.setting === "indoor" ? "Indoor" : "Outdoor");
+  if (game.kind && game.kind !== "singles") parts.push("Round robin");
+  return parts.join(" · ");
+}
+
+export type MeStatus = "none" | "in" | "out" | "late" | "charged" | "covered" | "paid";
 
 export default async function GamePage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { p, o } = await searchParams;
   const game = await getGame(slug);
   if (!game) notFound();
+  return <GameScreen view={await buildView(game, slug, p, o)} />;
+}
 
+async function buildView(game: Game, slug: string, p?: string, o?: string) {
   const entries = await roster(game.id);
   const playing = inPlayers(entries);
   const isOrganizer = Boolean(o) && o === game.organizer_token;
   const viewer = await personByToken(p);
   const mine = viewer ? entries.find((e) => e.person_id === viewer.id) : undefined;
-  const full = playing.length >= game.spots;
-  const open = game.status === "open";
+  const host = await personById(game.organizer_id);
+  const start = new Date(game.starts_at);
+  const [clock, meridiem] = fmt(start, { hour: "numeric", minute: "2-digit" }).split(" ");
 
-  const organizer = await personById(game.organizer_id);
-  const starts = new Date(game.starts_at);
-  const dayLabel = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ })
-    .format(starts)
-    .replace(",", "");
-  const [clock, meridiem] = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ })
-    .format(starts)
-    .split(" ");
-  const statusWord = open ? null : game.status === "settled" ? "Played" : game.status === "settling" ? "Settling up" : "Cancelled";
-  const iAmIn = mine?.status === "in";
-  const whoNames = playing.map((e) => ({ name: e.name, organizer: e.person_id === game.organizer_id }));
-  const orgData = isOrganizer ? await organizerData(game.id, game) : undefined;
-  const host = organizer?.name ? `${organizer.name}’s game` : "Pickleball";
-  const kicker = isOrganizer
-    ? `Your game · ${statusWord ?? dayLabel}`
-    : iAmIn && open
-      ? `You’re in, ${viewer?.name} · ${dayLabel}`
-      : `${statusWord ? `${statusWord} · ` : ""}${host} · ${dayLabel}`;
-  const left = Math.max(0, game.spots - playing.length);
-  const showJoinBar = open && !orgData && !iAmIn && !full && viewer?.id !== game.organizer_id;
+  let me: MeStatus = "none";
+  if (mine?.status === "in") me = game.status === "settled" && mine.hold_status === "captured" ? "paid" : "in";
+  else if (mine?.late_cancel === "pending") me = "late";
+  else if (mine?.late_cancel === "charged") me = "charged";
+  else if (mine?.late_cancel === "covered") me = "covered";
+  else if (mine?.status === "out") me = "out";
 
-  return (
-    <main>
-      <header className="hero">
-        <span className="kicker">{kicker}</span>
-        <h1 className="big-time">
-          {clock}
-          <small>{meridiem}</small>
-        </h1>
-        {orgData && (
-          <div className="hero-stats">
-            <div className="hero-stat">
-              <span className="label">Shares in</span>
-              <span className="value">
-                {money(orgData.sharesInCents)} <small>of {money(orgData.totalCents)}</small>
-              </span>
-            </div>
-            <div className="hero-stat">
-              <span className="label">On hold now</span>
-              <span className="value">{money(orgData.heldCents)}</span>
-            </div>
-          </div>
-        )}
-        <WhoIsIn names={whoNames} spots={game.spots} />
-      </header>
-
-      <div className="body">
-        <div className="rows">
-          <div className="info-row">
-            <Icon name="pin" />
-            <div>
-              <span className="info-main">{game.address ?? game.place}</span>
-              {game.address && <span className="info-sub">{game.place}</span>}
-              <a className="maps-link" href={mapsUrl(game)} target="_blank" rel="noreferrer">
-                Open in Maps <Icon name="ext" size={18} />
-              </a>
-            </div>
-          </div>
-          {!orgData && (
-            <div className="info-row">
-              <Icon name="card" />
-              <div>
-                <span className="info-main">
-                  {iAmIn ? `${money(mine?.hold_cents ?? 0)} on hold` : `${money(game.share_cents)} is your share`}
-                </span>
-                <span className="info-sub">
-                  {iAmIn
-                    ? `Your share is ${money(game.share_cents)}. Charged after the game.`
-                    : `We hold ${money(holdCents(game))} now and charge after the game`}
-                </span>
-              </div>
-            </div>
-          )}
-          <div className="info-row">
-            <Icon name="undo" />
-            <div>
-              <span className="info-main">Free cancel until {whenLabel(game.cancel_by)}</span>
-              <span className="info-sub">{orgData ? "Players get their hold back in full" : "Your hold is released in full"}</span>
-            </div>
-          </div>
-        </div>
-
-        {orgData ? (
-          <OrganizerPanel slug={slug} o={o!} data={orgData} />
-        ) : (
-          open && (
-            <JoinPanel
-              slug={slug}
-              clientId={process.env.PAYPAL_CLIENT_ID ?? ""}
-              p={viewer?.token}
-              viewerName={viewer?.name}
-              isIn={iAmIn}
-              isOrganizer={viewer?.id === game.organizer_id}
-              holdCents={mine?.hold_cents ?? holdCents(game)}
-              shareCents={game.share_cents}
-              capCents={game.cap_cents}
-              full={full}
-              beforeCancelBy={isBeforeCancelBy(game)}
-              cancelByLabel={whenLabel(game.cancel_by)}
-              startsAtIso={starts.toISOString()}
-              place={game.address ? `${game.place}, ${game.address}` : game.place}
-            />
-          )
-        )}
-      </div>
-
-      {showJoinBar && <JoinBar price={money(game.share_cents)} left={left} />}
-    </main>
-  );
+  const view = {
+    slug,
+    p: viewer?.token ?? null,
+    o: isOrganizer ? o! : null,
+    clientId: process.env.PAYPAL_CLIENT_ID ?? "",
+    status: game.status,
+    over: Date.now() > start.getTime(),
+    clock,
+    meridiem,
+    dateLabel: fmt(start, { weekday: "short", month: "short", day: "numeric" }),
+    kindLabel: game.kind ? KIND_LABEL[game.kind] : null,
+    doubles: game.kind !== "singles",
+    partners: game.partners,
+    facts: factsLine(game),
+    place: game.place,
+    courts: game.courts,
+    address: game.address,
+    mapsUrl: mapsUrl(game),
+    calendar: { startIso: start.toISOString(), endIso: (game.ends_at ? new Date(game.ends_at) : new Date(start.getTime() + 2 * 3600_000)).toISOString(), where: [game.place, game.courts, game.address].filter(Boolean).join(", ") },
+    spots: game.spots,
+    players: playing.map((e) => ({ name: e.name, host: e.person_id === game.organizer_id, me: e.person_id === viewer?.id })),
+    lateNames: entries.filter((e) => e.late_cancel === "pending").map((e) => e.name),
+    shareCents: game.share_cents,
+    capCents: game.cap_cents,
+    holdCents: holdCents(game),
+    cancelByLabel: whenLabel(game.cancel_by),
+    beforeCancelBy: isBeforeCancelBy(game),
+    hostName: host?.name ?? "The organizer",
+    inviteOnly: game.invite_only,
+    invited: game.invite_only ? await inviteeNames(game.id) : [],
+    canJoin: viewer ? await isInvited(game, viewer.id) : !game.invite_only,
+    viewerName: viewer?.name ?? null,
+    viewerIsHost: viewer?.id === game.organizer_id,
+    me,
+    myHoldCents: mine?.hold_cents ?? 0,
+    myChargedCents: mine?.captured_cents ?? 0,
+    organizer: isOrganizer ? await organizerData(game) : null,
+  };
+  return view;
 }
 
-async function organizerData(gameId: string, game: Awaited<ReturnType<typeof getGame>> & object) {
-  const entries = await roster(gameId);
+async function organizerData(game: Game) {
+  const entries = await roster(game.id);
   const playing = inPlayers(entries);
   const held = entries.filter((e) => e.hold_status === "held").reduce((s, e) => s + (e.hold_cents ?? 0), 0);
-  const sharesIn = playing.length * game.share_cents;
-  const events = await q<{ kind: string; name: string | null; created_at: Date }>(
-    `select e.kind, p.name, e.created_at from events e left join people p on p.id = e.person_id
-     where e.game_id = $1 order by e.id desc limit 20`,
-    [gameId],
+  const collected = entries.filter((e) => e.hold_status === "captured").reduce((s, e) => s + (e.captured_cents ?? 0), 0);
+  const waiting = await q<{ name: string; kind: string }>(
+    "select p.name, i.kind from intents i join people p on p.id = i.person_id where i.game_id = $1 order by i.said_at",
+    [game.id],
   );
-  const waiting = await q<{ name: string }>(
-    "select p.name from intents i join people p on p.id = i.person_id where i.game_id = $1",
-    [gameId],
-  );
-  const cancelLocal = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-    .format(new Date(game.cancel_by))
-    .replace(" ", "T");
+  const cancelLocal = fmt(new Date(game.cancel_by), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const [d, t] = cancelLocal.split(", ");
+  const [mm, dd, yyyy] = d.split("/");
   return {
-    status: game.status,
     totalCents: game.total_cents,
-    shareCents: game.share_cents,
-    sharesInCents: Math.min(sharesIn, game.total_cents),
+    sharesInCents: Math.min(playing.length * game.share_cents, game.total_cents),
     heldCents: held,
-    spots: game.spots,
-    capCents: game.cap_cents,
-    cancelByLocal: cancelLocal,
-    address: game.address,
-    organizerId: game.organizer_id,
-    players: entries.map((e) => ({
-      id: e.id,
-      name: e.name,
-      status: e.status,
-      holdStatus: e.hold_status,
-      holdCents: e.hold_cents,
-      capturedCents: e.captured_cents,
-      lateCancel: e.late_cancel,
-      isOrganizer: e.person_id === game.organizer_id,
-    })),
-    waiting: waiting.map((w) => w.name),
-    activity: events.map((e) => ({ kind: e.kind, name: e.name, at: new Date(e.created_at).toISOString() })),
+    collectedCents: collected,
+    cancelByLocal: `${yyyy}-${mm}-${dd}T${t}`,
+    kind: game.kind,
+    level: game.level ?? "",
+    setting: game.setting,
+    players: entries
+      .filter((e) => e.status === "in" || e.late_cancel === "pending")
+      .map((e) => ({
+        id: e.id,
+        name: e.name,
+        isHost: e.person_id === game.organizer_id,
+        late: e.late_cancel === "pending",
+        holdStatus: e.hold_status,
+        holdCents: e.hold_cents ?? 0,
+        capturedCents: e.captured_cents ?? 0,
+      })),
+    waiting: waiting.map((w) => ({ name: w.name, kind: w.kind })),
   };
 }
 
+export type ViewData = Awaited<ReturnType<typeof buildView>>;
 export type OrganizerData = Awaited<ReturnType<typeof organizerData>>;

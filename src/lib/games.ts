@@ -11,6 +11,14 @@ export type Game = {
   place: string;
   /** Street address, when the organizer gave one. The Maps link falls back to the place name. */
   address: string | null;
+  kind: "mixed" | "womens" | "mens" | "any" | "singles" | null;
+  partners: "rotating" | "fixed" | null;
+  level: string | null;
+  ends_at: Date | null;
+  setting: "indoor" | "outdoor" | null;
+  /** Court label, e.g. "Courts 3–4". `place` is the venue name. */
+  courts: string | null;
+  invite_only: boolean;
   spots: number;
   total_cents: number;
   share_cents: number;
@@ -123,4 +131,14 @@ export async function logEvent(gameId: string, personId: string | null, kind: st
 export function mapsUrl(game: Pick<Game, "place" | "address">) {
   const query = game.address ? `${game.address} (${game.place})` : game.place;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/** Invite-only games: is this person on the list? (Open games: everyone is.) */
+export async function isInvited(game: Pick<Game, "id" | "invite_only" | "organizer_id">, personId: string) {
+  if (!game.invite_only || personId === game.organizer_id) return true;
+  return !!(await one("select 1 from invites where game_id = $1 and person_id = $2", [game.id, personId]));
+}
+
+export async function inviteeNames(gameId: string) {
+  return (await q<{ name: string }>("select p.name from invites i join people p on p.id = i.person_id where i.game_id = $1 order by p.name", [gameId])).map((r) => r.name);
 }

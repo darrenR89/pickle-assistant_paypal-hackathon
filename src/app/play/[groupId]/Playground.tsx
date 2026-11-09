@@ -12,7 +12,7 @@ type Card = { title: string; subtitle: string; when: string; spots: string };
 type Data = { group: { name: string }; people: Person[]; messages: Msg[]; cards: Record<string, Card> };
 
 const QUICK = [
-  { label: "Create a game", text: "@Assistant Thu 6pm Riverside Park courts 3–4, 1200 Riverside Dr, 8 spots, $64" },
+  { label: "Create a game", text: "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64" },
   { label: "Say in", text: "in" },
   { label: "Say out", text: "out" },
 ];

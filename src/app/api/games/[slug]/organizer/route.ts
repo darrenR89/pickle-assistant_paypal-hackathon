@@ -14,6 +14,12 @@ type Body = {
   totalCents?: number;
   spots?: number;
   address?: string;
+  place?: string;
+  courts?: string;
+  kind?: string;
+  partners?: string;
+  level?: string;
+  setting?: string;
 };
 
 // Organizer-only actions. The organizer token in their private link is the key.
@@ -54,6 +60,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
             totalCents: num(body.totalCents),
             spots: num(body.spots),
             address: typeof body.address === "string" ? body.address.slice(0, 200) : undefined,
+            place: typeof body.place === "string" ? body.place.slice(0, 80) : undefined,
+            courts: typeof body.courts === "string" ? body.courts.slice(0, 40) : undefined,
+            level: typeof body.level === "string" ? body.level.slice(0, 20) : undefined,
+            kind: ["mixed", "womens", "mens", "any", "singles"].includes(body.kind ?? "") ? (body.kind as never) : undefined,
+            partners: ["rotating", "fixed"].includes(body.partners ?? "") ? (body.partners as never) : undefined,
+            setting: ["indoor", "outdoor"].includes(body.setting ?? "") ? (body.setting as never) : undefined,
           });
         } catch (err) {
           return NextResponse.json({ error: (err as Error).message }, { status: 409 });

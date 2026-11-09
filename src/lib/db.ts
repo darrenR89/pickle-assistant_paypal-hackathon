@@ -83,6 +83,19 @@ create table if not exists spots (
 alter table games add column if not exists cancel_reminder_sent boolean not null default false;
 alter table games add column if not exists gameday_reminder_sent boolean not null default false;
 alter table games add column if not exists address text;
+-- Match details shown in the header and the players card.
+alter table games add column if not exists kind text;
+alter table games add column if not exists partners text;
+alter table games add column if not exists level text;
+alter table games add column if not exists ends_at timestamptz;
+alter table games add column if not exists setting text;
+alter table games add column if not exists courts text;
+alter table games add column if not exists invite_only boolean not null default false;
+create table if not exists invites (
+  game_id text not null,
+  person_id text not null,
+  primary key (game_id, person_id)
+);
 alter table spots add column if not exists authorized_at timestamptz;
 -- Private texts are opt-in: each new 1:1 chat (Blooio) costs money, so only open one when asked.
 alter table people add column if not exists texts_opt_in boolean not null default false;

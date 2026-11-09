@@ -14,7 +14,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { q } from "@/lib/db";
-import { type Game, TZ, inPlayers, isBeforeCancelBy, money, personById, roster, whenLabel } from "@/lib/games";
+import { type Game, TZ, inPlayers, inviteeNames, isBeforeCancelBy, money, personById, roster, whenLabel } from "@/lib/games";
 
 export const AGENT_MODEL = "claude-haiku-5-5";
 
@@ -51,6 +51,7 @@ export type GroupContext = {
   members: string[];
   inNames: string[];
   waitlist: string[];
+  invited: string[];
   recent: Array<{ from: string; text: string }>;
 };
 
@@ -58,7 +59,7 @@ export type GroupContext = {
 
 const MENTION = /@(assistant|pickle\w*|bot)\b/i;
 const GAME_WORDS =
-  /\b(in|out|play(ing)?|spot|spots|court|courts|game|tonight|tomorrow|mon|tue|wed|thu|fri|sat|sun\w*|time|when|where|cancel|sub|swap|take my|waitlist|wait list|late|running|eta|who'?s|how many|price|cost|pay|paid|charge|refund|venmo|paypal|hold|partner|doubles|singles|level|park|parking|address|rain|weather|can'?t|cannot|make it|maybe|count me|\+1|bring|friend|guest|down|bail|sick|injured|hurt|tweaked|move|moving|push|reschedule|change|switch|later|earlier|\d{1,2}\s?(am|pm)|help|rain|rained|off|lights?|nets?|balls?|paddles?|bathrooms?|restrooms?|weather|forecast|smoke|still on)\b/i;
+  /\b(in|out|play(ing)?|spot|spots|court|courts|game|tonight|tomorrow|mon|tue|wed|thu|fri|sat|sun\w*|time|when|where|cancel|sub|swap|take my|waitlist|wait list|late|running|eta|who'?s|how many|price|cost|pay|paid|charge|refund|venmo|paypal|hold|partner|doubles|singles|level|park|parking|address|rain|weather|can'?t|cannot|make it|maybe|count me|\+1|bring|friend|guest|down|bail|sick|injured|hurt|tweaked|move|moving|push|reschedule|change|switch|later|earlier|\d{1,2}\s?(am|pm)|help|rain|rained|off|lights?|nets?|balls?|paddles?|bathrooms?|restrooms?|weather|forecast|smoke|still on|invite|add)\b/i;
 
 /** Cheap filter so most chatter never reaches the model (cost and latency). */
 export function worthReading(text: string, assistantSpokeRecently: boolean) {
@@ -88,6 +89,8 @@ function facts(ctx: GroupContext) {
     `Game: ${whenLabel(g.starts_at)} (${TZ}) at ${g.place}${g.address ? `, ${g.address}` : ""}.`,
     `Spots: ${g.spots}. In (${ctx.inNames.length}): ${ctx.inNames.join(", ") || "nobody yet"}. ${left > 0 ? `${left} left.` : "Full."}`,
     ctx.waitlist.length ? `Waitlist: ${ctx.waitlist.join(", ")}.` : "",
+    g.invite_only ? `Invite-only. Invited: ${ctx.invited.join(", ")}. Only the organizer can invite more (use invite with the name).` : "",
+    g.kind ? `Type: ${g.kind}${g.partners ? `, ${g.partners} partners` : ""}${g.level ? `, level ${g.level}` : ""}${g.setting ? `, ${g.setting}` : ""}.` : "",
     `Each player's share: ${money(g.share_cents)}. Free cancel until ${whenLabel(g.cancel_by)} (${isBeforeCancelBy(g) ? "still open" : "has passed"}).`,
     `Joining means approving a PayPal or Venmo hold on the game page. Nothing is charged until after the game.`,
   ]
@@ -168,6 +171,8 @@ export function withRules(ctx: GroupContext, raw: string): Decision {
   // Role checks happen when acting, so anyone's request is recognized and answered.
   if (/\b(call(ing)? (it )?off|cancel (the )?game|rained out|not happening)\b/.test(t)) return d("call_off");
   if (/\b(move|moving|change|switch|push|reschedule)\b.*\b(to|at)\b/.test(t)) return d("change_request", { field: /\d/.test(t) ? "time" : "place", value: raw });
+  const add = name(/\b(?:invite|add)\s+([A-Z][a-z]+)\b/);
+  if (add && ctx.isOrganizer) return d("invite", { target: add });
   const giveTo = name(/(?:can|let|give)\s+([A-Z][a-z]+)\s+(?:have|take)\s+my\s+spot/i) ?? name(/my spot (?:to|goes to)\s+([A-Z][a-z]+)/i);
   if (giveTo) return d("give_spot", { target: giveTo });
   const guest = name(/(?:can|could)\s+(?:my\s+(?:friend|partner|wife|husband|brother|sister|coworker)\s+)?([A-Z][a-z]+)\s+(?:come|join|play)/i);
@@ -202,7 +207,9 @@ export async function buildContext(groupId: string, senderId: string, game: Game
     .map((m) => ({ from: m.from ?? "Assistant", text: m.text }));
   let inNames: string[] = [];
   let waitlist: string[] = [];
+  let invited: string[] = [];
   if (game) {
+    invited = game.invite_only ? await inviteeNames(game.id) : [];
     inNames = inPlayers(await roster(game.id)).map((e) => e.name);
     waitlist = (
       await q<{ name: string }>(
@@ -218,6 +225,7 @@ export async function buildContext(groupId: string, senderId: string, game: Game
     members,
     inNames,
     waitlist,
+    invited,
     recent,
   };
 }

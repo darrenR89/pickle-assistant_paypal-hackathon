@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TZ } from "@/lib/games";
+import { type Details, cleanPlace, extractDetails } from "./details";
 
 export type ParsedGame = {
   startsAt?: Date;
@@ -9,21 +10,29 @@ export type ParsedGame = {
   priceCents?: number;
   priceIsTotal?: boolean;
   missing: string[];
-};
+} & Details;
 
 const MODEL = "claude-haiku-5-5";
 
 /** Turn "Thu 6pm Riverside courts 3-4, 8 spots, $64" into game fields. Claude first, regex fallback. */
 export async function parseGameRequest(text: string, now = new Date()): Promise<ParsedGame> {
   const cleaned = text.replace(/@\w+/g, "").trim();
+  // Match details come from the organizer's own words with plain rules in both paths, so
+  // the model never invents a level, a court or an invite list.
+  const details = extractDetails(cleaned);
+  let base: ParsedGame | undefined;
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      return await parseWithClaude(cleaned, now);
+      base = await parseWithClaude(cleaned, now);
     } catch (err) {
       console.error("Claude parse failed, using fallback", err);
     }
   }
-  return parseWithRules(cleaned, now);
+  base ??= parseWithRules(cleaned, now);
+  let place = base.place ? cleanPlace(base.place) || base.place : undefined;
+  // "Riverside 2 courts" can leave a stray count behind once "courts" is gone.
+  if (place && details.courtCount && !details.courts) place = place.replace(new RegExp(`\\s+${details.courtCount}$`), "").trim();
+  return { ...base, ...details, place };
 }
 
 async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {
@@ -103,7 +112,9 @@ function parseWithRules(text: string, now: Date): ParsedGame {
   const price = take(/\$\s?(\d+(?:\.\d{1,2})?)\s*(each|pp|per person|a head|\/person)?/i);
   const spots = take(/(\d+)\s*(spots|players|people|ppl)\b/i);
   const day = take(/\b(today|tonight|tomorrow|sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i);
-  const time = take(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+  // A range like "9-11am" or "6-8pm": the start takes the end's am/pm.
+  const range = take(/\b(\d{1,2})(?::(\d{2}))?\s*(?:-|–|to)\s*\d{1,2}(?::\d{2})?\s*(am|pm)\b/i);
+  const time = range ?? take(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
 
   let startsAt: Date | undefined;
   if (day || time) {

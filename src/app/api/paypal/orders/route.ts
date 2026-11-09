@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { newId, newToken, one, q } from "@/lib/db";
-import { type Person, getGame, holdCents, inPlayers, personByToken, roster, whenLabel } from "@/lib/games";
+import { type Person, getGame, holdCents, inPlayers, isInvited, personByToken, roster, whenLabel } from "@/lib/games";
 import { createHoldOrder } from "@/lib/paypal";
 import { errorResponse } from "@/lib/http";
 import { spotOfferFor } from "@/bot/assistant";
@@ -37,8 +37,12 @@ export async function POST(req: Request) {
     if (entries.some((e) => e.person_id === person!.id && e.status === "in")) {
       return NextResponse.json({ error: "You're already in" }, { status: 409 });
     }
+    const offered = await spotOfferFor(game.id, person!.id);
+    if (!offered && !(await isInvited(game, person!.id))) {
+      return NextResponse.json({ error: "This game is invite-only. Ask the organizer to add you." }, { status: 403 });
+    }
     // A full game can still be joined by someone who was handed a spot.
-    if (inPlayers(entries).length >= game.spots && !(await spotOfferFor(game.id, person!.id))) {
+    if (inPlayers(entries).length >= game.spots && !offered) {
       return NextResponse.json({ error: "The game is full" }, { status: 409 });
     }
 
