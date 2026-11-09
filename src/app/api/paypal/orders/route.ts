@@ -3,12 +3,13 @@ import { newId, newToken, one, q } from "@/lib/db";
 import { type Person, getGame, holdCents, inPlayers, personByToken, roster, whenLabel } from "@/lib/games";
 import { createHoldOrder } from "@/lib/paypal";
 import { errorResponse } from "@/lib/http";
+import { spotOfferFor } from "@/bot/assistant";
 
 // Step 1 of joining: create an AUTHORIZE order for this person's hold.
 // The server decides the amount and remembers which game and person the order is for.
 export async function POST(req: Request) {
   try {
-    const body = (await req.json().catch(() => ({}))) as { slug?: string; p?: string; name?: string; phone?: string };
+    const body = (await req.json().catch(() => ({}))) as { slug?: string; p?: string; name?: string; phone?: string; texts?: boolean };
     const game = body.slug ? await getGame(body.slug) : undefined;
     if (!game || game.status !== "open") return NextResponse.json({ error: "This game isn't open" }, { status: 404 });
 
@@ -29,11 +30,17 @@ export async function POST(req: Request) {
       ]);
     }
 
+    // Private texts are opt-in (each new 1:1 chat costs money).
+    if (typeof body.texts === "boolean") await q("update people set texts_opt_in = $2 where id = $1", [person!.id, body.texts]);
+
     const entries = await roster(game.id);
     if (entries.some((e) => e.person_id === person!.id && e.status === "in")) {
       return NextResponse.json({ error: "You're already in" }, { status: 409 });
     }
-    if (inPlayers(entries).length >= game.spots) return NextResponse.json({ error: "The game is full" }, { status: 409 });
+    // A full game can still be joined by someone who was handed a spot.
+    if (inPlayers(entries).length >= game.spots && !(await spotOfferFor(game.id, person!.id))) {
+      return NextResponse.json({ error: "The game is full" }, { status: 409 });
+    }
 
     const amount = holdCents(game);
     const order = await createHoldOrder({

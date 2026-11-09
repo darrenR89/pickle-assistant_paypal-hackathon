@@ -84,6 +84,9 @@ alter table games add column if not exists cancel_reminder_sent boolean not null
 alter table games add column if not exists gameday_reminder_sent boolean not null default false;
 alter table games add column if not exists address text;
 alter table spots add column if not exists authorized_at timestamptz;
+-- Private texts are opt-in: each new 1:1 chat (Blooio) costs money, so only open one when asked.
+alter table people add column if not exists texts_opt_in boolean not null default false;
+alter table people add column if not exists texts_welcomed boolean not null default false;
 -- Binds a PayPal order to the game and person server-side, so the browser can't swap them.
 create table if not exists pending_orders (
   order_id text primary key,
@@ -100,6 +103,8 @@ create table if not exists intents (
   nudged boolean not null default false,
   primary key (game_id, person_id)
 );
+-- said_in: said "in" but hasn't approved the hold yet. maybe: tentative. waitlist: wants the next open spot.
+alter table intents add column if not exists kind text not null default 'said_in';
 create table if not exists events (
   id bigserial primary key,
   game_id text not null,

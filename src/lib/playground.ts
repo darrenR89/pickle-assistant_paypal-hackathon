@@ -23,7 +23,7 @@ export async function createPlaygroundGroup() {
   await tx(async (c) => {
     await c.query("insert into groups (id, name) values ($1, $2)", [groupId, "Thursday crew"]);
     for (const [i, p] of people.entries()) {
-      await c.query("insert into people (id, name, phone, token) values ($1, $2, $3, $4)", [p.id, p.name, p.phone, p.token]);
+      await c.query("insert into people (id, name, phone, token, texts_opt_in) values ($1, $2, $3, $4, true)", [p.id, p.name, p.phone, p.token]);
       await c.query("insert into group_members (group_id, person_id, position) values ($1, $2, $3)", [groupId, p.id, i]);
     }
     for (const [who, text] of OPENING) {
