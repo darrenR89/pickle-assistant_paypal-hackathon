@@ -497,6 +497,11 @@ a{color:var(--link)}
   .phone {
     height: 640px;
   }
+  .sim-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 
