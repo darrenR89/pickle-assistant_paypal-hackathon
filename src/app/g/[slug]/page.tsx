@@ -7,15 +7,17 @@ import {
   holdCents,
   inPlayers,
   isBeforeCancelBy,
+  mapsUrl,
   money,
   personById,
   personByToken,
-  shortWhen,
   roster,
   whenLabel,
 } from "@/lib/games";
+import Icon from "../../Icon";
 import WhoIsIn from "./WhoIsIn";
 import JoinPanel from "./JoinPanel";
+import JoinBar from "./JoinBar";
 import OrganizerPanel from "./OrganizerPanel";
 
 // Read env and the live roster at request time.
@@ -51,84 +53,91 @@ export default async function GamePage({ params, searchParams }: Props) {
   const open = game.status === "open";
 
   const organizer = await personById(game.organizer_id);
-  const dayWord = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: TZ }).format(new Date(game.starts_at));
-  const timeWord = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ })
-    .format(new Date(game.starts_at))
-    .replace(":00", "")
-    .replace(" ", "")
-    .toLowerCase();
-  const statusWord = open ? "Pickleball" : game.status === "settled" ? "Played" : game.status === "settling" ? "Settling up" : "Cancelled";
+  const starts = new Date(game.starts_at);
+  const dayLabel = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ })
+    .format(starts)
+    .replace(",", "");
+  const [clock, meridiem] = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ })
+    .format(starts)
+    .split(" ");
+  const statusWord = open ? null : game.status === "settled" ? "Played" : game.status === "settling" ? "Settling up" : "Cancelled";
   const iAmIn = mine?.status === "in";
   const whoNames = playing.map((e) => ({ name: e.name, organizer: e.person_id === game.organizer_id }));
   const orgData = isOrganizer ? await organizerData(game.id, game) : undefined;
+  const host = organizer?.name ? `${organizer.name}’s game` : "Pickleball";
+  const kicker = isOrganizer
+    ? `Your game · ${statusWord ?? dayLabel}`
+    : iAmIn && open
+      ? `You’re in, ${viewer?.name} · ${dayLabel}`
+      : `${statusWord ? `${statusWord} · ` : ""}${host} · ${dayLabel}`;
+  const left = Math.max(0, game.spots - playing.length);
+  const showJoinBar = open && !orgData && !iAmIn && !full && viewer?.id !== game.organizer_id;
 
   return (
     <main>
-      <header className="pass">
-        <div className="pass-top">
-          <div className="pass-title">
-            <span className="label">
-              {isOrganizer ? `Organizer · ${statusWord}` : iAmIn && open ? "Your pass" : `${statusWord} · hosted by ${organizer?.name ?? "the organizer"}`}
-            </span>
-            <h1>
-              {iAmIn && !isOrganizer && open ? (
-                <>
-                  You&apos;re in,
-                  <br />
-                  <i>{viewer?.name}</i>
-                </>
-              ) : (
-                <>
-                  {dayWord},
-                  <br />
-                  <i>{timeWord}</i>
-                </>
-              )}
-            </h1>
-            <span className="sub">
-              {iAmIn && !isOrganizer ? `${dayWord} ${timeWord} · ${game.place}` : game.place}
-            </span>
-          </div>
-          <WhoIsIn variant="ring" names={whoNames} spots={game.spots} />
-        </div>
-        {orgData ? (
-          <>
-            <div className="tiles">
-              <div className="tile">
-                <span className="label">Shares in</span>
-                <span className="value">
-                  {money(orgData.sharesInCents)} <span style={{ fontSize: 16, color: "var(--mint)" }}>of {money(orgData.totalCents)}</span>
-                </span>
-              </div>
-              <div className="tile">
-                <span className="label">On hold</span>
-                <span className="value">{money(orgData.heldCents)}</span>
-              </div>
+      <header className="hero">
+        <span className="kicker">{kicker}</span>
+        <h1 className="big-time">
+          {clock}
+          <small>{meridiem}</small>
+        </h1>
+        {orgData && (
+          <div className="hero-stats">
+            <div className="hero-stat">
+              <span className="label">Shares in</span>
+              <span className="value">
+                {money(orgData.sharesInCents)} <small>of {money(orgData.totalCents)}</small>
+              </span>
             </div>
-            <div className="bar">
-              <div style={{ width: `${Math.min(100, Math.round((orgData.sharesInCents / orgData.totalCents) * 100))}%` }} />
-            </div>
-          </>
-        ) : (
-          <div className="tiles">
-            <div className="tile">
-              <span className="label">{iAmIn ? "On hold" : "Your share"}</span>
-              <span className="value">{money(iAmIn ? (mine?.hold_cents ?? 0) : game.share_cents)}</span>
-            </div>
-            <div className="tile">
-              <span className="label">Free cancel until</span>
-              <span className="value">{shortWhen(new Date(game.cancel_by))}</span>
+            <div className="hero-stat">
+              <span className="label">On hold now</span>
+              <span className="value">{money(orgData.heldCents)}</span>
             </div>
           </div>
         )}
+        <WhoIsIn names={whoNames} spots={game.spots} />
       </header>
 
-      {orgData ? (
-        <OrganizerPanel slug={slug} o={o!} data={orgData} />
-      ) : (
-        <div className="body">
-          {!orgData && <WhoIsIn variant="link" names={whoNames} spots={game.spots} />}
-          {open && (
+      <div className="body">
+        <div className="rows">
+          <div className="info-row">
+            <Icon name="pin" />
+            <div>
+              <span className="info-main">{game.address ?? game.place}</span>
+              {game.address && <span className="info-sub">{game.place}</span>}
+              <a className="maps-link" href={mapsUrl(game)} target="_blank" rel="noreferrer">
+                Open in Maps <Icon name="ext" size={18} />
+              </a>
+            </div>
+          </div>
+          {!orgData && (
+            <div className="info-row">
+              <Icon name="card" />
+              <div>
+                <span className="info-main">
+                  {iAmIn ? `${money(mine?.hold_cents ?? 0)} on hold` : `${money(game.share_cents)} is your share`}
+                </span>
+                <span className="info-sub">
+                  {iAmIn
+                    ? `Your share is ${money(game.share_cents)}. Charged after the game.`
+                    : `We hold ${money(holdCents(game))} now and charge after the game`}
+                </span>
+              </div>
+            </div>
+          )}
+          <div className="info-row">
+            <Icon name="undo" />
+            <div>
+              <span className="info-main">Free cancel until {whenLabel(game.cancel_by)}</span>
+              <span className="info-sub">{orgData ? "Players get their hold back in full" : "Your hold is released in full"}</span>
+            </div>
+          </div>
+        </div>
+
+        {orgData ? (
+          <OrganizerPanel slug={slug} o={o!} data={orgData} />
+        ) : (
+          open && (
             <JoinPanel
               slug={slug}
               clientId={process.env.PAYPAL_CLIENT_ID ?? ""}
@@ -142,12 +151,14 @@ export default async function GamePage({ params, searchParams }: Props) {
               full={full}
               beforeCancelBy={isBeforeCancelBy(game)}
               cancelByLabel={whenLabel(game.cancel_by)}
-              startsAtIso={new Date(game.starts_at).toISOString()}
-              place={game.place}
+              startsAtIso={starts.toISOString()}
+              place={game.address ? `${game.place}, ${game.address}` : game.place}
             />
-          )}
-        </div>
-      )}
+          )
+        )}
+      </div>
+
+      {showJoinBar && <JoinBar price={money(game.share_cents)} left={left} />}
     </main>
   );
 }
@@ -185,6 +196,7 @@ async function organizerData(gameId: string, game: Awaited<ReturnType<typeof get
     spots: game.spots,
     capCents: game.cap_cents,
     cancelByLocal: cancelLocal,
+    address: game.address,
     organizerId: game.organizer_id,
     players: entries.map((e) => ({
       id: e.id,

@@ -124,9 +124,9 @@ async function createGame(groupId: string, organizerId: string, text: string) {
 
   await q(
     `insert into games (id, slug, group_id, organizer_id, starts_at, place, spots, total_cents, share_cents,
-       cap_cents, cancel_by, organizer_token)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-    [gameId, slug, groupId, organizerId, startsAt, parsed.place, spots, total, share, DEFAULT_CAP_CENTS, cancelBy, organizerToken],
+       cap_cents, cancel_by, organizer_token, address)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+    [gameId, slug, groupId, organizerId, startsAt, parsed.place, spots, total, share, DEFAULT_CAP_CENTS, cancelBy, organizerToken, parsed.address ?? null],
   );
   // The organizer is automatically in. They paid the court, so they don't need a hold.
   await q(
@@ -270,7 +270,7 @@ export async function nudgeUnfinished(game: Game) {
 
 // ---------- terms ----------
 
-export type TermsChange = { cancelBy?: Date; capCents?: number; totalCents?: number; spots?: number };
+export type TermsChange = { cancelBy?: Date; capCents?: number; totalCents?: number; spots?: number; address?: string };
 
 export async function updateTerms(game: Game, change: TermsChange) {
   const entries = await roster(game.id);
@@ -294,12 +294,16 @@ export async function updateTerms(game: Game, change: TermsChange) {
     "update games set cancel_by = $2, cap_cents = $3, total_cents = $4, spots = $5, share_cents = $6 where id = $1",
     [game.id, next.cancelBy, next.capCents, next.totalCents, next.spots, share],
   );
+  // Where to play isn't a money term, so it can change any time.
+  const address = change.address === undefined ? game.address : change.address.trim() || null;
+  if (address !== game.address) await q("update games set address = $2 where id = $1", [game.id, address]);
   await logEvent(game.id, game.organizer_id, "terms_changed", change);
 
   const parts: string[] = [];
   if (change.cancelBy && +change.cancelBy !== +new Date(game.cancel_by)) parts.push(`free cancel is now until ${whenLabel(next.cancelBy)}`);
   if (share !== game.share_cents) parts.push(`it's now ${money(share)} each`);
   if (next.spots !== game.spots) parts.push(`${next.spots} spots`);
+  if (address !== game.address && address) parts.push(`the address is ${address}`);
   if (next.capCents !== game.cap_cents) parts.push(`short-game extra is now up to ${money(next.capCents)}`);
   if (parts.length) await postGroup(game.group_id, `Update: ${parts.join(", ")}.`, game.slug);
 }

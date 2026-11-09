@@ -124,7 +124,7 @@ export default function JoinPanel(props: Props) {
           [paypal.FUNDING.VENMO, venmoRef.current],
         ] as const) {
           if (!el) continue;
-          const b = paypal.Buttons({ ...common, fundingSource: source, style: { shape: "rect", height: 46 } });
+          const b = paypal.Buttons({ ...common, fundingSource: source, style: { shape: "pill", height: 55 } });
           if (b.isEligible()) {
             rendered.push(b);
             b.render(el).catch(() => {});
@@ -156,7 +156,7 @@ export default function JoinPanel(props: Props) {
     return (
       <div className="card">
         <span className="card-title">You&apos;re the organizer</span>
-        <p className="muted small" style={{ margin: 0 }}>
+        <p className="muted" style={{ margin: 0 }}>
           Manage the game from the organizer link in your private messages.
         </p>
       </div>
@@ -166,30 +166,17 @@ export default function JoinPanel(props: Props) {
   if (props.isIn) {
     const extra = Math.max(0, props.holdCents - props.shareCents);
     return (
-      <section className="stack" style={{ gap: 16 }}>
-        <div>
-          <div className="section-head">
-            <span className="label">Receipt</span>
-          </div>
-          <div className="ledger">
-            <Row k="Your share" v={money(props.shareCents)} />
-            <Row k="If the game runs short" v={`up to ${money(extra)}`} />
-            <Row k="Held with PayPal" v={money(props.holdCents)} strong />
-            <Row k="Charged now" v="$0" />
-          </div>
-        </div>
-        <div className="stack">
-          <a className="button dark" href={calendarUrl(props.startsAtIso, props.place)} target="_blank" rel="noreferrer">
-            Add to calendar
-          </a>
-          <button className="secondary" onClick={cancelSpot} disabled={busy}>
-            Can&apos;t make it ·{" "}
-            {props.beforeCancelBy ? `free until ${props.cancelByLabel}` : `organizer decides on your ${money(props.shareCents)}`}
-          </button>
-        </div>
+      <section className="stack">
+        <a className="button" href={calendarUrl(props.startsAtIso, props.place)} target="_blank" rel="noreferrer">
+          Add to calendar
+        </a>
+        <button className="secondary" onClick={cancelSpot} disabled={busy}>
+          {props.beforeCancelBy ? "Can\u2019t make it · free cancel" : `Can\u2019t make it · organizer decides on your ${money(props.shareCents)}`}
+        </button>
         {error && <p className="error">{error}</p>}
-        <p className="muted small" style={{ margin: 0 }}>
-          Money updates arrive privately. The group only sees who&apos;s playing.
+        <p className="muted small" style={{ margin: "4px 4px 0" }}>
+          {extra > 0 ? `The hold includes up to ${money(extra)} in case the game runs short. ` : ""}
+          Money updates come to you privately. The group only sees who&apos;s playing.
         </p>
       </section>
     );
@@ -199,14 +186,19 @@ export default function JoinPanel(props: Props) {
     return (
       <div className="card">
         <span className="card-title">The game is full</span>
+        <p className="muted" style={{ margin: 0 }}>
+          If someone drops out, the group chat will hear about it.
+        </p>
       </div>
     );
   }
 
   return (
-    <section className="card">
+    <section className="card" id="join" aria-labelledby="join-title">
       <div className="card-head">
-        <span className="card-title">I&apos;m in · {money(props.shareCents)}</span>
+        <h2 className="card-title" id="join-title" style={{ margin: 0 }}>
+          I&apos;m in · {money(props.shareCents)}
+        </h2>
         {props.p && props.viewerName && <span className="muted small">as {props.viewerName}</span>}
       </div>
       <div className="ledger">
@@ -231,7 +223,8 @@ export default function JoinPanel(props: Props) {
       <div ref={paypalRef} />
       <div ref={venmoRef} />
       <p className="muted small" style={{ margin: 0 }}>
-        Held, not charged. You&apos;re charged after the game. Free cancel until {props.cancelByLabel}.
+        Approving the hold is how you say you&apos;re in. Held, not charged, until after the game. Free cancel until{" "}
+        {props.cancelByLabel}.
       </p>
     </section>
   );

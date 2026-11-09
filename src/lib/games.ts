@@ -9,6 +9,8 @@ export type Game = {
   organizer_id: string;
   starts_at: Date;
   place: string;
+  /** Street address, when the organizer gave one. The Maps link falls back to the place name. */
+  address: string | null;
   spots: number;
   total_cents: number;
   share_cents: number;
@@ -115,4 +117,10 @@ export async function logEvent(gameId: string, personId: string | null, kind: st
     kind,
     detail === undefined ? null : JSON.stringify(detail),
   ]);
+}
+
+/** A Maps search link for the game: the street address when we have it, else the place name. */
+export function mapsUrl(game: Pick<Game, "place" | "address">) {
+  const query = game.address ? `${game.address} (${game.place})` : game.place;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }

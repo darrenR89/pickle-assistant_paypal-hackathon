@@ -35,7 +35,6 @@ export default function OrganizerPanel({ slug, o, data }: { slug: string; o: str
   const [editing, setEditing] = useState(false);
   const [more, setMore] = useState(false);
   const open = data.status === "open";
-  const inCount = data.players.filter((p) => p.status === "in").length;
 
   async function act(action: string, extra: Record<string, unknown> = {}, confirmText?: string) {
     if (confirmText && !window.confirm(confirmText)) return;
@@ -61,6 +60,7 @@ export default function OrganizerPanel({ slug, o, data }: { slug: string; o: str
       spots: Number(form.get("spots")),
       totalCents: Math.round(Number(form.get("total")) * 100),
       capCents: Math.round(Number(form.get("cap")) * 100),
+      address: String(form.get("address") ?? ""),
     });
   }
 
@@ -72,7 +72,7 @@ export default function OrganizerPanel({ slug, o, data }: { slug: string; o: str
 
   return (
     <>
-      <div className="body" style={{ paddingBottom: 8 }}>
+      <div className="stack" style={{ gap: 20 }}>
         {data.players.some((p) => p.lateCancel === "pending") &&
           data.players
             .filter((p) => p.lateCancel === "pending")
@@ -99,6 +99,10 @@ export default function OrganizerPanel({ slug, o, data }: { slug: string; o: str
         {editing && open && (
           <form className="card" action={saveTerms}>
             <span className="card-title">Terms</span>
+            <label>
+              Street address
+              <input name="address" autoComplete="street-address" placeholder="e.g. 1200 Riverside Dr" defaultValue={data.address ?? ""} />
+            </label>
             <label>
               Free cancel until
               <input name="cancelBy" type="datetime-local" defaultValue={data.cancelByLocal} />
@@ -185,15 +189,14 @@ export default function OrganizerPanel({ slug, o, data }: { slug: string; o: str
       </div>
 
       {open && (
-        <nav className="bottom-bar" aria-label="Organizer actions">
-          <button onClick={() => setEditing((v) => !v)}>Edit terms</button>
+        <nav className="float-bar bottom-bar" aria-label="Organizer actions">
+          <button onClick={() => setEditing((v) => !v)}>Edit</button>
           <button disabled={busy} onClick={() => act("nudge")}>
             Nudge
           </button>
-          <span className="pill">
-            {inCount}/{data.spots} in
-          </span>
-          <button onClick={share}>Share</button>
+          <button className="pill" onClick={share}>
+            Share
+          </button>
           <button onClick={() => setMore((v) => !v)}>More</button>
         </nav>
       )}

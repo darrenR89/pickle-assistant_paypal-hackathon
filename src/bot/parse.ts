@@ -4,6 +4,7 @@ import { TZ } from "@/lib/games";
 export type ParsedGame = {
   startsAt?: Date;
   place?: string;
+  address?: string;
   spots?: number;
   priceCents?: number;
   priceIsTotal?: boolean;
@@ -49,6 +50,7 @@ async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {
           properties: {
             starts_at: { type: "string", description: "ISO 8601 with UTC offset" },
             place: { type: "string", description: "Court or venue, as written" },
+            address: { type: "string", description: "Street address, only if the message includes one. Never look one up or invent it." },
             spots: { type: "integer" },
             price_cents: { type: "integer" },
             price_is_total: { type: "boolean" },
@@ -66,6 +68,7 @@ async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {
   const input = block.input as {
     starts_at?: string;
     place?: string;
+    address?: string;
     spots?: number;
     price_cents?: number;
     price_is_total?: boolean;
@@ -75,6 +78,7 @@ async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {
   return {
     startsAt: startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt : undefined,
     place: input.place?.trim() || undefined,
+    address: input.address?.trim() || undefined,
     spots: input.spots && input.spots > 0 ? input.spots : undefined,
     priceCents: input.price_cents && input.price_cents > 0 ? input.price_cents : undefined,
     priceIsTotal: input.price_is_total ?? true,
@@ -92,6 +96,10 @@ function parseWithRules(text: string, now: Date): ParsedGame {
     return m;
   };
 
+  // Street address first, so its house number isn't read as a time.
+  const address = take(
+    /\b\d{2,6}\s+(?:[A-Za-z0-9.']+\s){0,4}?(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Blvd|Boulevard|Way|Ln|Lane|Pl|Place|Ct|Court|Pkwy|Parkway|Hwy)\b\.?/i,
+  );
   const price = take(/\$\s?(\d+(?:\.\d{1,2})?)\s*(each|pp|per person|a head|\/person)?/i);
   const spots = take(/(\d+)\s*(spots|players|people|ppl)\b/i);
   const day = take(/\b(today|tonight|tomorrow|sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/i);
@@ -118,6 +126,7 @@ function parseWithRules(text: string, now: Date): ParsedGame {
 
   const place = rest
     .replace(/[,·]/g, " ")
+    .replace(/\bpickleball\b/gi, " ")
     .replace(/\b(at|game|pickleball|courts?)\b(?=\s*$)/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -125,6 +134,7 @@ function parseWithRules(text: string, now: Date): ParsedGame {
   const parsed: ParsedGame = {
     startsAt,
     place: place || undefined,
+    address: address?.[0].replace(/\.$/, "").trim(),
     spots: spots ? Number(spots[1]) : undefined,
     priceCents: price ? Math.round(Number(price[1]) * 100) : undefined,
     priceIsTotal: price ? !price[2] : true,

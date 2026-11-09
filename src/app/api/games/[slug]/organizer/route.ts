@@ -13,6 +13,7 @@ type Body = {
   capCents?: number;
   totalCents?: number;
   spots?: number;
+  address?: string;
 };
 
 // Organizer-only actions. The organizer token in their private link is the key.
@@ -52,6 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
             capCents: num(body.capCents),
             totalCents: num(body.totalCents),
             spots: num(body.spots),
+            address: typeof body.address === "string" ? body.address.slice(0, 200) : undefined,
           });
         } catch (err) {
           return NextResponse.json({ error: (err as Error).message }, { status: 409 });
