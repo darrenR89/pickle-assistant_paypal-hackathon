@@ -264,6 +264,82 @@ a{color:var(--link)}
   border-color: var(--s-line);
   justify-content: flex-start;
 }
+.sim-panel {
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  position: sticky;
+  top: 16px;
+}
+.sim a.sim-btn,
+.sim button.sim-btn {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.sim .sim-btn:disabled,
+.sim .sim-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.sim-row {
+  display: flex;
+  gap: 6px;
+}
+.sim-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--s-line);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--s-text);
+  background: #fff;
+}
+.sim-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sim .sim-chip {
+  font: 500 13px/1.2 inherit;
+  font-family: inherit;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--s-line);
+  background: #fff;
+  color: var(--s-text);
+  cursor: pointer;
+  text-align: left;
+}
+.sim .sim-chip:hover:not(:disabled) {
+  border-color: var(--s-blue);
+  color: #0050b3;
+}
+.sim-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--s-muted);
+}
+.sim-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eef6ee;
+  color: #1f5f2a;
+}
+.im-system {
+  align-self: center;
+  margin: 6px 0;
+  font-size: 12px;
+  color: #8a8f98;
+  text-align: center;
+}
 .sim-steps {
   margin: 0;
   padding-left: 18px;
@@ -423,3 +499,40 @@ a{color:var(--link)}
   }
 }
 
+
+/* Desktop: the link opened on a computer (e.g. from iMessage on a Mac) uses the full width */
+@media (min-width: 900px) {
+  .app { max-width: none; box-shadow: none; }
+  .hdr { padding: 34px 24px 34px; border-radius: 0 0 44px 44px; }
+  .hdr .status { display: none; }
+  .eyebrow { font-size: 24px; margin-bottom: 14px; }
+  .eyebrow .div { height: 24px; }
+  .time { font-size: 220px; }
+  .time.long { font-size: 190px; }
+  .pm { font-size: 44px; padding-bottom: 10px; }
+  .facts { font-size: 18px; margin-top: 18px; }
+  .scroll {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    align-items: start;
+    gap: 22px;
+    padding: 32px max(24px, calc((100% - 1040px) / 2)) 150px;
+  }
+  .scroll > * { grid-column: 1 / -1; }
+  .scroll > .half { grid-column: auto; }
+  .scroll > .tall { grid-row: span 2; }
+  .bar {
+    left: 50%;
+    right: auto;
+    bottom: 20px;
+    width: min(1040px, calc(100% - 48px));
+    transform: translateX(-50%);
+    border-radius: 28px;
+    border: 1px solid #fff;
+    padding-bottom: 16px !important;
+  }
+  .scrim { align-items: center; padding: 24px; }
+  .sheet { max-width: 520px; border-radius: 28px; padding-bottom: 24px; }
+  .toast { max-width: 520px; }
+}

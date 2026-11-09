@@ -9,12 +9,50 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type Person = { id: string; name: string; token: string };
 type Msg = { id: string; sender_id: string | null; dm_to: string | null; text: string; game_slug: string | null };
 type Card = { title: string; subtitle: string; when: string; spots: string };
-type Data = { group: { name: string }; people: Person[]; messages: Msg[]; cards: Record<string, Card> };
+type GameInfo = { slug: string; organizerToken: string; organizerId: string; status: string; when: string; inviteOnly: boolean; spots: number; inIds: string[] };
+type Data = { group: { name: string }; people: Person[]; messages: Msg[]; cards: Record<string, Card>; game: GameInfo | null };
 
-const QUICK = [
-  { label: "Create a game", text: "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64" },
-  { label: "Say in", text: "in" },
-  { label: "Say out", text: "out" },
+// Each scenario sends a real message through the real assistant (Claude on the server).
+// "as" is who sends it: the organizer, or whoever you're acting as.
+type Scenario = { label: string; text: string; as: "organizer" | "me" };
+const SCENARIOS: Array<[string, Scenario[]]> = [
+  [
+    "Start a game (as Alex)",
+    [
+      { label: "Game with full details", as: "organizer", text: "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64" },
+      { label: "Invite-only game", as: "organizer", text: "@Assistant Thu 6pm Riverside Park courts 3–4, $64, mixed doubles, invite only" },
+      { label: "Singles: spots → courts", as: "organizer", text: "@Assistant Sat 9am Lincoln Park, singles, 6 spots, $30" },
+      { label: "Missing details", as: "organizer", text: "@Assistant let's play Thursday" },
+    ],
+  ],
+  [
+    "Say it like a person (as you)",
+    [
+      { label: "I'm down", as: "me", text: "yeah I'm down" },
+      { label: "Maybe", as: "me", text: "maybe, depends if work lets out" },
+      { label: "Can't make it", as: "me", text: "ugh I can't make it thursday, sorry all" },
+      { label: "Not sure (injury)", as: "me", text: "tweaked my knee, not sure I can play" },
+      { label: "Waitlist me", as: "me", text: "waitlist me" },
+      { label: "Give spot to Lee", as: "me", text: "can Lee take my spot?" },
+      { label: "Bring a friend", as: "me", text: "can my friend Dana come?" },
+      { label: "Who's in?", as: "me", text: "who's playing?" },
+      { label: "What time?", as: "me", text: "what time is it again?" },
+      { label: "Parking? (to host)", as: "me", text: "is there parking near the courts?" },
+      { label: "Still on? (to host)", as: "me", text: "rain forecast thursday, are we still on?" },
+      { label: "Did I get charged?", as: "me", text: "did I get charged yet?" },
+      { label: "Ask to change time", as: "me", text: "can we push it to 7?" },
+      { label: "Small talk", as: "me", text: "lol did anyone watch the game last night" },
+      { label: "Help", as: "me", text: "what can you do?" },
+    ],
+  ],
+  [
+    "Organizer (as Alex)",
+    [
+      { label: "Add the newest person", as: "organizer", text: "add {newest}" },
+      { label: "Move to 7pm", as: "organizer", text: "actually let's push to 7pm" },
+      { label: "Call it off", as: "organizer", text: "rained out, cancel the game" },
+    ],
+  ],
 ];
 
 export default function Playground({ groupId }: { groupId: string }) {
@@ -23,6 +61,8 @@ export default function Playground({ groupId }: { groupId: string }) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [newName, setNewName] = useState("Dana");
+  const [note, setNote] = useState<string | null>(null);
   const groupEnd = useRef<HTMLDivElement>(null);
   const dmEnd = useRef<HTMLDivElement>(null);
   const counts = useRef({ group: 0, dm: 0 });
@@ -83,21 +123,48 @@ export default function Playground({ groupId }: { groupId: string }) {
   if (!data || !viewerId) return <div className="sim">Loading simulator…</div>;
 
   const people = new Map(data.people.map((p) => [p.id, p]));
-  const viewer = people.get(viewerId)!;
+  const viewer = people.get(viewerId) ?? data.people[0];
 
-  async function send(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!text.trim() || sending) return;
+  async function sendAs(senderId: string, body: string) {
     setSending(true);
     const res = await fetch(`/api/play/groups/${groupId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId: viewerId, text }),
+      body: JSON.stringify({ senderId, text: body }),
     });
     setSending(false);
-    if (!res.ok) return setError((await res.json()).error ?? "Couldn't send");
-    setText("");
+    if (!res.ok) return setNote((await res.json()).error ?? "Couldn't send");
     load();
+  }
+
+  async function send(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!text.trim() || sending) return;
+    await sendAs(viewerId!, text);
+    setText("");
+  }
+
+  const organizerId = data.game?.organizerId ?? data.people[0]?.id;
+  const newest = [...data.people].reverse().find((p) => !["Alex", "Sam", "Priya", "Jo", "Mei", "Chris", "Lee"].includes(p.name))?.name ?? "Dana";
+
+  async function runScenario(sc: Scenario) {
+    const sender = sc.as === "organizer" ? organizerId : viewerId!;
+    if (sc.as === "organizer") setViewerId(organizerId);
+    setNote(null);
+    await sendAs(sender, sc.text.replace("{newest}", newest));
+  }
+
+  async function control(body: Record<string, unknown>, done?: (r: Record<string, unknown>) => string) {
+    setNote(null);
+    const res = await fetch(`/api/play/groups/${groupId}/control`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const r = await res.json().catch(() => ({}));
+    await load();
+    setNote(res.ok ? (done ? done(r) : "Done.") : (r.error ?? "That didn't work"));
+    return r;
   }
 
   function linkFor(slugWithQuery: string) {
@@ -106,6 +173,13 @@ export default function Playground({ groupId }: { groupId: string }) {
   }
 
   function bubble(m: Msg, inDm = false) {
+    if (!m.sender_id && / was added to the chat$/.test(m.text)) {
+      return (
+        <p key={m.id} className="im-system">
+          {m.text}
+        </p>
+      );
+    }
     const mine = m.sender_id === viewerId;
     const bot = !m.sender_id;
     const sender = m.sender_id ? people.get(m.sender_id)?.name : "Assistant";
@@ -162,22 +236,87 @@ export default function Playground({ groupId }: { groupId: string }) {
             </div>
           </div>
           <div className="sim-field">
-            <span className="sim-label">Quick messages</span>
-            {QUICK.map((q) => (
-              <button key={q.label} type="button" className="sim-btn ghost" onClick={() => setText(q.text)}>
-                {q.label}
-              </button>
-            ))}
+            <span className="sim-label">Add someone to the chat</span>
+            <form
+              className="sim-row"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const r = await control({ action: "addPerson", name: newName }, () => `${newName} joined the chat. They weren't here when the game was made.`);
+                if (r.personId) setViewerId(r.personId as string);
+              }}
+            >
+              <input className="sim-input" value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="Name" maxLength={20} />
+              <button className="sim-btn">Add</button>
+            </form>
           </div>
+
+          {SCENARIOS.map(([title, list]) => (
+            <div key={title} className="sim-field">
+              <span className="sim-label">{title}</span>
+              <div className="sim-chips">
+                {list.map((sc) => (
+                  <button key={sc.label} type="button" className="sim-chip" disabled={sending} onClick={() => runScenario(sc)} title={sc.text}>
+                    {sc.label.replace("the newest person", newest)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+
           <div className="sim-field">
-            <span className="sim-label">Try this</span>
-            <ol className="sim-steps">
-              <li>As Alex, create a game.</li>
-              <li>Switch to Sam and say &quot;in&quot;.</li>
-              <li>Tap the card and approve the hold with a PayPal sandbox account.</li>
-              <li>Watch the group and each private thread update.</li>
-            </ol>
+            <span className="sim-label">Game {data.game ? `· ${data.game.when}` : ""}</span>
+            {data.game ? (
+              <>
+                <a className="sim-btn ghost" href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">
+                  Open game page as {viewer.name} ↗
+                </a>
+                <a className="sim-btn ghost" href={`/g/${data.game.slug}?o=${data.game.organizerToken}`} target="_blank" rel="noreferrer">
+                  Open organizer page ↗
+                </a>
+                <button type="button" className="sim-btn ghost" onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
+                  Join as {viewer.name} (simulated hold)
+                </button>
+                <button type="button" className="sim-btn ghost" onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
+                  Fill the game, leave 1 spot
+                </button>
+              </>
+            ) : (
+              <p className="sim-hint">Start a game first.</p>
+            )}
+            <p className="sim-hint">Simulated holds skip the PayPal login so you can test quickly. To test real money, open the game page and use a PayPal sandbox account.</p>
           </div>
+
+          <div className="sim-field">
+            <span className="sim-label">Move the clock</span>
+            <div className="sim-chips">
+              {[
+                ["before", "3 days out"],
+                ["gameday", "Game day"],
+                ["soon", "90 min to go"],
+                ["over", "After the game"],
+              ].map(([mode, label]) => (
+                <button key={mode} type="button" className="sim-chip" disabled={!data.game} onClick={() => control({ action: "time", mode }, (r) => `The game is now ${r.label}.`)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="sim-btn ghost"
+              disabled={!data.game}
+              onClick={() => control({ action: "tick" }, (r) => ((r.ran as string[])?.length ? `Ran: ${(r.ran as string[]).join(", ")}.` : "Nothing was due."))}
+            >
+              Run scheduled jobs now
+            </button>
+            <p className="sim-hint">Game day: dropping out becomes a late cancel. 90 min to go + run jobs: game-day reminder. After the game + run jobs: settles up.</p>
+          </div>
+
+          {note && (
+            <p className="sim-note" role="status">
+              {note}
+            </p>
+          )}
+
           <button type="button" className="sim-btn ghost" onClick={newGroup}>
             Start a new demo group
           </button>

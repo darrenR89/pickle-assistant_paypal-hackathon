@@ -99,6 +99,8 @@ create table if not exists invites (
 alter table spots add column if not exists authorized_at timestamptz;
 -- Private texts are opt-in: each new 1:1 chat (Blooio) costs money, so only open one when asked.
 alter table people add column if not exists texts_opt_in boolean not null default false;
+-- Demo groups made by /play. Testing shortcuts (simulated holds, moving the clock) only work on these.
+alter table groups add column if not exists playground boolean not null default false;
 alter table people add column if not exists texts_welcomed boolean not null default false;
 -- Binds a PayPal order to the game and person server-side, so the browser can't swap them.
 create table if not exists pending_orders (

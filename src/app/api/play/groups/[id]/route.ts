@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { one, q } from "@/lib/db";
-import { type Game, inPlayers, money, roster, shortWhen, whenLabel } from "@/lib/games";
+import { type Game, inPlayers, money, openGameForGroup, roster, shortWhen, whenLabel } from "@/lib/games";
 import { groupPeople } from "@/lib/playground";
 import { errorResponse } from "@/lib/http";
 
@@ -14,7 +14,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const { id } = await params;
     const viewer = new URL(req.url).searchParams.get("viewer");
-    const group = await one<{ id: string; name: string }>("select id, name from groups where id = $1", [id]);
+    const group = await one<{ id: string; name: string; playground: boolean }>("select id, name, playground from groups where id = $1", [id]);
     if (!group) return NextResponse.json({ error: "Unknown group" }, { status: 404 });
 
     const people = await groupPeople(id);
@@ -43,7 +43,26 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       };
     }
 
-    return NextResponse.json({ group, people, messages, cards });
+    // Demo groups also get the current game's links, so testers can open any view directly.
+    let game: unknown = null;
+    if (group.playground) {
+      const g = await openGameForGroup(id) ?? (await one<Game>("select * from games where group_id = $1 order by created_at desc limit 1", [id]));
+      if (g) {
+        const entries = await roster(g.id);
+        game = {
+          slug: g.slug,
+          organizerToken: g.organizer_token,
+          organizerId: g.organizer_id,
+          status: g.status,
+          when: whenLabel(g.starts_at),
+          inviteOnly: g.invite_only,
+          spots: g.spots,
+          inIds: inPlayers(entries).map((e) => e.person_id),
+        };
+      }
+    }
+
+    return NextResponse.json({ group, people, messages, cards, game });
   } catch (err) {
     return errorResponse(err);
   }

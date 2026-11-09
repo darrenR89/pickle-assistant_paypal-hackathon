@@ -148,7 +148,7 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   const playersTitle = v.status === "cancelled" ? `${count} were in` : v.status !== "open" || v.over ? `${count} played` : left === 0 ? "Game’s full" : `${left} spot${left === 1 ? "" : "s"} left`;
 
   const playersCard = (
-    <section className="card" aria-label="Players">
+    <section className="card half tall" aria-label="Players">
       <div style={{ padding: "18px 2px 20px" }}>
         <div className="line">
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -200,7 +200,7 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   );
 
   const locationCard = (
-    <section className="card" aria-label="Where">
+    <section className="card half" aria-label="Where">
       <div className="row">
         <Icon name="pin" />
         <div className="tx">
@@ -218,7 +218,7 @@ export default function GameScreen({ view: v }: { view: ViewData }) {
   );
 
   const moneyCard = (
-    <section className="card" aria-label="Money">
+    <section className="card half" aria-label="Money">
       <button className="row" onClick={() => setSheet("explain")} style={{ width: "100%", background: "none", border: "none", textAlign: "left" }}>
         <Icon name="card" />
         <div className="tx">

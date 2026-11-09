@@ -21,7 +21,7 @@ export async function createPlaygroundGroup() {
   const groupId = newId("grp");
   const people = CAST.map((name) => ({ id: newId("per"), name, phone: fakePhone(), token: newToken() }));
   await tx(async (c) => {
-    await c.query("insert into groups (id, name) values ($1, $2)", [groupId, "Thursday crew"]);
+    await c.query("insert into groups (id, name, playground) values ($1, $2, true)", [groupId, "Thursday crew"]);
     for (const [i, p] of people.entries()) {
       await c.query("insert into people (id, name, phone, token, texts_opt_in) values ($1, $2, $3, $4, true)", [p.id, p.name, p.phone, p.token]);
       await c.query("insert into group_members (group_id, person_id, position) values ($1, $2, $3)", [groupId, p.id, i]);

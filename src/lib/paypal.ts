@@ -116,8 +116,15 @@ export function authorizeOrder(orderId: string) {
   });
 }
 
+// Demo shortcut: the /play simulator can place "SIM-" holds without a PayPal login, so testers can
+// fill a game in seconds. They never reach PayPal; real holds always go through the calls below.
+const isSim = (id: string) => id.startsWith("SIM-");
+const simId = () => `SIM-${crypto.randomUUID().replace(/-/g, "").slice(0, 14).toUpperCase()}`;
+export const newSimulatedAuthorization = simId;
+
 /** Release the hold: the player is never charged. */
 export function voidAuthorization(authorizationId: string) {
+  if (isSim(authorizationId)) return Promise.resolve({ status: "VOIDED", simulated: true });
   return call<Record<string, unknown>>(
     `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/void`,
     { method: "POST", requestId: `void-${authorizationId}` },
@@ -126,6 +133,7 @@ export function voidAuthorization(authorizationId: string) {
 
 /** Charge the held share (all of it unless amountCents is given). */
 export function captureAuthorization(authorizationId: string, amountCents?: number) {
+  if (isSim(authorizationId)) return Promise.resolve({ status: "COMPLETED", simulated: true });
   return call<Record<string, unknown>>(
     `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/capture`,
     {
@@ -144,6 +152,7 @@ export function captureAuthorization(authorizationId: string, amountCents?: numb
  * Returns the new authorization; the old one is no longer used.
  */
 export function reauthorize(authorizationId: string, amountCents: number) {
+  if (isSim(authorizationId)) return Promise.resolve({ id: simId(), status: "CREATED" });
   return call<{ id: string; status: string; expiration_time?: string }>(
     `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/reauthorize`,
     {
