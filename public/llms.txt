@@ -1,0 +1,19 @@
+# Pickleball assistant
+
+> An AI assistant in a pickleball group chat. Players hold their spot with a PayPal or Venmo authorization; after the game each is captured for their real share and the rest is released. Entry for the PayPal AI Hackathon 2026, running in the PayPal sandbox.
+
+- [Live demo on your phone](https://pickle-assistant.onrender.com/demo): you organize a game from your phone while the page plays the rest of the group.
+- [Source code](https://github.com/darrenR89/pickle-assistant_paypal-hackathon) (MIT)
+- [For judges](https://github.com/darrenR89/pickle-assistant_paypal-hackathon/blob/main/JUDGES.md): judging criteria mapped to code.
+
+## PayPal
+- Orders v2, intent AUTHORIZE; authorize, partial capture, void, reauthorize; PayPal-Request-Id on every write.
+- PayPal JS SDK buttons with PayPal and Venmo funding sources.
+
+## AI
+- Claude Haiku 5.5 (Anthropic) with forced tool calls: one parses a game setup message, one interprets every other group message.
+- The model only interprets intent. All money movement is deterministic code.
+
+## Real vs simulated in the demo
+- Real: Claude, the game pages, and holds placed with a PayPal sandbox account.
+- Simulated: the group chat and the other players' holds.

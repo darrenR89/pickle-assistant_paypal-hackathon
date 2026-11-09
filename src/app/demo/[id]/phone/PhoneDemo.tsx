@@ -27,6 +27,17 @@ export default function PhoneDemo({ id }: { id: string }) {
   const lastViewer = useRef<string | null>(null);
   const seenDm = useRef(0);
   const [unread, setUnread] = useState(0);
+  const [controls, setControls] = useState(false);
+  const [ctlNote, setCtlNote] = useState<string | null>(null);
+
+  // On a phone with no second screen, the same steps as the desktop page, in a sheet.
+  async function act(action: string) {
+    setCtlNote("Working…");
+    const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+    const b = await r.json().catch(() => ({}));
+    setCtlNote(b.note ?? null);
+    load();
+  }
   const end = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -129,6 +140,7 @@ export default function PhoneDemo({ id }: { id: string }) {
             Assistant{unread > 0 && <span className="dp-dot" aria-label={`${unread} new`}>{unread}</span>}
           </button>
         </div>
+        <button className="dp-ctl" onClick={() => { setCtlNote(null); setControls(true); }}>Demo steps</button>
         <p className="dp-role">
           {viewer.role === "organizer" ? `You’re ${viewer.name}, the organizer` : `You’re ${viewer.name}, a player`}
           {thread === "dm" && " · only you see these"}
@@ -168,6 +180,30 @@ export default function PhoneDemo({ id }: { id: string }) {
         })}
         <div ref={end} />
       </div>
+
+      {controls && (
+        <div className="dp-scrim" onClick={(e) => e.target === e.currentTarget && setControls(false)}>
+          <div className="dp-sheet" role="dialog" aria-modal="true" aria-label="Demo steps">
+            <div className="dp-sheet-head">
+              <strong>Demo steps</strong>
+              <button onClick={() => setControls(false)}>Done</button>
+            </div>
+            <p className="dp-sheet-p">These play the rest of the group. Claude and your PayPal sandbox hold are real; the other players are simulated.</p>
+            {[
+              ["start", "1. Set up the game", !state.game],
+              ["friends", "2. Three friends say they’re in", !!state.game && state.game.status === "open"],
+              [viewer.role === "player" ? "organizer" : "player", viewer.role === "player" ? "3. Back to organizer" : "3. Become a player and pay", !!state.game && state.game.status === "open"],
+              ["late", "4. Someone cancels on game day", !!state.game && state.game.status === "open"],
+              ["after", "5. Skip to after the game", !!state.game && state.game.status === "open"],
+            ].map(([a, label, on]) => (
+              <button key={a as string} className="dp-step" disabled={!on} onClick={() => act(a as string)}>
+                {label as string}
+              </button>
+            ))}
+            {ctlNote && <p className="dp-sheet-note" role="status">{ctlNote}</p>}
+          </div>
+        </div>
+      )}
 
       {thread === "group" && (
         <div className="dp-foot">

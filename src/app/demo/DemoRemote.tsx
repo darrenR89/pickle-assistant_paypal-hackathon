@@ -159,6 +159,11 @@ export default function DemoRemote() {
         </p>
       </header>
 
+      {phoneUrl && (
+        <a className="dr-onphone" href={phoneUrl}>
+          <strong>On your phone already?</strong> Open the demo right here. A Demo steps button inside plays the rest of the group. →
+        </a>
+      )}
       <div className="dr-grid">
         <section className="dr-pair" aria-label="Connect your phone">
           <div className="dr-qr">{qr ? <img src={qr} alt="QR code that opens the demo on your phone" width={240} height={240} /> : <span className="dr-qr-blank" />}</div>

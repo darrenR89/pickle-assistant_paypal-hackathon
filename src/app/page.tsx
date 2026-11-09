@@ -1,39 +1,225 @@
 import Link from "next/link";
 
+// Landing page. Humans see the video, the live phone demo and the screens; the same page is
+// plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
+
+const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
+const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID; // YouTube id, set once the walkthrough is uploaded
+
+const SCREENS = [
+  { src: "chat", title: "Say it in the group", body: "“yeah I’m down” is enough. The assistant reads the chat and replies with the game link." },
+  { src: "game", title: "One tap to hold a spot", body: "Time, courts and your share up front. Tap I’m in and pay with PayPal or Venmo." },
+  { src: "partners", title: "Know the format", body: "Rotating or fixed partners, level, indoor or outdoor, so nobody shows up surprised." },
+  { src: "in", title: "Held, not charged", body: "PayPal holds your share plus a small cap. Nothing leaves your account before the game." },
+  { src: "late", title: "Late cancels, handled fairly", body: "After free cancel ends, the organizer decides: charge the share or cover it." },
+  { src: "paid", title: "Charged the real share", body: "After the game each player pays their share. The rest of the hold is released." },
+  { src: "dm", title: "Money talk stays private", body: "Holds, receipts and refunds go to each player privately, never to the group." },
+];
+
+const INFO: Array<[string, string]> = [
+  ["Lives in", "Your group chat (iMessage and WhatsApp planned)"],
+  ["Payments", "PayPal and Venmo, via PayPal Orders v2"],
+  ["AI", "Claude (Haiku 5.5) reads every message"],
+  ["Players need", "No app, no account with us. A text and a link"],
+  ["Price for players", "Their share of the court. Nothing more"],
+  ["Status", "Working prototype in the PayPal sandbox"],
+];
+
 export default function Home() {
   return (
-    <div className="app">
-      <header className="hdr" style={{ paddingBottom: 26 }}>
-        <div className="eyebrow">
-          <span className="d">PayPal AI Hackathon</span>
-          <span className="div" aria-hidden="true" />
-          <span className="t">Sandbox</span>
-        </div>
-        <h1 style={{ margin: "6px 0 0", textAlign: "center", font: "800 58px/0.92 var(--cond)", color: "#fff", textTransform: "uppercase", letterSpacing: "-.01em" }}>
-          Pickleball,
-          <br />
-          settled.
-        </h1>
-        <span className="facts" style={{ maxWidth: 330 }}>
-          An assistant in your group chat that holds each player’s share with PayPal or Venmo and settles after the game.
-        </span>
-      </header>
-      <main className="scroll" style={{ paddingBottom: 40 }}>
-        <section className="card">
-          <div className="ledger">
-            <div><span>Saying you’re in and the PayPal or Venmo hold</span><span className="em">one tap</span></div>
-            <div><span>Money details in the group chat</span><span>never</span></div>
-            <div><span>Reminders, settling and renewing holds</span><span>automatic</span></div>
-            <div><span>Talk to it like a friend: “can Dana take my spot?”</span><span>Claude</span></div>
-          </div>
-        </section>
-        <Link className="cta wide" href="/play" style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
-          Try the demo group chat
+    <div className="lp">
+      <nav className="lp-nav" aria-label="Main">
+        <Link href="/" className="lp-logo">
+          <span className="lp-ball" aria-hidden="true" /> Pickleball assistant
         </Link>
-        <p className="sh-p" style={{ fontSize: 15, margin: "0 6px" }}>
-          A simulated group of seven friends. Start a game as Alex, then join as the others with PayPal sandbox accounts.
-        </p>
-      </main>
+        <div className="lp-navlinks">
+          <a href="#screens">The app</a>
+          <a href="#built">How it was built</a>
+          <a href={REPO}>GitHub</a>
+          <Link href="/demo" className="lp-navcta">Try it on your phone</Link>
+        </div>
+      </nav>
+
+      <header className="lp-hero">
+        <div className="lp-hero-copy">
+          <p className="lp-eyebrow">PayPal AI Hackathon 2026 · PayPal sandbox</p>
+          <h1>Pickleball games that settle themselves.</h1>
+          <p className="lp-sub">
+            An AI assistant that lives in your group chat. Friends say they’re in, hold their spot with PayPal or Venmo, and after the game
+            each one is charged their real share. Nobody chases payment requests.
+          </p>
+          <div className="lp-ctas">
+            <Link href="/demo" className="lp-btn">Try it live on your phone</Link>
+            <a href="#video" className="lp-btn ghost">Watch the demo</a>
+          </div>
+          <p className="lp-fine">The live demo runs on your own phone: you organize, the page plays your friends, and you pay with a PayPal sandbox account.</p>
+        </div>
+
+        <div className="lp-hero-media" id="video">
+          {VIDEO_ID ? (
+            <div className="lp-video">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?rel=0`}
+                title="Pickleball assistant demo video"
+                allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="lp-trio" aria-label="The app on a phone">
+              <Phone src="chat" alt="Group chat where friends reply and the assistant posts the game link" />
+              <Phone src="game" alt="Game page with the time, spots left and an I'm in button" />
+              <Phone src="paid" alt="Receipt showing the player paid their share after the game" />
+            </div>
+          )}
+        </div>
+      </header>
+
+      <section className="lp-section" aria-labelledby="how">
+        <h2 id="how" className="lp-h2">How it works</h2>
+        <ol className="lp-steps">
+          <li>
+            <span className="lp-n">1</span>
+            <h3>The organizer texts the group</h3>
+            <p>“@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude turns that into a game: 8 spots, $8 each, free cancel until the day before.</p>
+          </li>
+          <li>
+            <span className="lp-n">2</span>
+            <h3>Players hold their spot</h3>
+            <p>Tapping the link and I’m in places a PayPal authorization for the share plus a small cap. It counts you in without charging you.</p>
+          </li>
+          <li>
+            <span className="lp-n">3</span>
+            <h3>It settles after the game</h3>
+            <p>Each player is captured for their real share and the rest of each hold is released. The organizer sees exactly what was collected.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section className="lp-section" id="screens" aria-labelledby="screens-h">
+        <h2 id="screens-h" className="lp-h2">The app</h2>
+        <p className="lp-lead">Players never download anything. Everything below is a web page that opens from a text.</p>
+        <ul className="lp-gallery">
+          {SCREENS.map((s) => (
+            <li key={s.src}>
+              <Phone src={s.src} alt={s.title} />
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </li>
+          ))}
+        </ul>
+
+        <dl className="lp-info">
+          {INFO.map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="lp-built" id="built" aria-labelledby="built-h">
+        <div className="lp-built-in">
+          <p className="lp-eyebrow">Case study</p>
+          <h2 id="built-h" className="lp-h2 light">How this was built</h2>
+
+          <article className="lp-ch">
+            <span className="lp-chn">01</span>
+            <div>
+              <h3>The problem</h3>
+              <p>
+                Rec pickleball runs on group chats. One person books the court and pays up front, then chases everyone for their share. People
+                say “maybe”, drop out the night before, or never pay. The organizer ends up out of pocket, and asking for money in the group feels
+                awkward.
+              </p>
+            </div>
+          </article>
+
+          <article className="lp-ch">
+            <span className="lp-chn">02</span>
+            <div>
+              <h3>The AI: reads the chat, never moves money</h3>
+              <p>
+                Claude reads every message with forced tool calls. One turns a setup message into game details. Another decides what a reply
+                means: in, out, maybe, waitlist, give my spot to Lee, or a question for the host. If the request is vague, it starts a draft and
+                asks the organizer privately. Questions like “is there parking?” go to the host, not the whole group.
+              </p>
+              <p>
+                The rule throughout: the AI only works out what people mean. Every hold, charge and release is plain, deterministic code. If
+                Claude is unavailable, a rules-based parser keeps things working.
+              </p>
+            </div>
+          </article>
+
+          <article className="lp-ch">
+            <span className="lp-chn">03</span>
+            <div>
+              <h3>The money: authorize now, capture later</h3>
+              <ul className="lp-flow" aria-label="PayPal payment flow">
+                <li><strong>Hold</strong><span>Orders v2 with intent AUTHORIZE. Share plus a small cap.</span></li>
+                <li><strong>Release</strong><span>Void the authorization when someone cancels in time.</span></li>
+                <li><strong>Renew</strong><span>Reauthorize holds past PayPal’s 3-day honor period, so they’re good on game day.</span></li>
+                <li><strong>Charge</strong><span>Capture only the real share after the game. The rest is released.</span></li>
+              </ul>
+              <p>
+                Every payment call carries a PayPal-Request-Id so retries never double charge. Venmo appears through the same PayPal JS SDK. A player can
+                never pay more than the hold they approved.
+              </p>
+            </div>
+          </article>
+
+          <article className="lp-ch">
+            <span className="lp-chn">04</span>
+            <div>
+              <h3>The design</h3>
+              <p>
+                Pickleball skews older, so the floor was set first: body text 17px or larger, 7:1 contrast, 56px buttons, and nothing that
+                relies on color alone. The game page went through many rounds, with the time as the hero and money explained in plain words. Patterns
+                came from studying event and payment apps on Mobbin, then were redrawn from scratch.
+              </p>
+            </div>
+          </article>
+
+          <article className="lp-ch">
+            <span className="lp-chn">05</span>
+            <div>
+              <h3>Testing it without a real group</h3>
+              <p>
+                A simulator plays a full group chat, with controls to add people, fill the game and move the clock. The phone demo builds on it so
+                anyone can run a game from their own phone. What’s real: Claude reading every message, and your own PayPal sandbox hold and
+                capture. What’s simulated: the other players and their holds, which are clearly marked.
+              </p>
+            </div>
+          </article>
+
+          <p className="lp-stack">
+            Built with Next.js, TypeScript and Postgres on Render · PayPal Orders v2 and the PayPal JS SDK · Claude Haiku 5.5 by Anthropic ·{" "}
+            <a href={REPO}>Source on GitHub</a> (MIT)
+          </p>
+        </div>
+      </section>
+
+      <section className="lp-final" aria-labelledby="final-h">
+        <h2 id="final-h" className="lp-h2">Run a game from your phone</h2>
+        <p className="lp-lead">Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
+        <Link href="/demo" className="lp-btn">Open the live demo</Link>
+      </section>
+
+      <footer className="lp-foot">
+        <span>Built for the PayPal AI Hackathon 2026. Sandbox only: no real money moves.</span>
+        <span>
+          <a href={REPO}>GitHub</a> · <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a> · <Link href="/play">Full simulator</Link>
+        </span>
+      </footer>
     </div>
+  );
+}
+
+function Phone({ src, alt }: { src: string; alt: string }) {
+  return (
+    <span className="lp-phone">
+      <img src={`/shots/${src}.webp`} alt={alt} width={390} height={844} loading="lazy" />
+    </span>
   );
 }
