@@ -258,12 +258,12 @@ async function createGame(groupId: string, organizerId: string, text: string) {
   let spotsNote = "";
   if (!parsed.spots && parsed.courtCount) {
     parsed.spots = parsed.courtCount * each;
-    spotsNote = `${parsed.spots} spots for ${parsed.courtCount} court${parsed.courtCount === 1 ? "" : "s"} of ${parsed.kind === "singles" ? "singles" : "doubles"}`;
+    spotsNote = `I went with ${parsed.spots} spots for ${parsed.courtCount} court${parsed.courtCount === 1 ? "" : "s"} of ${parsed.kind === "singles" ? "singles" : "doubles"}.`;
   } else if (parsed.spots && !parsed.courtCount) {
     const need = Math.ceil(parsed.spots / each);
-    spotsNote = `${parsed.spots} players is ${need} court${need === 1 ? "" : "s"} of ${parsed.kind === "singles" ? "singles" : "doubles"}`;
+    spotsNote = `${parsed.spots} players of ${parsed.kind === "singles" ? "singles" : "doubles"} needs ${need} court${need === 1 ? "" : "s"}, so make sure ${need === 1 ? "it's" : "they're"} booked.`;
   } else if (parsed.spots && parsed.courtCount && parsed.spots > parsed.courtCount * each) {
-    spotsNote = `${parsed.spots} players on ${parsed.courtCount} court${parsed.courtCount === 1 ? "" : "s"} means ${parsed.spots - parsed.courtCount * each} sit out each round`;
+    spotsNote = `${parsed.spots} players on ${parsed.courtCount} court${parsed.courtCount === 1 ? "" : "s"} means ${parsed.spots - parsed.courtCount * each} sit out each round.`;
   }
   if (!parsed.spots) missing.add("spots");
   if (!parsed.priceCents) missing.add("price");
@@ -353,7 +353,7 @@ async function createGame(groupId: string, organizerId: string, text: string) {
     groupId,
     organizerId,
     `Your game is up. I used the usual terms: free cancel until 24 hours before, and up to ${money(DEFAULT_CAP_CENTS)} extra each if the game is short.` +
-      (spotsNote ? ` I went with ${spotsNote}.` : "") +
+      (spotsNote ? ` ${spotsNote}` : "") +
       ` Change anything here (only you can see this link):`,
     `${slug}?o=${organizerToken}`,
     { always: true },
