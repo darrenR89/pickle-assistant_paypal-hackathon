@@ -199,7 +199,9 @@ async function actOn(ctx: GroupContext, d: Decision, text: string) {
       await postDm(groupId, me.id, `To call it off and release everyone's hold, confirm here:`, `${game.slug}?o=${game.organizer_token}`, { always: true });
       return say(`${me.name}, confirm on your organizer page and I'll release everyone's hold.`);
     case "ask_organizer":
-      return say(d.reply ?? `Good one for ${organizer?.name ?? "the organizer"}. ${organizer?.name ?? "Organizer"}, ${me.name} is asking.`);
+      // Only the host knows (parking, balls, rules). Don't add noise to the group: pass it on privately.
+      if (ctx.isOrganizer) return;
+      return postDm(groupId, game.organizer_id, `${me.name} asked in the group: "${text.slice(0, 200)}"`, undefined, { always: true });
     case "clarify":
       return say(d.reply ?? `Sorry ${me.name}, can you say that another way?`);
     case "help":
