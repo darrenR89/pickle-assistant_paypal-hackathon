@@ -1,10 +1,10 @@
 // The assistant's group-chat behavior. Channel-agnostic: the web playground calls
 // handleGroupMessage today; a Chat SDK adapter (Blooio, etc.) can call it later.
 //
-// Rule: the AI only reads intent (parsing a new game). Every money movement below
-// is deterministic code.
+// Rule: the AI only reads intent (a new game, or what a free-form message means).
+// Every money movement below is deterministic code.
 
-import { newId, newToken, q } from "@/lib/db";
+import { newId, newToken, one, q } from "@/lib/db";
 import {
   type Game,
   type RosterEntry,
@@ -23,6 +23,7 @@ import {
 } from "@/lib/games";
 import { captureAuthorization, voidAuthorization } from "@/lib/paypal";
 import { parseGameRequest } from "./parse";
+import { type Decision, type GroupContext, buildContext, resolveMember, understand, worthReading } from "./agent";
 
 const DEFAULT_CAP_CENTS = 200;
 const CANCEL_BY_HOURS = 24;
@@ -37,8 +38,16 @@ export async function postGroup(groupId: string, text: string, gameSlug?: string
   ]);
 }
 
-/** A private 1:1 message. In the playground it shows in that person's inbox. */
-export async function postDm(groupId: string, personId: string, text: string, gameSlug?: string) {
+/**
+ * A private 1:1 message. Players only get these if they opted in (each new 1:1 chat costs us);
+ * organizers always do, because they need to make decisions. In the playground it shows in that
+ * person's inbox.
+ */
+export async function postDm(groupId: string, personId: string, text: string, gameSlug?: string, opts: { always?: boolean } = {}) {
+  if (!opts.always) {
+    const p = await one<{ texts_opt_in: boolean }>("select texts_opt_in from people where id = $1", [personId]);
+    if (!p?.texts_opt_in) return;
+  }
   await q("insert into messages (group_id, sender_id, dm_to, text, game_slug) values ($1, null, $2, $3, $4)", [
     groupId,
     personId,
@@ -81,8 +90,145 @@ export async function handleGroupMessage(groupId: string, senderId: string, text
     }
     return;
   }
+  // Exact one-word replies skip the model: fast, free, and unambiguous.
   if (SAYS_IN.test(text)) return saidIn(open, senderId);
   if (SAYS_OUT.test(text)) return playerOut(open, senderId);
+
+  // Everything else: free-form. Most chatter never reaches the model.
+  const lastSpoke = await one<{ at: Date }>(
+    "select created_at as at from messages where group_id = $1 and sender_id is null and dm_to is null order by id desc limit 1",
+    [groupId],
+  );
+  const recent = !!lastSpoke && Date.now() - new Date(lastSpoke.at).getTime() < 10 * 60_000;
+  if (!worthReading(text, recent)) return;
+  const ctx = await buildContext(groupId, senderId, open);
+  const decision = await understand(ctx, text);
+  await logEvent(open.id, senderId, "understood", { text, ...decision });
+  await actOn(ctx, decision, text);
+}
+
+// ---------- acting on a free-form message ----------
+
+async function actOn(ctx: GroupContext, d: Decision, text: string) {
+  const game = ctx.game!;
+  const groupId = game.group_id;
+  const me = ctx.sender;
+  const say = (t: string, withLink = false) => postGroup(groupId, t, withLink ? game.slug : undefined);
+  const organizer = await personById(game.organizer_id);
+  const entries = await roster(game.id);
+  const mine = entries.find((e) => e.person_id === me.id);
+  const left = game.spots - inPlayers(entries).length;
+
+  // Unsure about something that changes the roster? Ask instead of acting.
+  if (d.action !== "ignore" && d.confidence < 0.55) {
+    if (d.reply || /@/.test(text)) await say(d.reply ?? `Sorry ${me.name}, I didn't follow. Are you in or out for ${whenLabel(game.starts_at)}?`);
+    return;
+  }
+  if (d.action === "leave" && d.confidence < 0.7 && mine?.status === "in") {
+    await say(`${me.name}, just checking: are you out for ${whenLabel(game.starts_at)}? Reply "out" to confirm.`);
+    return;
+  }
+
+  switch (d.action) {
+    case "ignore":
+      return;
+    case "join":
+      return saidIn(game, me.id);
+    case "leave":
+      if (mine?.status === "in") return playerOut(game, me.id);
+      await q("delete from intents where game_id = $1 and person_id = $2", [game.id, me.id]);
+      return;
+    case "maybe":
+      if (mine?.status === "in") return;
+      await q(
+        "insert into intents (game_id, person_id, kind) values ($1, $2, 'maybe') on conflict (game_id, person_id) do update set kind = 'maybe'",
+        [game.id, me.id],
+      );
+      return say(`No rush, ${me.name}. Spots go to whoever confirms first, so tap when you're sure:`, true);
+    case "waitlist": {
+      if (mine?.status === "in") return say(`${me.name}, you're already in.`);
+      if (left > 0) return say(`${me.name}, ${left === 1 ? "there's still a spot" : `there are still ${left} spots`}. Grab one:`, true);
+      await q(
+        "insert into intents (game_id, person_id, kind) values ($1, $2, 'waitlist') on conflict (game_id, person_id) do update set kind = 'waitlist', said_at = now()",
+        [game.id, me.id],
+      );
+      const pos = (await q("select 1 from intents where game_id = $1 and kind = 'waitlist'", [game.id])).length;
+      return say(`${me.name}, you're #${pos} on the waitlist. I'll tag you the moment a spot opens.`);
+    }
+    case "give_spot": {
+      if (mine?.status !== "in") return say(`${me.name}, you're not in this game, so there's no spot to give.`);
+      const who = resolveMember(ctx.members, d.target);
+      if (who.status === "many") return say(`${me.name}, which one: ${listWords(who.options)}?`);
+      if (who.status !== "one") {
+        return say(`${d.target ?? "They"} can claim your spot from the game page once they add their name and number. Share this:`, true);
+      }
+      const target = await one<{ id: string }>(
+        "select p.id from people p join group_members m on m.person_id = p.id where m.group_id = $1 and p.name = $2",
+        [groupId, who.name],
+      );
+      if (!target) return;
+      await logEvent(game.id, me.id, "spot_offer", { to: target.id });
+      await postDm(
+        groupId,
+        me.id,
+        `Your spot is yours until ${who.name}'s hold goes through. Then your hold is released and you're not charged, even after free cancel.`,
+      );
+      return say(`${who.name}, ${me.name} is giving you their spot for ${whenLabel(game.starts_at)}. Tap to claim it:`, true);
+    }
+    case "invite":
+      if (left <= 0) return say(`It's full right now. ${d.target ?? "Your friend"} can join the waitlist from the game page:`, true);
+      return say(`${d.target ?? "They"} can join from the game page: add a name and number, then approve the hold. ${left === 1 ? "One spot" : `${left} spots`} left:`, true);
+    case "answer":
+      return say(d.reply ?? answerFromFacts(text, game, entries.filter((e) => e.status === "in").map((e) => e.name)));
+    case "private_money": {
+      const p = await one<{ texts_opt_in: boolean }>("select texts_opt_in from people where id = $1", [me.id]);
+      if (p?.texts_opt_in && mine) {
+        await postDm(groupId, me.id, mine.hold_status === "held"
+          ? `You have ${money(mine.hold_cents ?? 0)} on hold for ${whenLabel(game.starts_at)}. Nothing is charged until after the game.`
+          : `Nothing is on hold for you for ${whenLabel(game.starts_at)}.`);
+        return say(`${me.name}, I sent you the details privately.`);
+      }
+      return say(`${me.name}, your hold and receipt are on the game page. I keep money details out of the group:`, true);
+    }
+    case "change_request":
+      if (!ctx.isOrganizer) return say(`Only ${organizer?.name ?? "the organizer"} can change the game. ${organizer?.name ?? "They"}, want to?`);
+      await postDm(groupId, me.id, `Confirm the change here and I'll tell everyone (once people are in, changes can only help players):`, `${game.slug}?o=${game.organizer_token}`, { always: true });
+      return say(`Got it, ${me.name}. Confirm it on your organizer page and I'll post the update.`);
+    case "call_off":
+      if (!ctx.isOrganizer) return say(`Only ${organizer?.name ?? "the organizer"} can call off the game.`);
+      await postDm(groupId, me.id, `To call it off and release everyone's hold, confirm here:`, `${game.slug}?o=${game.organizer_token}`, { always: true });
+      return say(`${me.name}, confirm on your organizer page and I'll release everyone's hold.`);
+    case "ask_organizer":
+      // Only the host knows (parking, balls, rules). Don't add noise to the group: pass it on privately.
+      if (ctx.isOrganizer) return;
+      return postDm(groupId, game.organizer_id, `${me.name} asked in the group: "${text.slice(0, 200)}"`, undefined, { always: true });
+    case "clarify":
+      return say(d.reply ?? `Sorry ${me.name}, can you say that another way?`);
+    case "help":
+      return say(`I keep track of the game. Say "in" or "out", ask "who's in?" or "what time?", "can Dana take my spot?", or "waitlist me". Money details always come to you privately.`);
+  }
+}
+
+function answerFromFacts(text: string, game: Game, names: string[]) {
+  const t = text.toLowerCase();
+  const left = game.spots - names.length;
+  if (/who'?s|how many|spots/.test(t)) return `${names.length} of ${game.spots} in: ${names.join(", ")}. ${left > 0 ? `${left} left.` : "Full."}`;
+  if (/where|address|court/.test(t)) return `${game.place}${game.address ? `, ${game.address}` : ""}.`;
+  if (/cancel/.test(t)) return `Free cancel until ${whenLabel(game.cancel_by)}. After that the organizer decides.`;
+  if (/price|cost|how much/.test(t)) return `${money(game.share_cents)} each.`;
+  return `${whenLabel(game.starts_at)} at ${game.place}.`;
+}
+
+/** Someone was offered this spot by a player who's still in. */
+export async function spotOfferFor(gameId: string, personId: string) {
+  const rows = await q<{ person_id: string }>(
+    `select e.person_id from events e
+     where e.game_id = $1 and e.kind = 'spot_offer' and e.detail->>'to' = $2
+       and not exists (select 1 from events d where d.game_id = e.game_id and d.kind = 'spot_offer_done' and d.detail->>'to' = $2)
+     order by e.id desc limit 1`,
+    [gameId, personId],
+  );
+  return rows[0]?.person_id;
 }
 
 // ---------- creating a game ----------
@@ -146,6 +292,7 @@ async function createGame(groupId: string, organizerId: string, text: string) {
     organizerId,
     `Your game is up. I used the usual terms: free cancel until 24 hours before, and up to ${money(DEFAULT_CAP_CENTS)} extra each if the game is short. Change them here (only you can see this link):`,
     `${slug}?o=${organizerToken}`,
+    { always: true },
   );
 }
 
@@ -182,7 +329,23 @@ export async function playerJoined(game: Game, personId: string, authorizationId
   await q("delete from intents where game_id = $1 and person_id = $2", [game.id, personId]);
   await logEvent(game.id, personId, "joined", { authorizationId, holdCents: holdCentsValue });
 
+  // Taking over someone's spot: release theirs now that this hold is real.
+  const giver = await spotOfferFor(game.id, personId);
+  if (giver) {
+    await logEvent(game.id, giver, "spot_offer_done", { to: personId });
+    await playerOut(game, giver, { replaced: true });
+  }
+
   await postGroup(game.group_id, await rosterLine(game));
+  // First private text to someone who opted in: say who we are before anything else.
+  const p = await one<{ name: string; texts_opt_in: boolean; texts_welcomed: boolean }>(
+    "select name, texts_opt_in, texts_welcomed from people where id = $1",
+    [personId],
+  );
+  if (p?.texts_opt_in && !p.texts_welcomed) {
+    await postDm(game.group_id, personId, `Hi ${p.name}, it's the Pickleball Assistant from your group chat. I'll text you here about your games: receipts, reminders and refunds. Nothing about money goes in the group. Reply STOP anytime.`);
+    await q("update people set texts_welcomed = true where id = $1", [personId]);
+  }
   await postDm(
     game.group_id,
     personId,
@@ -194,7 +357,7 @@ export async function playerJoined(game: Game, personId: string, authorizationId
 
 // ---------- leaving ----------
 
-export async function playerOut(game: Game, personId: string) {
+export async function playerOut(game: Game, personId: string, opts: { replaced?: boolean } = {}) {
   const entries = await roster(game.id);
   const mine = entries.find((e) => e.person_id === personId);
   const person = await personById(personId);
@@ -206,13 +369,15 @@ export async function playerOut(game: Game, personId: string) {
     return;
   }
 
-  if (isBeforeCancelBy(game) || mine.hold_status !== "held") {
+  if (opts.replaced || isBeforeCancelBy(game) || mine.hold_status !== "held") {
     if (mine.authorization_id && mine.hold_status === "held") {
       await voidAuthorization(mine.authorization_id);
     }
     await q("update spots set status = 'out', hold_status = case when hold_status = 'held' then 'voided' else hold_status end, updated_at = now() where id = $1", [mine.id]);
-    await logEvent(game.id, personId, "out", { late: false });
+    await logEvent(game.id, personId, "out", { late: false, replaced: !!opts.replaced });
+    if (opts.replaced) return postDm(game.group_id, personId, `Your spot was claimed, so your ${money(mine.hold_cents ?? 0)} hold is released. No charge.`);
     await postGroup(game.group_id, `${person?.name} is out. ${await rosterLine(game)}`);
+    await tagWaitlist(game);
     if (mine.hold_status === "held") {
       await postDm(game.group_id, personId, `You're out of ${whenLabel(game.starts_at)}. Your ${money(mine.hold_cents ?? 0)} hold is released.`);
     }
@@ -223,6 +388,7 @@ export async function playerOut(game: Game, personId: string) {
   await q("update spots set status = 'out', late_cancel = 'pending', updated_at = now() where id = $1", [mine.id]);
   await logEvent(game.id, personId, "out", { late: true });
   await postGroup(game.group_id, `${person?.name} is out. ${await rosterLine(game)}`);
+  await tagWaitlist(game);
   await postDm(
     game.group_id,
     personId,
@@ -233,7 +399,19 @@ export async function playerOut(game: Game, personId: string) {
     game.organizer_id,
     `${person?.name} cancelled after the free-cancel time. Charge their ${money(game.share_cents)} share or cover it?`,
     `${game.slug}?o=${game.organizer_token}`,
+    { always: true },
   );
+}
+
+/** A spot opened: tag the first person on the waitlist (first to approve the hold gets it). */
+async function tagWaitlist(game: Game) {
+  const next = await one<{ person_id: string; name: string }>(
+    `select i.person_id, p.name from intents i join people p on p.id = i.person_id
+     where i.game_id = $1 and i.kind = 'waitlist' order by i.said_at limit 1`,
+    [game.id],
+  );
+  if (!next) return;
+  await postGroup(game.group_id, `${next.name}, a spot just opened. It's yours if you grab it first:`, game.slug);
 }
 
 export async function resolveLateCancel(game: Game, spotId: string, decision: "charge" | "cover") {
@@ -369,6 +547,7 @@ async function settleClaimed(game: Game) {
       (covered.length ? `; you covered ${listWords(covered)}.` : ".") +
       ` Payout to your PayPal or Venmo comes next in the build.`,
     `${game.slug}?o=${game.organizer_token}`,
+    { always: true },
   );
 }
 

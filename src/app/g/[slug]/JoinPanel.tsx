@@ -65,6 +65,7 @@ export default function JoinPanel(props: Props) {
   const venmoRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
+  const textsRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const showButtons = !props.isIn && !props.full && !props.isOrganizer;
@@ -100,6 +101,7 @@ export default function JoinPanel(props: Props) {
                 p: token,
                 name: nameRef.current?.value,
                 phone: phoneRef.current?.value,
+                texts: textsRef.current?.checked ?? false,
               }),
             });
             const body = await res.json();
@@ -219,6 +221,13 @@ export default function JoinPanel(props: Props) {
           </label>
         </div>
       )}
+      <label className="optin">
+        <input ref={textsRef} type="checkbox" />
+        <span>
+          <b>Text me updates privately</b>
+          Your receipt, reminders and refunds by text. Leave it off and they&apos;ll be on this page instead.
+        </span>
+      </label>
       {error && <p className="error">{error}</p>}
       <div ref={paypalRef} />
       <div ref={venmoRef} />
