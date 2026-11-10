@@ -2,11 +2,14 @@ import Link from "next/link";
 import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
 import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
+import CaseStudy from "./landing/CaseStudy";
+import QRCode from "qrcode";
 
 // Landing page. Humans see the 3D phone and its demo player, the live phone demo and the screens; the same page is
 // plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
 
 const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
+const DEMO_URL = `${process.env.APP_URL || "https://pickle-assistant.onrender.com"}/demo`; // the QR in the closing section
 const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID; // YouTube id, set once the walkthrough is uploaded
 const VERTICAL_SRC = process.env.NEXT_PUBLIC_DEMO_VERTICAL_SRC; // vertical MP4 of the phone recording; plays on the 3D phone's screen
 
@@ -64,7 +67,8 @@ const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const qr = await QRCode.toString(DEMO_URL, { type: "svg", margin: 0, color: { dark: "#1b1440", light: "#ffffff" } });
   return (
     <div className="lp">
       <IslandNav repo={REPO} />
@@ -134,9 +138,7 @@ export default function Home() {
       </section>
 
       <section className="lp-built" id="built" aria-labelledby="built-h">
-        <div className="lp-built-in">
-          <p className="lp-eyebrow">Case study</p>
-          <h2 id="built-h" className="lp-h2 light">How this was built</h2>
+        <CaseStudy summary="Five short chapters: the problem, how Claude reads the chat, the PayPal money flow, the design and how it was tested.">
 
           <article className="lp-ch">
             <span className="lp-chn">01</span>
@@ -211,13 +213,24 @@ export default function Home() {
             Built with Next.js, TypeScript and Postgres on Render · PayPal Orders v2 and the PayPal JS SDK · Claude Haiku 5.5 by Anthropic ·{" "}
             <a href={REPO}>Source on GitHub</a> (MIT)
           </p>
-        </div>
+        </CaseStudy>
       </section>
 
       <section className="lp-final" aria-labelledby="final-h">
-        <h2 id="final-h" className="lp-h2">Run a game from your phone</h2>
-        <p className="lp-lead">Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
-        <Link href="/demo" className="lp-btn">Open the live demo</Link>
+        <h2 id="final-h" className="lp-final-h">
+          Run a game <span>from your <span className="lp-nowrap">phone<i className="lp-dot" aria-hidden="true" /></span></span>
+        </h2>
+        <div className="lp-final-low">
+          <p>Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
+          <div className="lp-final-act">
+            <Link href="/demo" className="lp-btn">Open the live demo</Link>
+            <a href={`${REPO}/blob/main/JUDGES.md`} className="lp-btn ghost">For judges</a>
+          </div>
+          <figure className="lp-qr">
+            <span className="lp-qr-code" role="img" aria-label="QR code that opens the live demo" dangerouslySetInnerHTML={{ __html: qr }} />
+            <figcaption>Scan to open it on your phone</figcaption>
+          </figure>
+        </div>
       </section>
 
       </main>
