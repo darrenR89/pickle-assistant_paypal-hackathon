@@ -586,7 +586,7 @@ a{color:var(--link)}
 .demo-back{position:fixed;z-index:5;top:calc(10px + env(safe-area-inset-top));left:10px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--ink);font:700 15px/1 var(--sans);text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 
 /* ---------- desktop remote for the phone demo ---------- */
-.dr{min-height:100vh;background:var(--glow);padding:32px max(24px,calc((100% - 1120px)/2)) 64px;font-family:var(--sans);color:var(--ink)}
+.dr{position:relative;isolation:isolate;min-height:100vh;background:var(--glow);padding:32px max(24px,calc((100% - 1120px)/2)) 64px;font-family:var(--sans);color:var(--ink)}
 .dr-head{margin-bottom:28px}
 .dr-back{font:600 15px var(--sans);text-decoration:none}
 .dr-head h1{margin:14px 0 10px;font:800 56px/.95 var(--cond);text-transform:uppercase}
@@ -714,12 +714,13 @@ a{color:var(--link)}
   .lp-chip.b{right:0;bottom:16%}
 }
 @media (prefers-reduced-motion:reduce){.lp-show-phone,.lp-tl-body{transition:none}.lp-show-slogan h3,.lp-chip,.lp-tl-line::after,.lp-tl-ring{animation:none}.lp-tl-ctrl{display:none}}
-.lp-info{margin:112px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px 80px}
+/* Narrower than the sections around it, so its edges sit inside theirs; the text column is sized so every fact wraps to two lines */
+.lp-info{max-width:1000px;margin:112px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px 80px}
 .lp-info div{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:32px;align-items:start}
 .lp-info-ic{grid-row:1/3;display:grid;place-items:center;width:147px;height:147px;border-radius:40px;background:var(--lav);color:var(--btn)}
 .lp-info-ic svg{width:84px;height:84px;fill:none;stroke:currentColor;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
 .lp-info dt{align-self:end;padding-top:28px;font:700 14px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.lp-info dd{margin:10px 0 0;font:600 21px/1.4 var(--sans)}
+.lp-info dd{margin:10px 0 0;max-width:290px;font:600 21px/1.4 var(--sans)}
 /* Case study: one light card that unfolds (the portfolio's "Open the build" pattern) */
 .lp-built{margin-top:88px;padding:0 max(20px,calc((100% - 1180px)/2))}
 .lp-cs{background:#fff;border-radius:32px;box-shadow:inset 0 0 0 1px var(--line),0 18px 40px rgba(40,30,90,.06);overflow:hidden}
@@ -749,19 +750,19 @@ a{color:var(--link)}
 .lp-stack{margin:30px 0 0;padding-top:24px;border-top:1px solid var(--line);font:500 16px/1.6 var(--sans);color:var(--muted)}
 .lp-stack a{color:var(--link)}
 /* Closing section: one dark, glowing slab with a big headline (the ball is its full stop), joined to the footer */
-.lp-final{position:relative;isolation:isolate;overflow:hidden;margin-top:112px;padding:96px max(20px,calc((100% - 1180px)/2)) 72px;background:#1b1440;color:#fff;border-radius:44px 44px 0 0}
+.lp-final{position:relative;isolation:isolate;margin-top:250px;padding:96px max(20px,calc((100% - 1180px)/2)) 72px;background:#1b1440;color:#fff;border-radius:44px 44px 0 0}
 .lp-final::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 50% at 50% 0%,rgba(140,120,230,.5),transparent 70%),radial-gradient(35% 45% at 10% 80%,rgba(255,201,168,.2),transparent 70%),radial-gradient(35% 45% at 92% 75%,rgba(182,221,228,.18),transparent 70%)}
 .lp-final-h{margin:0;font:800 clamp(56px,9.4vw,132px)/.86 var(--cond);text-transform:uppercase;letter-spacing:-.01em;text-wrap:balance}
 .lp-final-h>span{display:block;background:linear-gradient(90deg,#fff,#CFC6F2 75%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .lp-nowrap{white-space:nowrap}
 .lp-dot{display:inline-block;width:.19em;height:.19em;margin-left:.05em;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE3D2,var(--ball) 55%,#F2A97F)}
-.lp-final-low{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:28px 40px;margin-top:48px}
+.lp-final-low{display:grid;grid-template-columns:auto auto;justify-content:start;align-items:center;gap:28px 40px;margin-top:48px}
 .lp-final-low>p{margin:0;max-width:440px;font:500 19px/1.5 var(--sans);color:var(--onm)}
 .lp-final-act{display:flex;flex-wrap:wrap;gap:14px}
-.lp-qr{display:flex;align-items:center;gap:14px;margin:0;padding-left:40px;border-left:1px solid rgba(255,255,255,.16)}
-.lp-qr-code{display:block;width:96px;height:96px;padding:8px;border-radius:14px;background:#fff}
-.lp-qr-code svg{display:block;width:100%;height:100%}
-.lp-qr figcaption{max-width:110px;font:600 14px/1.35 var(--sans);color:var(--onm)}
+/* the 3D phone: behind the copy, rising out of the top of the slab */
+.lp-final-gl{position:absolute;z-index:0;top:-270px;right:max(-60px,calc((100% - 1180px)/2 - 170px));width:min(600px,46%);height:calc(100% + 250px);pointer-events:none;opacity:0;transition:opacity .8s}
+.lp-final-gl[data-ready]{opacity:1}
+.lp-final>:not(.lp-final-gl){position:relative;z-index:1}
 .lp-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:24px max(20px,calc((100% - 1180px)/2)) 40px;background:#1b1440;border-top:1px solid rgba(255,255,255,.14);font:500 15px/1.5 var(--sans);color:var(--onm)}
 .lp-foot a{color:#fff}
 @media (max-width:900px){
@@ -781,9 +782,9 @@ a{color:var(--link)}
   .lp-cs-thumb b{font-size:40px}
   .lp-cs-cta{width:100%;justify-content:center}
   .lp-cs-body{padding:0 20px 28px}
-  .lp-final{border-radius:28px 28px 0 0;padding-top:72px;margin-top:88px}
+  .lp-final{border-radius:28px 28px 0 0;padding-top:72px;padding-bottom:56px;margin-top:130px}
   .lp-final-low{grid-template-columns:1fr;margin-top:32px}
-  .lp-qr{display:none}
+  .lp-final-gl{top:-72px;right:-52px;width:210px;height:330px}
 }
 .dp-top{position:sticky}
 .dp-ctl{position:absolute;right:12px;top:calc(56px + env(safe-area-inset-top));border:none;background:var(--lav);color:var(--btn);font:700 12px/1 var(--sans);padding:6px 10px;border-radius:999px}
@@ -868,7 +869,10 @@ a{color:var(--link)}
 .lp-mesh i:nth-child(3){width:70%;height:70%;left:25%;bottom:-35%;background:#b0466f;animation-duration:18s}
 .lp-mesh i:nth-child(4){width:30%;height:35%;right:12%;bottom:5%;background:#ff9f73;opacity:.7;animation-duration:10s}
 @keyframes lpDrift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(6%,4%) scale(1.08)}100%{transform:translate(-5%,6%) scale(.95)}}
-.lp-grain{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.85;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.9%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22/%3E%3CfeColorMatrix%20values%3D%220%200%200%200%20.5%200%200%200%200%20.5%200%200%200%200%20.5%200%200%200%201.4%20-.2%22/%3E%3C/filter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url%28%23n%29%22/%3E%3C/svg%3E");background-size:180px}
+.lp-grain,.lp-show::after,.lp-final::after,.dr::after{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.85;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.9%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22/%3E%3CfeColorMatrix%20values%3D%220%200%200%200%20.5%200%200%200%200%20.5%200%200%200%200%20.5%200%200%200%201.4%20-.2%22/%3E%3C/filter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url%28%23n%29%22/%3E%3C/svg%3E");background-size:180px}
+/* the hero's grain on every gradient background: above the glow, below the content */
+.lp-show::after,.lp-final::after,.dr::after{content:"";z-index:-1;border-radius:inherit}
+.lp-final::before{border-radius:inherit}
 .lp-gl{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;opacity:0;transition:opacity .8s}
 .lp-gl[data-ready]{opacity:1}
 .lp-hero-copy{position:relative;z-index:3;max-width:560px;transition:opacity .5s,translate .5s,visibility .5s}
