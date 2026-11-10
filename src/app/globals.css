@@ -587,7 +587,7 @@ a{color:var(--link)}
 
 /* ---------- desktop remote for the phone demo ---------- */
 .dr{min-height:100vh;background:var(--glow);padding:32px max(24px,calc((100% - 1120px)/2)) 64px;font-family:var(--sans);color:var(--ink)}
-.dr-head{max-width:720px;margin-bottom:28px}
+.dr-head{margin-bottom:28px}
 .dr-back{font:600 15px var(--sans);text-decoration:none}
 .dr-head h1{margin:14px 0 10px;font:800 56px/.95 var(--cond);text-transform:uppercase}
 .dr-head p{margin:0;font:500 18px/1.5 var(--sans);color:var(--muted)}
