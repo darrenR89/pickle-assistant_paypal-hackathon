@@ -66,8 +66,11 @@ describe("shortfall (settle-up split)", () => {
   it("charges nothing extra when the game is full", () => {
     assert.deepEqual(shortfall(game, 8), { gap: 0, extraEach: 0 });
   });
-  it("splits a short game's gap evenly", () => {
-    assert.deepEqual(shortfall(game, 7), { gap: 800, extraEach: 115 }); // $8 / 7, rounded up to the cent
+  it("splits a short game's gap evenly, rounding down so players never pay more than an exact split", () => {
+    assert.deepEqual(shortfall(game, 7), { gap: 800, extraEach: 114 }); // $8 / 7 = $1.142..., organizer absorbs the rest
+  });
+  it("charges the exact amount when the gap splits evenly", () => {
+    assert.deepEqual(shortfall({ total_cents: 6000, share_cents: 800, cap_cents: 500 }, 5), { gap: 2000, extraEach: 400 });
   });
   it("never charges more than the cap", () => {
     assert.deepEqual(shortfall(game, 4), { gap: 3200, extraEach: 200 });

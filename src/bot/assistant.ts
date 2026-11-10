@@ -706,7 +706,8 @@ export async function settleGame(game: Game, opts: { gap?: GapChoice } = {}) {
 /** What settling would charge each player, for the organizer's choice screen and for settle itself. */
 export function shortfall(game: Pick<Game, "total_cents" | "share_cents" | "cap_cents">, playingCount: number) {
   const gap = Math.max(0, game.total_cents - playingCount * game.share_cents);
-  const extraEach = playingCount ? Math.min(game.cap_cents, Math.ceil(gap / playingCount)) : 0;
+  // Rounded down: players never pay more than an exact split; the organizer absorbs the leftover cents.
+  const extraEach = playingCount ? Math.min(game.cap_cents, Math.floor(gap / playingCount)) : 0;
   return { gap, extraEach };
 }
 
