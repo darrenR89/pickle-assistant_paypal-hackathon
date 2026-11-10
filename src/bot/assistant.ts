@@ -287,7 +287,7 @@ async function createGame(groupId: string, organizerId: string, text: string) {
     ? parsed.startsAt
     : sixPm(parsed.startsAt && parsed.dayGiven ? parsed.startsAt : new Date(Date.now() + 86400_000));
   const total = !parsed.priceCents ? 0 : parsed.priceIsTotal ? parsed.priceCents : parsed.priceCents * spots;
-  const share = Math.ceil(total / spots);
+  const share = shareFor(total, spots);
   const kind = parsed.kind ?? null;
   const partners = kind && kind !== "singles" ? (parsed.partners ?? "rotating") : null;
   let endsAt: Date | null = null;
@@ -630,7 +630,7 @@ export async function updateTerms(game: Game, change: TermsChange) {
     if (next.totalCents > game.total_cents) throw new Error("The price can only go down once players are in.");
     if (next.spots < inPlayers(entries).length) throw new Error("There are already more players in than that.");
   }
-  const share = Math.ceil(next.totalCents / next.spots);
+  const share = shareFor(next.totalCents, next.spots);
   if (playersHolding && share > game.share_cents) throw new Error("That would raise each share. Add spots only if the price drops too.");
   await q(
     "update games set cancel_by = $2, cap_cents = $3, total_cents = $4, spots = $5, share_cents = $6 where id = $1",
@@ -703,10 +703,19 @@ export async function settleGame(game: Game, opts: { gap?: GapChoice } = {}) {
   await payOrganizer(game.id);
 }
 
+/** Each player's share of the court, rounded down to the cent; the organizer absorbs the leftover cents. */
+export function shareFor(totalCents: number, spots: number) {
+  return spots > 0 ? Math.floor(totalCents / spots) : 0;
+}
+
 /** What settling would charge each player, for the organizer's choice screen and for settle itself. */
-export function shortfall(game: Pick<Game, "total_cents" | "share_cents" | "cap_cents">, playingCount: number) {
-  const gap = Math.max(0, game.total_cents - playingCount * game.share_cents);
-  const extraEach = playingCount ? Math.min(game.cap_cents, Math.ceil(gap / playingCount)) : 0;
+export function shortfall(game: Pick<Game, "total_cents" | "share_cents" | "cap_cents" | "spots">, playingCount: number) {
+  // The gap is the shares of empty spots. Cents lost to rounding the share down are the organizer's,
+  // so a full game never has a gap. (min() keeps older games, whose shares were rounded up, unchanged.)
+  const sharesTotal = Math.min(game.total_cents, game.spots * game.share_cents);
+  const gap = Math.max(0, sharesTotal - playingCount * game.share_cents);
+  // Rounded down: players never pay more than an exact split; the organizer absorbs the leftover cents.
+  const extraEach = playingCount ? Math.min(game.cap_cents, Math.floor(gap / playingCount)) : 0;
   return { gap, extraEach };
 }
 
