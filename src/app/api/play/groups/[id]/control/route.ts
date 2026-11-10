@@ -15,8 +15,6 @@ type Body =
   | { action: "time"; mode?: "before" | "gameday" | "soon" | "over" }
   | { action: "tick" };
 
-const HOUR = 3_600_000;
-
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;

@@ -765,7 +765,10 @@ function JoinSheet({
   const [error, setError] = useState<string | null>(v.clientId ? null : "PayPal isn’t set up on this server yet.");
   const [venmoShown, setVenmoShown] = useState(true);
   const cb = useRef({ onStart, onPlacing, onDone, onError });
-  cb.current = { onStart, onPlacing, onDone, onError };
+  // Keep the latest callbacks for the PayPal buttons, which are created once.
+  useEffect(() => {
+    cb.current = { onStart, onPlacing, onDone, onError };
+  });
 
   useEffect(() => {
     if (!v.clientId) return;

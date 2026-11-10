@@ -7,13 +7,14 @@ Rules for AI agents working in this repo. The full standard is [CONTRIBUTING.md]
 ```bash
 pnpm install --frozen-lockfile
 pnpm typecheck   # must pass before every push
+pnpm lint        # must pass before every push; add no new warnings
 pnpm build       # must pass before every push
 pnpm dev         # http://localhost:3000/play
 ```
 
 ## Always
 
-- Run `pnpm typecheck` and `pnpm build` before pushing, and say in the PR that you did.
+- Run `pnpm typecheck`, `pnpm lint` and `pnpm build` before pushing, and say in the PR that you did.
 - Check open PRs first and don't edit files another open PR is changing.
 - Keep each PR to one concern and under about 400 changed lines of code. Fill in `.github/pull_request_template.md`.
 - Commit messages: `Area: what changed, in plain words` (see `git log`).
