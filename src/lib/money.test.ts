@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { holdCents, money } from "@/lib/games";
 import { payoutReceiver } from "@/lib/paypal";
 import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
+import { shortfall } from "@/bot/assistant";
 
 describe("holdCents", () => {
   it("holds the share plus the short-roster cap", () => {
@@ -55,5 +56,23 @@ describe("organizerPayoutTo", () => {
 describe("describeReceiver", () => {
   it("never shows a full phone number", () => {
     assert.equal(describeReceiver({ receiver: "4155550134", recipientType: "PHONE", wallet: "VENMO" }), "Venmo (phone ending 0134)");
+  });
+});
+
+describe("shortfall (settle-up split)", () => {
+  // $64 court, 8 spots: $8 share, $2 cap on top of each hold.
+  const game = { total_cents: 6400, share_cents: 800, cap_cents: 200 };
+
+  it("charges nothing extra when the game is full", () => {
+    assert.deepEqual(shortfall(game, 8), { gap: 0, extraEach: 0 });
+  });
+  it("splits a short game's gap evenly", () => {
+    assert.deepEqual(shortfall(game, 7), { gap: 800, extraEach: 115 }); // $8 / 7, rounded up to the cent
+  });
+  it("never charges more than the cap", () => {
+    assert.deepEqual(shortfall(game, 4), { gap: 3200, extraEach: 200 });
+  });
+  it("handles nobody playing", () => {
+    assert.deepEqual(shortfall(game, 0), { gap: 6400, extraEach: 0 });
   });
 });
