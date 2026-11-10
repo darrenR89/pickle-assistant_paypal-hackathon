@@ -609,7 +609,7 @@ a{color:var(--link)}
 .dr-steps h2{margin:6px 0 6px;font:700 20px/1.2 var(--sans)}
 .dr-steps p{margin:0;font:500 16px/1.5 var(--sans);color:var(--muted)}
 .dr-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-.dr-btn{height:48px;padding:0 18px;border-radius:14px;border:2px solid var(--edge);background:#fff;font:700 16px var(--sans);color:var(--ink)}
+.dr-btn{height:48px;padding:0 18px;border-radius:14px;border:2px solid var(--edge);background:#fff;font:700 16px var(--sans);color:var(--ink);cursor:pointer}
 .dr-btn.p,.dr-btns .dr-btn:first-child:not(:disabled){background:var(--btn);border-color:var(--btn);color:#fff;box-shadow:0 4px 0 var(--btn-edge)}
 .dr-btn:disabled{opacity:.4;cursor:default;box-shadow:none}
 .dr-creds,.dr-ok{display:block;margin-top:10px;padding:10px 12px;border-radius:12px;font:500 15px/1.4 var(--sans)}
@@ -628,7 +628,7 @@ a{color:var(--link)}
 .lp-hero h1{margin:0;font:800 clamp(52px,6.4vw,92px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em}
 .lp-sub{margin:22px 0 0;font:500 20px/1.5 var(--sans);color:var(--onm);max-width:560px}
 .lp-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
-.lp-btn{display:inline-flex;align-items:center;justify-content:center;height:58px;padding:0 26px;border-radius:18px;background:#fff;color:var(--btn)!important;font:800 22px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;box-shadow:0 5px 0 #C9C1E6}
+.lp-btn{display:inline-flex;align-items:center;justify-content:center;height:58px;padding:0 26px;border-radius:18px;background:#fff;color:var(--btn)!important;font:800 22px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;box-shadow:0 5px 0 #C9C1E6;cursor:pointer;transition:box-shadow .15s,transform .15s,background .15s,color .15s}
 .lp-final .lp-btn{background:var(--btn);color:#fff!important;box-shadow:0 5px 0 var(--btn-edge)}
 .lp-btn.ghost{background:transparent;color:#fff!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
 .lp-fine{margin:18px 0 0;font:500 15px/1.5 var(--sans);color:#C9BFE3;max-width:520px}
@@ -672,11 +672,11 @@ a{color:var(--link)}
 .lp-tl-item.on.playing .lp-tl-line::after{animation:lpFill var(--dur,8s) linear forwards}
 .lp-tl-item:last-child .lp-tl-line{display:none}
 .lp-tl-ring{position:absolute;inset:-5px;border-radius:50%;background:conic-gradient(var(--ball) calc(var(--p,0)*1turn),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 0);opacity:0}
-.lp-tl-item:last-child.on.playing .lp-tl-ring{opacity:1;animation:lpRing var(--dur,8s) linear forwards}
+.lp-tl-item:last-child.on.playing .lp-tl-ring{opacity:1;animation:lpTlRing var(--dur,8s) linear forwards}
 .lp-show.held .lp-tl-item.playing .lp-tl-line::after,.lp-show.held .lp-tl-item.playing .lp-tl-ring{animation-play-state:paused}
 @property --p{syntax:"<number>";inherits:false;initial-value:0}
 @keyframes lpFill{to{transform:scaleY(1)}}
-@keyframes lpRing{to{--p:1}}
+@keyframes lpTlRing{to{--p:1}}
 .lp-tl-text{min-width:0;padding-top:6px}
 .lp-tl-label{display:block;font:600 18px/1.25 var(--sans);color:#C9BFE3;transition:color .3s}
 .lp-tl-item:hover .lp-tl-label,.lp-tl-item.on .lp-tl-label{color:#fff}
@@ -825,7 +825,7 @@ a{color:var(--link)}
 
 /* ---------- landing: hero ----------
    Drifting color mesh under a still grain; the WebGL phone with chat lines drifting around it on the right. */
-.lp-hero{position:relative;isolation:isolate;overflow:hidden;min-height:clamp(640px,92vh,860px);display:grid;align-items:center;padding:110px max(20px,calc((100% - 1180px)/2)) 72px;background:#2a1f5e;color:#fff;border-radius:0 0 44px 44px}
+.lp-hero{position:relative;isolation:isolate;overflow:hidden;min-height:clamp(640px,92vh,860px);display:grid;align-items:center;padding:110px max(20px,calc((100% - 1180px)/2)) 72px;background:#2a1f5e;color:#fff;border-radius:0 0 44px 44px;clip-path:inset(0 round 0 0 44px 44px)}
 .lp-mesh{position:absolute;inset:0;z-index:-1;overflow:hidden}
 .lp-mesh i{position:absolute;border-radius:50%;filter:blur(60px);animation:lpDrift 16s ease-in-out infinite alternate}
 .lp-mesh i:nth-child(1){width:60%;height:80%;left:-10%;top:-20%;background:#13707f}
@@ -845,12 +845,12 @@ a{color:var(--link)}
 /* play button: placed on the phone's screen each frame */
 .lp-play{all:unset;position:absolute;z-index:4;left:0;top:0;translate:-50% -50%;display:grid;justify-items:center;gap:8px;cursor:pointer;transition:opacity .3s,scale .3s}
 .lp-play[hidden]{display:none}
-.lp-play-disc{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.22);backdrop-filter:blur(12px) saturate(1.4);-webkit-backdrop-filter:blur(12px) saturate(1.4);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6),0 18px 40px rgba(10,6,30,.45);transition:scale .25s,background .25s}
-.lp-play-disc svg{width:24px;height:24px;margin-left:4px;fill:#fff}
+.lp-play-disc{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.88);backdrop-filter:blur(12px) saturate(1.4);-webkit-backdrop-filter:blur(12px) saturate(1.4);box-shadow:inset 0 0 0 1.5px #fff,0 18px 40px rgba(10,6,30,.45);transition:scale .25s,background .25s}
+.lp-play-disc svg{width:24px;height:24px;margin-left:4px;fill:var(--btn)}
 .lp-play-label{font:700 13px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(18,14,36,.72);padding:7px 11px;border-radius:99px;white-space:nowrap}
 .lp-play-ring{position:absolute;top:0;width:66px;height:66px;border-radius:50%;pointer-events:none;animation:lpRing 2.4s ease-out infinite}
 @keyframes lpRing{0%{box-shadow:0 0 0 0 rgba(255,201,168,.55)}100%{box-shadow:0 0 0 26px rgba(255,201,168,0)}}
-.lp-play:hover .lp-play-disc{scale:1.08;background:rgba(255,255,255,.32)}
+.lp-play:hover .lp-play-disc{scale:1.08;background:#fff}
 .lp-play:focus-visible .lp-play-disc{outline:3px solid var(--ball);outline-offset:4px}
 .lp-hero.playing .lp-play{opacity:0;scale:.7;pointer-events:none}
 .lp-motion{all:unset;position:absolute;z-index:5;right:max(20px,calc((100% - 1180px)/2));bottom:24px;display:inline-flex;align-items:center;gap:8px;padding:9px 14px 9px 11px;border-radius:99px;background:rgba(18,14,36,.55);color:#E2DAF2;font:600 14px/1 var(--sans);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);cursor:pointer;transition:background .2s,opacity .3s,visibility .3s}
@@ -888,7 +888,7 @@ a{color:var(--link)}
 .lp-rail :focus-visible{outline:2px solid var(--ball);outline-offset:2px}
 
 @media (max-width:760px){
-  .lp-hero{display:block;min-height:0;padding:100px 20px 500px;border-radius:0 0 28px 28px}
+  .lp-hero{display:block;min-height:0;padding:100px 20px 500px;border-radius:0 0 28px 28px;clip-path:inset(0 round 0 0 28px 28px)}
   .lp-still{top:auto;bottom:40px;right:50%;translate:50% 0;width:190px;rotate:4deg}
   .lp-close{top:84px;right:16px}
   .lp-rail{top:134px;left:16px;right:16px;width:auto;translate:0 -12px}
@@ -901,3 +901,25 @@ a{color:var(--link)}
   .lp-mesh i,.lp-play-ring{animation:none}
   .lp-isle,.lp-isle *,.lp-hero *{transition:none!important}
 }
+
+/* Hover states. Primary buttons press in: the bottom shadow moves to an inner shadow on the top edge, the button drops
+   by the shadow's depth, and the label takes the shadow's colour so it looks indented. The pressed colour is darker
+   than the resting edge so the label keeps 4.5:1+ contrast (#6A5DB3 on white is 5.5:1). */
+.lp-btn:focus-visible,.lp-isle-cta:focus-visible,.lp-isle-peek:focus-visible,.dr-btn:focus-visible{outline:3px solid var(--ball);outline-offset:3px}
+.lp-isle-side .lp-isle-cta,.lp-isle-more .lp-isle-cta,.lp-isle-peek,.lp-isle-more-btn,.lp-close,.lp-rail-pp,.dr-btn,.dr-onphone{transition:box-shadow .15s,transform .15s,background .15s,color .15s,filter .15s}
+@media (hover:hover){
+  .lp-btn:not(.ghost):hover{transform:translateY(5px);box-shadow:inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
+  .lp-final .lp-btn:hover{background:var(--lav);box-shadow:inset 0 5px 0 var(--btn);color:var(--btn)!important}
+  .lp-btn.ghost:hover{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 2px #fff}
+  .lp-isle-side .lp-isle-cta:hover{background:#fff;box-shadow:inset 0 3px 0 #6A5DB3;color:#6A5DB3!important}
+  .lp-isle-more .lp-isle-cta:hover,.lp-isle.scrolled .lp-isle-peek:hover{background:var(--ball);box-shadow:inset 0 3px 0 rgba(23,20,40,.45);color:#171428!important;filter:brightness(.94)}
+  .lp-isle-more-btn:hover{background:rgba(255,255,255,.24)}
+  .lp-close:hover{background:rgba(18,14,36,.95);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
+  .lp-rail-pp:hover{transform:translateY(4px);box-shadow:inset 0 4px 0 #6A5DB3;color:#6A5DB3}
+  .lp-rail-yt:hover{text-decoration:underline}
+  .dr-btn:not(:disabled):not(.p):hover{background:var(--lav);border-color:#C9C1E6}
+  .dr-btn.p:not(:disabled):hover,.dr-btns .dr-btn:first-child:not(:disabled):hover{transform:translateY(4px);background:var(--lav);border-color:var(--lav);box-shadow:inset 0 4px 0 var(--btn);color:var(--btn)}
+  .dr-link:hover,.dr-back:hover{text-decoration-thickness:2px}
+  .dr-onphone:hover{filter:brightness(1.12)}
+}
+@media (prefers-reduced-motion:reduce){.lp-btn,.lp-rail-pp,.dr-btn{transition:none}}
