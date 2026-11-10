@@ -652,11 +652,50 @@ a{color:var(--link)}
 .lp-n{display:inline-block;width:44px;height:44px;border-radius:22px;background:var(--lav);color:var(--btn);font:800 26px/44px var(--cond);text-align:center}
 .lp-steps h3{margin:16px 0 8px;font:700 22px/1.2 var(--sans)}
 .lp-steps p{margin:0;font:500 17px/1.5 var(--sans);color:var(--muted)}
-.lp-gallery{list-style:none;margin:0 calc(-1 * max(20px,calc((100vw - 1180px)/2)));padding:8px max(20px,calc((100vw - 1180px)/2)) 24px;display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin}
-.lp-gallery li{flex:none;width:250px;scroll-snap-align:start}
-.lp-gallery .lp-phone{box-shadow:0 16px 30px rgba(30,20,70,.18)}
-.lp-gallery h3{margin:18px 0 6px;font:700 19px/1.25 var(--sans)}
-.lp-gallery p{margin:0;font:500 16px/1.45 var(--sans);color:var(--muted)}
+/* "The app" showcase: dark stage, copy left (title, tabs, slogan at the bottom), phone right with two callouts */
+.lp-show{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:40px;align-items:stretch;padding:56px 64px;border-radius:40px;background:#1C1640;color:#E2DAF2;overflow:hidden;isolation:isolate}
+.lp-show::before{content:"";position:absolute;z-index:-1;right:-6%;top:50%;width:62%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(160,132,255,.38),rgba(255,201,168,.12) 60%,transparent)}
+.lp-show-copy{display:flex;flex-direction:column;min-width:0}
+.lp-show .lp-h2{margin-bottom:12px}
+.lp-show-lead{margin:0;max-width:440px;font:500 18px/1.5 var(--sans);color:#C9BFE3}
+.lp-show-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.lp-show-tabs button{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 8px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#E2DAF2;font:600 16px/1 var(--sans);cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+.lp-show-tabs button:hover{background:rgba(255,255,255,.1)}
+.lp-show-tabs button:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
+.lp-show-tabs button.on{background:#fff;border-color:#fff;color:var(--ink)}
+.lp-show-n{display:grid;place-items:center;width:28px;height:28px;border-radius:14px;background:rgba(255,255,255,.12);font:800 16px/1 var(--cond)}
+.lp-show-tabs button.on .lp-show-n{background:var(--ball);color:var(--ink)}
+.lp-show-slogan{margin-top:auto;padding-top:48px;max-width:460px}
+.lp-show-slogan h3{margin:0 0 10px;font:700 clamp(28px,3vw,38px)/1.1 var(--sans);color:#fff;letter-spacing:-.01em;text-wrap:balance;animation:lpShowIn .45s ease both}
+.lp-show-slogan p{margin:0;font:500 18px/1.55 var(--sans);color:#C9BFE3;animation:lpShowIn .45s .06s ease both}
+.lp-show-device{position:relative;display:grid;place-items:center;padding:8px 0}
+.lp-show-phones{display:grid;width:min(300px,100%)}
+.lp-show-phone{grid-area:1/1;opacity:0;transform:translateY(10px) scale(.985);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
+.lp-show-phone.on{opacity:1;transform:none;pointer-events:auto}
+.lp-show .lp-phone{box-shadow:0 40px 80px rgba(5,2,20,.55),inset 0 0 0 1.5px rgba(255,255,255,.14)}
+.lp-chip{position:absolute;z-index:2;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.96);color:var(--ink);font:600 15px/1.2 var(--sans);white-space:nowrap;box-shadow:0 12px 28px rgba(5,2,20,.35);animation:lpChipIn .5s cubic-bezier(.2,.8,.2,1) both}
+.lp-chip i{width:8px;height:8px;border-radius:4px;background:var(--ok);flex:none}
+.lp-chip.a{left:-6px;top:30%}
+.lp-chip.b{right:-10px;bottom:22%;animation-delay:.12s}
+.lp-chip.b i{background:var(--btn)}
+@keyframes lpShowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes lpChipIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@media (max-width:900px){
+  .lp-show{grid-template-columns:1fr;gap:8px;padding:36px 20px 32px;border-radius:28px}
+  .lp-show::before{right:50%;top:auto;bottom:18%;width:110%;transform:translateX(50%)}
+  .lp-show-tabs{flex-wrap:nowrap;overflow-x:auto;margin:22px -20px 0;padding:2px 20px 6px;scrollbar-width:none}
+  .lp-show-tabs::-webkit-scrollbar{display:none}
+  .lp-show-tabs button{flex:none}
+  .lp-show-copy{display:contents}
+  .lp-show .lp-h2,.lp-show-lead,.lp-show-tabs{order:0}
+  .lp-show-device{order:1;padding:28px 0 8px}
+  .lp-show-slogan{order:2;margin-top:0;padding-top:18px}
+  .lp-show-phones{width:min(250px,72%)}
+  .lp-chip{font-size:14px;padding:8px 12px}
+  .lp-chip.a{left:0;top:22%}
+  .lp-chip.b{right:0;bottom:16%}
+}
+@media (prefers-reduced-motion:reduce){.lp-show-phone,.lp-show-tabs button{transition:none}.lp-show-slogan h3,.lp-show-slogan p,.lp-chip{animation:none}}
 .lp-info{margin:40px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .lp-info div{display:flex;flex-direction:column;padding:28px 26px 30px;border-radius:24px;background:#fff;border:1px solid var(--line);box-shadow:0 1px 0 rgba(23,20,40,.04),0 12px 30px -18px rgba(59,47,122,.28)}
 .lp-info-ic{display:grid;place-items:center;width:72px;height:72px;margin-bottom:22px;border-radius:20px;background:var(--lav);color:var(--btn)}
@@ -688,7 +727,6 @@ a{color:var(--link)}
   .lp-ch{grid-template-columns:1fr;gap:6px}
   .lp-built{border-radius:28px;padding:56px 20px}
 }
-.lp-gallery{scroll-padding-inline:max(20px,calc((100vw - 1180px)/2))}
 .dp-top{position:sticky}
 .dp-ctl{position:absolute;right:12px;top:calc(56px + env(safe-area-inset-top));border:none;background:var(--lav);color:var(--btn);font:700 12px/1 var(--sans);padding:6px 10px;border-radius:999px}
 .dp-scrim{position:fixed;inset:0;z-index:40;background:rgba(23,20,40,.45);display:flex;align-items:flex-end;justify-content:center}
