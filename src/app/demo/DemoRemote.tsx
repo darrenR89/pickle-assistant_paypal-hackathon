@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useState } from "react";
 
@@ -151,7 +152,7 @@ export default function DemoRemote() {
   return (
     <div className="dr">
       <header className="dr-head">
-        <a href="/" className="dr-back">← Pickleball assistant</a>
+        <Link href="/" className="dr-back">← Pickleball assistant</Link>
         <h1>Run a game from your phone</h1>
         <p>
           Your phone is the organizer’s group chat. This page plays everyone else. The assistant (Claude) and your PayPal sandbox hold are

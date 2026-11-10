@@ -13,10 +13,11 @@ Node 22+ and pnpm (`corepack enable`). Copy `.env.example` to `.env` and fill in
 | Install | `pnpm install --frozen-lockfile` |
 | Dev server | `pnpm dev` (then open `/play` or `/demo`) |
 | Type check | `pnpm typecheck` |
+| Lint | `pnpm lint` (ESLint with Next.js rules; errors fail CI) |
 | Production build | `pnpm build` |
 | Run the scheduled tick once | `pnpm tick:local` |
 
-`pnpm typecheck` and `pnpm build` must pass before you open or update a PR. CI runs both on every PR.
+`pnpm typecheck`, `pnpm lint` and `pnpm build` must pass before you open or update a PR. CI runs all three on every PR. Don't add new lint warnings, and never silence a rule with an `eslint-disable` comment without a reason next to it.
 
 ## Where code goes
 
@@ -90,7 +91,7 @@ These rules protect real money once we leave the sandbox. A PR that breaks one i
 
 ## Definition of done
 
-- [ ] `pnpm typecheck` and `pnpm build` pass locally and in CI
+- [ ] `pnpm typecheck`, `pnpm lint` and `pnpm build` pass locally and in CI
 - [ ] The change was tried in the running app (`/play`, `/demo`, or the page it touches)
 - [ ] Money rules above still hold; any PayPal call change was tried in the sandbox
 - [ ] New env vars are in `.env.example` and the Render blueprint

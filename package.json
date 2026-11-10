@@ -13,6 +13,7 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "workflow": "tsx src/workflows/main.ts",
     "trigger": "tsx src/workflows/trigger.ts",
     "tick:local": "tsx scripts/run-tick-locally.ts"
@@ -37,6 +38,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "0.149.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.6",
     "typescript": "^5"
   }
 }
