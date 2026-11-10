@@ -3,60 +3,99 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 export type ShowcaseStep = {
-  tab: string; // short pill label
+  tab: string; // step label in the timeline
   title: string; // slogan line, bottom left
-  body: string;
+  body: string; // shown under the active step
   chips: [string, string]; // callouts floating beside the phone
 };
 
-// "The app" section: a dark stage with the title top left, pill tabs, one large phone that swaps screens, two
-// callout chips beside it, and the active step's slogan bottom left. Steps advance on their own until the
-// viewer picks one (never with reduced motion). Phones are rendered by the server and passed in, so every
-// screen is in the HTML and crossfades instead of loading on click.
+const DUR = 8000; // ms per step
+
+// "The app" section: a dark stage with the title top left, a vertical numbered timeline, one large phone that swaps
+// screens with two callout chips beside it, and the active step's slogan bottom left. While it plays, the line under
+// the active number fills over DUR and then the next step starts.
+// Accessibility (WCAG 2.2.2): a Pause/Play button; it also holds while the mouse is over the phone, while keyboard
+// focus is on the steps, and while the section is off screen. Picking a step stops it. Reduced motion never auto-plays.
+// Phones are rendered by the server and passed in, so every screen is in the HTML and crossfades.
 export default function AppShowcase({ steps, phones, title, lead }: { steps: ShowcaseStep[]; phones: ReactNode[]; title: string; lead: string }) {
   const [i, setI] = useState(0);
   const [auto, setAuto] = useState(true);
+  const [paused, setPaused] = useState(false);
+  const [hover, setHover] = useState(false);
+  const [focus, setFocus] = useState(false);
+  const [visible, setVisible] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const tabs = useRef<Array<HTMLButtonElement | null>>([]);
+  const left = useRef(DUR);
+  const since = useRef(0);
+  const shown = useRef(0);
+  const held = paused || hover || focus || !visible;
 
   useEffect(() => {
-    if (!auto || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // Only run while the section is on screen.
-    let t: ReturnType<typeof setInterval> | undefined;
-    const io = new IntersectionObserver(([e]) => {
-      clearInterval(t);
-      if (e.isIntersecting) t = setInterval(() => setI((n) => (n + 1) % steps.length), 5200);
-    }, { threshold: 0.35 });
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setAuto(false);
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.35 });
     if (stage.current) io.observe(stage.current);
-    return () => {
-      io.disconnect();
-      clearInterval(t);
-    };
-  }, [auto, steps.length]);
+    return () => io.disconnect();
+  }, []);
 
-  function pick(n: number, focus = false) {
+  // One timeout per step, resumed with whatever time was left when it was held.
+  useEffect(() => {
+    if (shown.current !== i) {
+      shown.current = i;
+      left.current = DUR;
+    }
+    if (!auto || held) return;
+    since.current = performance.now();
+    const t = setTimeout(() => setI((n) => (n + 1) % steps.length), left.current);
+    return () => {
+      clearTimeout(t);
+      left.current = Math.max(0, left.current - (performance.now() - since.current));
+    };
+  }, [i, auto, held, steps.length]);
+
+  function pick(n: number, moveFocus = false) {
     setAuto(false);
+    setPaused(false);
     setI(n);
-    if (focus) tabs.current[n]?.focus();
+    if (moveFocus) tabs.current[n]?.focus();
+  }
+
+  function toggle() {
+    if (!auto) {
+      // Resume from a picked step: carry on with the next one.
+      setAuto(true);
+      setPaused(false);
+      setI((n) => (n + 1) % steps.length);
+    } else setPaused((p) => !p);
   }
 
   function onKey(e: KeyboardEvent) {
     const last = steps.length - 1;
-    const to = e.key === "ArrowRight" || e.key === "ArrowDown" ? (i === last ? 0 : i + 1)
-      : e.key === "ArrowLeft" || e.key === "ArrowUp" ? (i === 0 ? last : i - 1)
+    const to = e.key === "ArrowDown" || e.key === "ArrowRight" ? (i === last ? 0 : i + 1)
+      : e.key === "ArrowUp" || e.key === "ArrowLeft" ? (i === 0 ? last : i - 1)
       : e.key === "Home" ? 0 : e.key === "End" ? last : null;
     if (to === null) return;
     e.preventDefault();
     pick(to, true);
   }
 
+  const running = auto && !paused;
   const s = steps[i];
   return (
-    <div className="lp-show" ref={stage}>
+    <div className={`lp-show${held ? " held" : ""}`} ref={stage}>
       <div className="lp-show-copy">
         <h2 id="screens-h" className="lp-h2 light">{title}</h2>
         <p className="lp-show-lead">{lead}</p>
-        <div className="lp-show-tabs" role="tablist" aria-label="App screens" onKeyDown={onKey}>
+        <div
+          className="lp-tl"
+          role="tablist"
+          aria-label="App screens"
+          aria-orientation="vertical"
+          style={{ ["--dur" as string]: `${DUR}ms` }}
+          onKeyDown={onKey}
+          onFocus={() => setFocus(true)}
+          onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocus(false); }}
+        >
           {steps.map((st, n) => (
             <button
               key={st.tab}
@@ -67,22 +106,32 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
               aria-selected={n === i}
               aria-controls="show-panel"
               tabIndex={n === i ? 0 : -1}
-              className={n === i ? "on" : ""}
+              className={`lp-tl-item${n === i ? " on" : ""}${n < i ? " done" : ""}${n === i && auto ? " playing" : ""}`}
               onClick={() => pick(n)}
             >
-              <span className="lp-show-n" aria-hidden="true">{n + 1}</span>
-              {st.tab}
+              <span className="lp-tl-node" aria-hidden="true">{n + 1}<span className="lp-tl-ring" /></span>
+              <span className="lp-tl-line" aria-hidden="true" />
+              <span className="lp-tl-text">
+                <span className="lp-tl-label">{st.tab}</span>
+                <span className="lp-tl-body"><span>{st.body}</span></span>
+              </span>
             </button>
           ))}
         </div>
+        <button type="button" className="lp-tl-ctrl" aria-pressed={!running} onClick={toggle}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            {running ? <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></> : <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" />}
+          </svg>
+          <span>{running ? "Pause" : "Play"}</span>
+          <span className="sr-only"> the walkthrough</span>
+        </button>
         <div className="lp-show-slogan" id="show-panel" role="tabpanel" aria-labelledby={`show-tab-${i}`} aria-live={auto ? "off" : "polite"}>
           <h3 key={s.title}>{s.title}</h3>
-          <p key={s.body}>{s.body}</p>
           <span className="sr-only">{s.chips.join(". ")}.</span>
         </div>
       </div>
 
-      <div className="lp-show-device">
+      <div className="lp-show-device" onPointerEnter={(e) => e.pointerType === "mouse" && setHover(true)} onPointerLeave={(e) => e.pointerType === "mouse" && setHover(false)}>
         <div className="lp-show-phones">
           {phones.map((p, n) => (
             <div key={n} className={`lp-show-phone${n === i ? " on" : ""}`} aria-hidden={n !== i}>

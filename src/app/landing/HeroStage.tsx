@@ -38,6 +38,7 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
   const playRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
+  const motionRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mode, setMode] = useState<"pending" | "gl" | "still">("pending");
 
@@ -57,6 +58,7 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
           play: playRef.current!,
           close: closeRef.current!,
           rail: railRef.current!,
+          motion: motionRef.current!,
           video: videoRef.current,
           chapters,
           duration,
@@ -89,6 +91,10 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
         <span className="lp-play-label">Play demo</span>
       </button>
       <button ref={closeRef} type="button" className="lp-close" inert>Close demo</button>
+      <button ref={motionRef} type="button" className="lp-motion" aria-pressed="false" hidden={mode !== "gl"}>
+        <span dangerouslySetInnerHTML={{ __html: PAUSE_ICON }} />
+        <span className="lp-motion-label">Pause motion</span>
+      </button>
       <div ref={railRef} className="lp-rail" role="group" aria-label="Demo chapters" inert>
         <div className="lp-rail-head">
           <button type="button" className="lp-rail-pp" aria-label="Pause" dangerouslySetInnerHTML={{ __html: PAUSE_ICON }} />
@@ -126,14 +132,25 @@ type Env = {
   play: HTMLButtonElement;
   close: HTMLButtonElement;
   rail: HTMLDivElement;
+  motion: HTMLButtonElement;
   video: HTMLVideoElement | null;
   chapters: Chapter[];
   duration: number;
 };
 
 function start(T: typeof THREE_NS, env: Env): () => void {
-  const { canvas, hero, play, close, rail, video, chapters } = env;
+  const { canvas, hero, play, close, rail, motion, video, chapters } = env;
   const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // WCAG 2.2.2: the idle float and drifting chat cards run forever, so the viewer can stop them. Reduced motion
+  // starts with them stopped; CSS hides the button then because there is nothing to pause.
+  let still = RM, clock = 0;
+  const onMotion = () => {
+    still = !still;
+    motion.setAttribute("aria-pressed", String(still));
+    motion.firstElementChild!.innerHTML = still ? PLAY_ICON : PAUSE_ICON;
+    motion.lastElementChild!.textContent = still ? "Play motion" : "Pause motion";
+  };
+  motion.addEventListener("click", onMotion);
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
   const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -292,7 +309,8 @@ function start(T: typeof THREE_NS, env: Env): () => void {
     raf = requestAnimationFrame(frame);
     const dt = Math.min(0.05, (ms - prev) / 1000); prev = ms;
     if (!visible || document.hidden) return;
-    const t = RM ? 0 : ms / 1000;
+    if (!still) clock += dt;
+    const t = clock;
     ptr.x += (ptr.tx - ptr.x) * 0.06; ptr.y += (ptr.ty - ptr.y) * 0.06;
     const target = S.playing ? 1 : 0; S.p += (target - S.p) * (RM ? 1 : Math.min(1, dt * 3.2)); if (Math.abs(target - S.p) < 0.001) S.p = target;
     const p = ease(S.p);
@@ -338,7 +356,7 @@ function start(T: typeof THREE_NS, env: Env): () => void {
   return () => {
     cancelAnimationFrame(raf); ro.disconnect(); io.disconnect();
     triggers.forEach((b) => b.removeEventListener("click", open)); close.removeEventListener("click", shut);
-    hero.removeEventListener("keydown", onKey); hero.removeEventListener("pointermove", onMove); hero.removeEventListener("pointerleave", onLeave);
+    hero.removeEventListener("keydown", onKey); motion.removeEventListener("click", onMotion); hero.removeEventListener("pointermove", onMove); hero.removeEventListener("pointerleave", onLeave);
     hero.classList.remove("playing");
     scene.traverse((o) => { const m = o as THREE_NS.Mesh; if (m.geometry) m.geometry.dispose(); const mats = m.material ? ([] as THREE_NS.Material[]).concat(m.material) : []; mats.forEach((mt) => { const mm = mt as THREE_NS.MeshBasicMaterial; mm.map?.dispose(); mm.dispose(); }); });
     screenTex.dispose(); mask.dispose(); videoTex?.dispose(); r.dispose();

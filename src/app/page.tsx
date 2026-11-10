@@ -68,6 +68,7 @@ export default function Home() {
   return (
     <div className="lp">
       <IslandNav repo={REPO} />
+      <main>
 
       <section className="lp-hero" id="top" aria-labelledby="hero-h">
         <div className="lp-mesh" aria-hidden="true"><i /><i /><i /><i /></div>
@@ -218,6 +219,8 @@ export default function Home() {
         <p className="lp-lead">Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
         <Link href="/demo" className="lp-btn">Open the live demo</Link>
       </section>
+
+      </main>
 
       <footer className="lp-foot">
         <span>Built for the PayPal AI Hackathon 2026. Sandbox only: no real money moves.</span>
