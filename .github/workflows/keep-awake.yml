@@ -1,0 +1,28 @@
+name: Keep demo awake
+
+# Render's free plan sleeps the web service after 15 minutes without traffic,
+# and judges then see Render's wake-up screen. Pinging /api/health every
+# 10 minutes keeps it warm. Remove this once the service is on a paid plan.
+# GitHub may delay scheduled runs a few minutes, and only runs them from main.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping health check
+        env:
+          URL: https://pickle-assistant.onrender.com/api/health
+        # A cold start can take about a minute, so allow a long wait and retry.
+        run: curl --fail --silent --show-error --max-time 120 --retry 3 --retry-delay 10 --retry-all-errors "$URL"
