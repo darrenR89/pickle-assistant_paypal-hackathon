@@ -628,7 +628,7 @@ a{color:var(--link)}
 .lp-hero h1{margin:0;font:800 clamp(52px,6.4vw,92px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em}
 .lp-sub{margin:22px 0 0;font:500 20px/1.5 var(--sans);color:var(--onm);max-width:560px}
 .lp-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
-.lp-btn{display:inline-flex;align-items:center;justify-content:center;height:58px;padding:0 26px;border-radius:18px;background:#fff;color:var(--btn)!important;font:800 22px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;box-shadow:0 5px 0 #C9C1E6;cursor:pointer;transition:box-shadow .15s,transform .15s,background .15s,color .15s}
+.lp-btn{display:inline-flex;align-items:center;justify-content:center;height:58px;padding:0 26px;border-radius:18px;background:#fff;color:var(--btn)!important;font:800 22px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;box-shadow:0 5px 0 #C9C1E6;cursor:pointer;transition:box-shadow .15s,background .15s,color .15s}
 .lp-final .lp-btn{background:var(--btn);color:#fff!important;box-shadow:0 5px 0 var(--btn-edge)}
 .lp-btn.ghost{background:transparent;color:#fff!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
 .lp-fine{margin:18px 0 0;font:500 15px/1.5 var(--sans);color:#C9BFE3;max-width:520px}
@@ -685,7 +685,6 @@ a{color:var(--link)}
 .lp-tl-item.on .lp-tl-body{grid-template-rows:1fr}
 .lp-tl-item.on .lp-tl-body>span{padding-top:6px}
 .lp-tl-ctrl{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:8px;align-self:flex-start;margin-top:18px;height:40px;padding:0 14px 0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#E2DAF2;font:600 15px/1 var(--sans);cursor:pointer}
-.lp-tl-ctrl:hover{background:rgba(255,255,255,.12)}
 .lp-tl-ctrl:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
 .lp-tl-ctrl svg{width:18px;height:18px;fill:currentColor}
 .lp-show-slogan{margin-top:auto;padding-top:40px;max-width:460px}
@@ -788,14 +787,12 @@ a{color:var(--link)}
 .lp-isle-side.l{left:max(10px,calc((100% - 1180px)/2 - 12px))}
 .lp-isle-side.r{right:max(10px,calc((100% - 1180px)/2 - 12px))}
 .lp-isle-side a{font:600 14px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:11px 13px;border-radius:99px;color:#E2DAF2!important}
-.lp-isle-side a:hover{color:#fff!important;background:rgba(255,255,255,.08)}
 .lp-isle-side .lp-isle-cta{background:#fff;color:var(--btn)!important}
 .lp-isle-pill{position:relative;display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;border-radius:23px;transition:background .45s,box-shadow .45s,padding .45s}
 .lp-isle-pill .lp-logo{font-size:23px;transition:font-size .35s}
 .lp-isle-peek,.lp-isle-more-btn{display:none}
 .lp-isle-more{display:flex;align-items:center;gap:2px;max-width:0;opacity:0;visibility:hidden;overflow:hidden;transition:max-width .45s,opacity .3s,visibility .45s}
 .lp-isle-more a{font:600 14px/1 var(--sans);padding:10px 12px;border-radius:99px;color:#E2DAF2!important;white-space:nowrap}
-.lp-isle-more a:hover{background:rgba(255,255,255,.1);color:#fff!important}
 .lp-isle-more .lp-isle-cta{background:var(--ball);color:#171428!important}
 .lp-isle :focus-visible{outline:2px solid var(--ball);outline-offset:3px;border-radius:99px}
 .lp-isle.scrolled{height:64px}
@@ -850,11 +847,10 @@ a{color:var(--link)}
 .lp-play-label{font:700 13px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(18,14,36,.72);padding:7px 11px;border-radius:99px;white-space:nowrap}
 .lp-play-ring{position:absolute;top:0;width:66px;height:66px;border-radius:50%;pointer-events:none;animation:lpRing 2.4s ease-out infinite}
 @keyframes lpRing{0%{box-shadow:0 0 0 0 rgba(255,201,168,.55)}100%{box-shadow:0 0 0 26px rgba(255,201,168,0)}}
-.lp-play:hover .lp-play-disc{scale:1.08;background:#fff}
+.lp-play:hover .lp-play-disc{background:#fff}
 .lp-play:focus-visible .lp-play-disc{outline:3px solid var(--ball);outline-offset:4px}
 .lp-hero.playing .lp-play{opacity:0;scale:.7;pointer-events:none}
 .lp-motion{all:unset;position:absolute;z-index:5;right:max(20px,calc((100% - 1180px)/2));bottom:24px;display:inline-flex;align-items:center;gap:8px;padding:9px 14px 9px 11px;border-radius:99px;background:rgba(18,14,36,.55);color:#E2DAF2;font:600 14px/1 var(--sans);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);cursor:pointer;transition:background .2s,opacity .3s,visibility .3s}
-.lp-motion:hover{background:rgba(18,14,36,.8)}
 .lp-motion:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
 .lp-motion[hidden]{display:none}
 .lp-motion svg{width:14px;height:14px;fill:currentColor;display:block}
@@ -902,24 +898,29 @@ a{color:var(--link)}
   .lp-isle,.lp-isle *,.lp-hero *{transition:none!important}
 }
 
-/* Hover states. Primary buttons press in: the bottom shadow moves to an inner shadow on the top edge, the button drops
-   by the shadow's depth, and the label takes the shadow's colour so it looks indented. The pressed colour is darker
-   than the resting edge so the label keeps 4.5:1+ contrast (#6A5DB3 on white is 5.5:1). */
+/* Hover states.
+   Primary buttons press in without moving: the outer bottom shadow stays, an inner shadow appears on the top edge,
+   and the label takes that shadow's colour so it reads as indented. The pressed colour is darker than the resting
+   edge so the label keeps 4.5:1+ contrast (#6A5DB3 on white is 5.5:1).
+   Secondary buttons and controls on dark surfaces get a soft outer glow (as on Cosmos and Threads); secondary
+   controls and links on light surfaces fade to 70%. */
 .lp-btn:focus-visible,.lp-isle-cta:focus-visible,.lp-isle-peek:focus-visible,.dr-btn:focus-visible{outline:3px solid var(--ball);outline-offset:3px}
-.lp-isle-side .lp-isle-cta,.lp-isle-more .lp-isle-cta,.lp-isle-peek,.lp-isle-more-btn,.lp-close,.lp-rail-pp,.dr-btn,.dr-onphone{transition:box-shadow .15s,transform .15s,background .15s,color .15s,filter .15s}
+.lp-isle-side a,.lp-isle-more a,.lp-isle-peek,.lp-isle-more-btn,.lp-close,.lp-rail-pp,.lp-rail-yt,.lp-motion,.lp-tl-ctrl,.lp-play-disc,.dr-btn,.dr-link,.dr-back,.dr-onphone{transition:box-shadow .2s,background .2s,color .2s,opacity .2s,scale .25s}
 @media (hover:hover){
-  .lp-btn:not(.ghost):hover{transform:translateY(5px);box-shadow:inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
-  .lp-final .lp-btn:hover{background:var(--lav);box-shadow:inset 0 5px 0 var(--btn);color:var(--btn)!important}
-  .lp-btn.ghost:hover{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 2px #fff}
+  /* primaries: pressed in place */
+  .lp-btn:not(.ghost):hover{box-shadow:0 5px 0 #C9C1E6,inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
+  .lp-final .lp-btn:hover{background:var(--lav);box-shadow:0 5px 0 var(--btn-edge),inset 0 5px 0 var(--btn);color:var(--btn)!important}
   .lp-isle-side .lp-isle-cta:hover{background:#fff;box-shadow:inset 0 3px 0 #6A5DB3;color:#6A5DB3!important}
-  .lp-isle-more .lp-isle-cta:hover,.lp-isle.scrolled .lp-isle-peek:hover{background:var(--ball);box-shadow:inset 0 3px 0 rgba(23,20,40,.45);color:#171428!important;filter:brightness(.94)}
-  .lp-isle-more-btn:hover{background:rgba(255,255,255,.24)}
-  .lp-close:hover{background:rgba(18,14,36,.95);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
-  .lp-rail-pp:hover{transform:translateY(4px);box-shadow:inset 0 4px 0 #6A5DB3;color:#6A5DB3}
-  .lp-rail-yt:hover{text-decoration:underline}
-  .dr-btn:not(:disabled):not(.p):hover{background:var(--lav);border-color:#C9C1E6}
-  .dr-btn.p:not(:disabled):hover,.dr-btns .dr-btn:first-child:not(:disabled):hover{transform:translateY(4px);background:var(--lav);border-color:var(--lav);box-shadow:inset 0 4px 0 var(--btn);color:var(--btn)}
-  .dr-link:hover,.dr-back:hover{text-decoration-thickness:2px}
-  .dr-onphone:hover{filter:brightness(1.12)}
+  .dr-btn.p:not(:disabled):hover,.dr-btns .dr-btn:first-child:not(:disabled):hover{background:var(--lav);border-color:var(--lav);box-shadow:0 4px 0 var(--btn-edge),inset 0 4px 0 var(--btn);color:var(--btn)}
+  .lp-rail-pp:hover{box-shadow:0 4px 0 #C9C1E6,inset 0 4px 0 #6A5DB3;color:#6A5DB3}
+  /* secondaries on dark: outer glow */
+  .lp-btn.ghost:hover{box-shadow:inset 0 0 0 2px #fff,0 0 0 4px rgba(255,255,255,.12),0 0 28px rgba(255,255,255,.35)}
+  .lp-isle-side a:not(.lp-isle-cta):hover,.lp-isle-more a:not(.lp-isle-cta):hover{color:#fff!important;background:transparent;text-shadow:0 0 14px rgba(255,255,255,.75)}
+  .lp-isle.scrolled .lp-isle-peek:hover,.lp-isle-more .lp-isle-cta:hover{box-shadow:0 0 0 3px rgba(255,201,168,.25),0 0 22px rgba(255,201,168,.65)}
+  .lp-isle-more-btn:hover,.lp-close:hover,.lp-motion:hover,.lp-tl-ctrl:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 22px rgba(255,255,255,.28)}
+  .lp-play:hover .lp-play-disc{box-shadow:inset 0 0 0 1.5px #fff,0 0 0 6px rgba(255,255,255,.18),0 0 36px rgba(255,255,255,.55),0 18px 40px rgba(10,6,30,.45)}
+  .lp-rail-yt:hover{opacity:.7}
+  /* secondaries on light: fade to 70% */
+  .dr-btn:not(:disabled):not(.p):not(.dr-btns .dr-btn:first-child):hover,.dr-link:hover,.dr-back:hover,.dr-onphone:hover{opacity:.7}
 }
 @media (prefers-reduced-motion:reduce){.lp-btn,.lp-rail-pp,.dr-btn{transition:none}}
