@@ -93,7 +93,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="lp-section" aria-labelledby="how">
+      <section className="lp-section lp-how" aria-labelledby="how">
         <h2 id="how" className="lp-h2">How it works</h2>
         <ol className="lp-steps">
           <li>
