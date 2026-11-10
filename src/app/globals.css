@@ -881,6 +881,9 @@ a{color:var(--link)}
 .lp-gl{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;opacity:0;transition:opacity .8s}
 .lp-gl[data-ready]{opacity:1}
 .lp-hero-copy{position:relative;z-index:3;max-width:560px;transition:opacity .5s,translate .5s,visibility .5s}
+/* The demo takes over the whole screen: the hero grows to the viewport, loses its rounded foot, and the page stops scrolling. */
+.lp-hero.playing{min-height:100vh;min-height:100dvh;border-radius:0;clip-path:none}
+html:has(.lp-hero.playing){overflow:hidden}
 .lp-hero.playing .lp-hero-copy{opacity:0;translate:-30px 0;visibility:hidden}
 .lp-btn svg{width:16px;height:16px;margin-right:10px;fill:currentColor}
 .lp-still{position:absolute;z-index:1;top:50%;right:max(40px,calc((100% - 1180px)/2 + 60px));width:250px;translate:0 -50%;rotate:6deg;padding:8px;border-radius:40px;background:#14102a;box-shadow:0 30px 60px rgba(10,6,30,.5),inset 0 0 0 1.5px rgba(255,255,255,.14)}
@@ -938,6 +941,7 @@ a{color:var(--link)}
   .lp-close{top:84px;right:16px}
   .lp-rail{top:134px;left:16px;right:16px;width:auto;translate:0 -12px}
   .lp-hero.playing .lp-rail{translate:0 0}
+  .lp-hero.playing{height:100vh;height:100dvh;border-radius:0;clip-path:none}
   .lp-rail-head .lp-rail-title{font-size:26px}
   .lp-rail-seg{display:flex}
   .lp-rail-ch li:not(.on){display:none}
