@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type * as THREE_NS from "three";
+import { BURST_SECONDS, makeBurst } from "@/lib/burst";
 
 // The closing section's 3D phone: the hero's phone (metal frame, glass front) showing a "game complete" recap, set behind
 // the copy and rising out of the top of the section. It turns as the section scrolls into view and leans toward the
@@ -105,38 +106,11 @@ function start(T: typeof THREE_NS, canvas: HTMLCanvasElement, onReady: () => voi
     x.restore();
   };
 
-  // burst: pickleballs and confetti thrown up from behind the headline, falling with gravity; positions come from time
-  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  const G = 1500, BURST = 3.6;
-  const balls = Array.from({ length: 13 }, () => ({ x: SW / 2 + (rnd() - 0.5) * 160, y: 560, vx: (rnd() - 0.5) * 900, vy: -900 - rnd() * 700, r: 24 + rnd() * 16, d: rnd() * 0.25, spin: (rnd() - 0.5) * 8 }));
-  const COLORS = ["#FFC9A8", "#CFC6F2", "#B6DDE4", "#ffffff", "#E9C2E2"];
-  const bits = Array.from({ length: 46 }, (_, i) => ({ x: SW / 2 + (rnd() - 0.5) * 240, y: 560, vx: (rnd() - 0.5) * 1100, vy: -700 - rnd() * 900, w: 12 + rnd() * 12, h: 22 + rnd() * 14, c: COLORS[i % COLORS.length], d: rnd() * 0.3, spin: (rnd() - 0.5) * 14 }));
-  const at = (p: { x: number; y: number; vx: number; vy: number; d: number }, t: number, drag: number) => {
-    const u = Math.max(0, t - p.d); return [p.x + p.vx * u * drag, p.y + p.vy * u + 0.5 * G * u * u] as const;
-  };
-  const ball = (x: CanvasRenderingContext2D, X: number, Y: number, R: number, a: number, rot: number) => {
-    x.save(); x.globalAlpha = a; x.translate(X, Y); x.rotate(rot);
-    const g = x.createRadialGradient(-R * 0.35, -R * 0.35, R * 0.1, 0, 0, R); g.addColorStop(0, "#FFE3D2"); g.addColorStop(0.55, "#FFC9A8"); g.addColorStop(1, "#E89B72");
-    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R, 0, Math.PI * 2); x.fill();
-    x.fillStyle = "rgba(150,80,50,.45)";
-    [[0, 0], [0.5, 0.15], [-0.45, 0.25], [0.1, -0.52], [-0.2, 0.58], [0.48, -0.42]].forEach(([hx, hy]) => { x.beginPath(); x.arc(hx * R, hy * R, R * 0.11, 0, Math.PI * 2); x.fill(); });
-    x.restore();
-  };
+  const burstAt = makeBurst(SW / 2, 560);
   const draw = (t: number) => {
     sx.clearRect(0, 0, SW, SH); sx.drawImage(base, 0, 0);
-    if (t <= 0 || t >= BURST) { screenTex.needsUpdate = true; return; }
-    sx.save(); rr(sx, 0, 0, SW, SH, SR); sx.clip();
-    const fade = clamp((BURST - t) / 0.8);
-    bits.forEach((b) => {
-      if (t < b.d) return; const [X, Y] = at(b, t, 0.75), u = t - b.d;
-      sx.save(); sx.globalAlpha = fade; sx.translate(X, Y); sx.rotate(b.spin * u); sx.scale(1, Math.cos(u * 9 + b.spin)); sx.fillStyle = b.c; sx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); sx.restore();
-    });
-    balls.forEach((b) => {
-      if (t < b.d) return;
-      for (let k = 6; k >= 1; k--) { const [X, Y] = at(b, t - k * 0.035, 1); if (t - k * 0.035 > b.d) ball(sx, X, Y, b.r * (1 - k * 0.07), (0.32 - k * 0.045) * fade, 0); }
-      const [X, Y] = at(b, t, 1); ball(sx, X, Y, b.r, fade, b.spin * (t - b.d));
-    });
-    sx.restore(); screenTex.needsUpdate = true;
+    sx.save(); rr(sx, 0, 0, SW, SH, SR); sx.clip(); burstAt(sx, t); sx.restore();
+    screenTex.needsUpdate = true;
   };
   paintBase(); draw(0);
   void document.fonts.load(`800 150px ${COND}`).then(() => document.fonts.load(`600 38px ${SANS}`)).then(() => { paintBase(); draw(RM ? 0.62 : 0); });
@@ -192,7 +166,7 @@ function start(T: typeof THREE_NS, canvas: HTMLCanvasElement, onReady: () => voi
     const b = section.getBoundingClientRect(), vh = innerHeight;
     const target = RM ? 1 : clamp((vh - b.top) / (vh * 0.7));
     sp += (target - sp) * 0.08;
-    if (!RM) { if (burst < 0 && target > 0.75) burst = 0; if (burst >= 0 && burst < BURST + 0.1) { burst += dt; draw(burst); } }
+    if (!RM) { if (burst < 0 && target > 0.75) burst = 0; if (burst >= 0 && burst < BURST_SECONDS + 0.1) { burst += dt; draw(burst); } }
     ptr.x += (ptr.tx - ptr.x) * 0.06; ptr.y += (ptr.ty - ptr.y) * 0.06;
     tilt.rotation.set(0.12 - 0.3 * (1 - sp) + ptr.y * 0.12, -0.42 - 0.7 * (1 - sp) + ptr.x * 0.25, 0.1 * (1 - sp) + 0.06);
     phone.position.y = -0.8 * (1 - sp);
