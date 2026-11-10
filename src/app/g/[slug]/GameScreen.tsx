@@ -558,7 +558,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
                 <SheetHead title="Settle up" />
                 {org.gapCents > 0 ? (
                   <p className="sh-p">
-                    {count} played, so the shares come to {money(org.totalCents - org.gapCents)} of the {money(org.totalCents)} court. Who covers the {money(org.gapCents)} gap?
+                    {count} played, so the shares come to {money(count * v.shareCents)} of the {money(org.totalCents)} court. Who covers the {money(org.gapCents)} gap?
                   </p>
                 ) : (
                   <p className="sh-p">{count} played and the shares cover the court, so everyone pays their {money(v.shareCents)} share.</p>
