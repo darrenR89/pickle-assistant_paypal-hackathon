@@ -29,13 +29,38 @@ const SCREENS = [
   { src: "dm", title: "Money talk stays private", body: "Holds, receipts and refunds go to each player privately, never to the group." },
 ];
 
-const INFO: Array<[string, string]> = [
-  ["Lives in", "Your group chat (iMessage and WhatsApp planned)"],
-  ["Payments", "PayPal and Venmo, via PayPal Orders v2"],
-  ["AI", "Claude (Haiku 5.5) reads every message"],
-  ["Players need", "No app, no account with us. A text and a link"],
-  ["Price for players", "Their share of the court. Nothing more"],
-  ["Status", "Working prototype in the PayPal sandbox"],
+// Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
+const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
+  {
+    k: "Lives in",
+    v: "Your group chat (iMessage and WhatsApp planned)",
+    icon: <><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /><path d="M19 9h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-3" /></>,
+  },
+  {
+    k: "Payments",
+    v: "PayPal and Venmo, via PayPal Orders v2",
+    icon: <><rect x="2" y="5" width="20" height="14" rx="3" /><path d="M2 10h20M6 15h4" /></>,
+  },
+  {
+    k: "AI",
+    v: "Claude (Haiku 5.5) reads every message",
+    icon: <><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" /></>,
+  },
+  {
+    k: "Players need",
+    v: "No app, no account with us. A text and a link",
+    icon: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>,
+  },
+  {
+    k: "Price for players",
+    v: "Their share of the court. Nothing more",
+    icon: <><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" /><circle cx="8" cy="8" r="1.6" /></>,
+  },
+  {
+    k: "Status",
+    v: "Working prototype in the PayPal sandbox",
+    icon: <><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3" /><path d="M7.5 15h9" /></>,
+  },
 ];
 
 export default function Home() {
@@ -99,8 +124,11 @@ export default function Home() {
         </ul>
 
         <dl className="lp-info">
-          {INFO.map(([k, v]) => (
+          {INFO.map(({ k, v, icon }) => (
             <div key={k}>
+              <span className="lp-info-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24">{icon}</svg>
+              </span>
               <dt>{k}</dt>
               <dd>{v}</dd>
             </div>
