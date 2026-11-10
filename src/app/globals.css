@@ -653,7 +653,7 @@ a{color:var(--link)}
 .lp-steps h3{margin:16px 0 8px;font:700 22px/1.2 var(--sans)}
 .lp-steps p{margin:0;font:500 17px/1.5 var(--sans);color:var(--muted)}
 /* "The app" showcase: dark stage, copy left (title, tabs, slogan at the bottom), phone right with two callouts */
-.lp-show{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:40px;align-items:stretch;padding:56px 64px;border-radius:40px;background:#1C1640;color:#E2DAF2;overflow:hidden;isolation:isolate}
+.lp-show{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:40px;align-items:stretch;padding:80px 96px;border-radius:40px;background:#1C1640;color:#E2DAF2;overflow:hidden;isolation:isolate}
 .lp-show{margin-left:max(-50px,min(0px,calc((1220px - 100vw)/2)));margin-right:max(-50px,min(0px,calc((1220px - 100vw)/2)))}
 .lp-show::before{content:"";position:absolute;z-index:-1;right:-6%;top:50%;width:62%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(160,132,255,.38),rgba(255,201,168,.12) 60%,transparent)}
 .lp-show-copy{display:flex;flex-direction:column;min-width:0}
@@ -703,7 +703,7 @@ a{color:var(--link)}
 @keyframes lpShowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes lpChipIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
 @media (max-width:900px){
-  .lp-show{grid-template-columns:1fr;gap:8px;padding:36px 20px 32px;border-radius:28px}
+  .lp-show{grid-template-columns:1fr;gap:8px;padding:44px 24px 40px;border-radius:28px}
   .lp-show::before{right:50%;top:auto;bottom:18%;width:110%;transform:translateX(50%)}
   .lp-show-copy{display:contents}
   .lp-show .lp-h2,.lp-show-lead,.lp-tl,.lp-tl-ctrl{order:0}
