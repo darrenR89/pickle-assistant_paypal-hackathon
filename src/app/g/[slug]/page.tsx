@@ -18,6 +18,8 @@ import {
   whenLabel,
 } from "@/lib/games";
 import { KIND_LABEL } from "@/bot/details";
+import { shortfall } from "@/bot/assistant";
+import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
 import GameScreen from "./GameScreen";
 
 // Read env and the live roster at request time.
@@ -56,7 +58,7 @@ function factsLine(game: Game) {
   return parts.join(" · ");
 }
 
-export type MeStatus = "none" | "in" | "out" | "late" | "charged" | "covered" | "paid";
+export type MeStatus = "none" | "in" | "out" | "late" | "charged" | "covered" | "paid" | "refunded";
 
 export default async function GamePage({ params, searchParams }: Props) {
   const { slug } = await params;
@@ -82,6 +84,7 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
   else if (mine?.late_cancel === "charged") me = "charged";
   else if (mine?.late_cancel === "covered") me = "covered";
   else if (mine?.status === "out") me = "out";
+  if (mine?.hold_status === "captured" && (mine.captured_cents ?? 0) > 0 && mine.refunded_cents >= (mine.captured_cents ?? 0)) me = "refunded";
 
   const view = {
     slug,
@@ -120,6 +123,8 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
     me,
     myHoldCents: mine?.hold_cents ?? 0,
     myChargedCents: mine?.captured_cents ?? 0,
+    myRefundedCents: mine?.refunded_cents ?? 0,
+    refundAsked: viewer ? !!(await q("select 1 from intents where game_id = $1 and person_id = $2 and kind = 'refund'", [game.id, viewer.id])).length : false,
     organizer: isOrganizer ? await organizerData(game) : null,
   };
   return view;
@@ -129,7 +134,10 @@ async function organizerData(game: Game) {
   const entries = await roster(game.id);
   const playing = inPlayers(entries);
   const held = entries.filter((e) => e.hold_status === "held").reduce((s, e) => s + (e.hold_cents ?? 0), 0);
-  const collected = entries.filter((e) => e.hold_status === "captured").reduce((s, e) => s + (e.captured_cents ?? 0), 0);
+  const collected = entries.filter((e) => e.hold_status === "captured").reduce((s, e) => s + (e.captured_cents ?? 0) - e.refunded_cents, 0);
+  const host = await personById(game.organizer_id);
+  const payTo = host ? organizerPayoutTo(host) : null;
+  const { gap, extraEach } = shortfall(game, playing.length);
   const waiting = await q<{ id: string; name: string; kind: string }>(
     "select p.id, p.name, i.kind from intents i join people p on p.id = i.person_id where i.game_id = $1 order by i.said_at",
     [game.id],
@@ -152,8 +160,19 @@ async function organizerData(game: Game) {
     kind: game.kind,
     level: game.level ?? "",
     setting: game.setting,
+    gapCents: gap,
+    splitEachCents: extraEach,
+    closeChoice: game.close_choice,
+    payout: {
+      status: game.payout_status,
+      cents: game.payout_cents ?? 0,
+      error: game.payout_error,
+      to: payTo ? describeReceiver(payTo) : null,
+      raw: host?.payout_to ?? host?.phone ?? "",
+      wallet: host?.payout_wallet ?? "VENMO",
+    },
     players: entries
-      .filter((e) => e.status === "in" || e.late_cancel === "pending")
+      .filter((e) => e.status === "in" || e.late_cancel === "pending" || e.late_cancel === "charged")
       .map((e) => ({
         id: e.id,
         name: e.name,
@@ -162,8 +181,12 @@ async function organizerData(game: Game) {
         holdStatus: e.hold_status,
         holdCents: e.hold_cents ?? 0,
         capturedCents: e.captured_cents ?? 0,
+        refundedCents: e.refunded_cents,
+        lateCharged: e.late_cancel === "charged",
+        refundAsked: waiting.some((w) => w.id === e.person_id && w.kind === "refund"),
+        personId: e.person_id,
       })),
-    waiting: waiting.map((w) => ({ id: w.id, name: w.name, kind: w.kind })),
+    waiting: waiting.filter((w) => w.kind !== "refund").map((w) => ({ id: w.id, name: w.name, kind: w.kind })),
   };
 }
 

@@ -9,6 +9,7 @@ import { one, q } from "@/lib/db";
 import { type Game, type Spot, logEvent, whenLabel } from "@/lib/games";
 import { reauthorize } from "@/lib/paypal";
 import { nudgeUnfinished, postGroup, settleGame } from "@/bot/assistant";
+import { payOrganizer } from "@/bot/payout";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -76,6 +77,15 @@ export const reauthorizeHold = task(
   },
 );
 
+export const payOrganizerTask = task(
+  { name: "payOrganizer", retry, timeoutSeconds: 120 },
+  async function payOrganizerRun(_ctx: TaskContext, gameId: string) {
+    await payOrganizer(gameId);
+    const g = await one<Game>("select * from games where id = $1", [gameId]);
+    return { gameId, payout: g?.payout_status, cents: g?.payout_cents };
+  },
+);
+
 /** Entry point for the cron job: find what's due now and run each item as its own task. */
 export const tick = task(
   { name: "tick", timeoutSeconds: 600 },
@@ -83,7 +93,7 @@ export const tick = task(
     const now = Date.now();
     const at = (ms: number) => new Date(now + ms);
 
-    const [reminders, gameDay, toSettle, toRenew] = await Promise.all([
+    const [reminders, gameDay, toSettle, toRenew, toPay] = await Promise.all([
       q<{ id: string }>(
         "select id from games where status = 'open' and not cancel_reminder_sent and cancel_by > $1 and cancel_by <= $2",
         [at(0), at(CANCEL_REMINDER_WINDOW)],
@@ -98,6 +108,8 @@ export const tick = task(
          where s.hold_status = 'held' and g.status = 'open' and g.starts_at > $1 and s.authorized_at <= $2`,
         [at(0), at(-REAUTHORIZE_AFTER)],
       ),
+      // Payouts that failed for a reason worth retrying (payOrganizer stops after 3 attempts).
+      q<{ id: string }>("select id from games where status in ('settled', 'cancelled') and payout_status = 'failed' and payout_attempts < 3"),
     ]);
 
     const results = await Promise.allSettled([
@@ -105,6 +117,7 @@ export const tick = task(
       ...gameDay.map((g) => ctx.run(sendGameDayReminder, g.id)),
       ...toSettle.map((g) => ctx.run(settleGameTask, g.id)),
       ...toRenew.map((s) => ctx.run(reauthorizeHold, s.id)),
+      ...toPay.map((g) => ctx.run(payOrganizerTask, g.id)),
     ]);
 
     const summary = {
@@ -112,6 +125,7 @@ export const tick = task(
       gameDayReminders: gameDay.length,
       settled: toSettle.length,
       holdsRenewed: toRenew.length,
+      payoutsRetried: toPay.length,
       failed: results.filter((r) => r.status === "rejected").length,
     };
     console.log(`tick ${JSON.stringify(summary)}`);

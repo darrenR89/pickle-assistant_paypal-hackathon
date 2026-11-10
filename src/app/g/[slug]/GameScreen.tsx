@@ -37,7 +37,7 @@ function loadSdk(clientId: string): Promise<PayPalNamespace> {
 }
 
 const money = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
-type Sheet = null | "who" | "join" | "placing" | "success" | "manage" | "cancel" | "explain" | "error" | "edit" | "more" | "settle" | "calloff";
+type Sheet = null | "who" | "join" | "placing" | "success" | "manage" | "cancel" | "explain" | "error" | "edit" | "more" | "settle" | "calloff" | "refund" | "payoutTo";
 type ErrKind = "closed" | "declined" | "full" | "invite" | "other";
 
 export default function GameScreen({ view: v, demo = null }: { view: ViewData; demo?: string | null }) {
@@ -48,6 +48,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [formErr, setFormErr] = useState<string | null>(null);
+  const [refundFor, setRefundFor] = useState<{ id: string; name: string; cents: number } | null>(null);
   const [fund, setFund] = useState<"paypal" | "venmo">("paypal");
   // On a computer the bottom bar becomes the right-hand column.
   const [wide, setWide] = useState(false);
@@ -106,6 +107,15 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
     if (action === "nudge") setToast(body.nudged ? `Reminded ${body.nudged} in the group.` : "Nobody’s waiting to confirm.");
     router.refresh();
     return true;
+  }
+
+  async function askRefund() {
+    setBusy(true);
+    const res = await fetch(`/api/games/${v.slug}/refund`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p: v.p }) });
+    setBusy(false);
+    if (!res.ok) setToast((await res.json().catch(() => ({}))).error ?? "Couldn’t send that");
+    else setToast(`Asked ${v.hostName} privately.`);
+    router.refresh();
   }
 
   async function dropOut() {
@@ -285,7 +295,21 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
     );
   if (v.status === "cancelled")
     notices.push(
-      <Notice key="c" tone="lav" icon="alert" title={`${v.hostName} called off this game`} body={org ? "Every hold was released. Nobody was charged." : "Any hold you had was released. Nobody was charged."} />,
+      <Notice
+        key="c"
+        tone="lav"
+        icon="alert"
+        title={`${v.hostName} called off this game`}
+        body={
+          org?.closeChoice === "charged"
+            ? "Free cancel had passed and the court fee was lost, so everyone holding a spot paid their share."
+            : org
+              ? "Every hold was released. Nobody was charged."
+              : v.me === "charged"
+                ? "Free cancel had passed and the court fee was lost."
+                : "Any hold you had was released. Nobody was charged."
+        }
+      />,
     );
   if (v.me === "paid" && !org) {
     const extra = v.myChargedCents - v.shareCents;
@@ -301,7 +325,24 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   }
   if (v.status === "open" && v.over && !org) notices.push(<Notice key="s" tone="lav" icon="receipt" title="Settling up tonight" body="About 3 hours after the start, everyone who played is charged their share." />);
   if (v.me === "late") notices.push(<Notice key="l" tone="red" icon="alert" title={`You’re out · waiting on ${v.hostName}`} body={`You cancelled after free cancel ended. ${v.hostName} will charge your ${money(v.shareCents)} share or cover it. Your hold stays until they decide.`} />);
-  if (v.me === "charged") notices.push(<Notice key="ch" tone="red" icon="receipt" title={`Your ${money(v.shareCents)} share was charged`} body={`${v.hostName} charged the late cancel. The rest of your hold was released.`} />);
+  if (v.me === "charged")
+    notices.push(
+      <Notice
+        key="ch"
+        tone="red"
+        icon="receipt"
+        title={`Your ${money(v.myChargedCents)} share was charged`}
+        body={
+          v.status === "cancelled"
+            ? `The game was called off after free cancel and the court fee couldn’t be refunded. The rest of your hold was released.`
+            : v.refundAsked
+              ? `You told ${v.hostName} you did show up. They’ll refund it or keep the charge, and you’ll hear either way.`
+              : `${v.hostName} charged the late cancel. The rest of your hold was released. Came anyway? Tell ${v.hostName} and they can refund it.`
+        }
+        action={v.refundAsked || v.status === "cancelled" ? undefined : { label: "I did show up", onClick: askRefund }}
+      />,
+    );
+  if (v.me === "refunded") notices.push(<Notice key="rf" icon="check" title={`Refunded ${money(v.myRefundedCents)}`} body={`${v.hostName} refunded your charge. It goes back to your PayPal or Venmo.`} />);
   if (v.me === "covered") notices.push(<Notice key="co" icon="check" title={`${v.hostName} covered your spot`} body="Your hold was released in full. You weren’t charged." />);
   if (v.me === "out" && v.status === "open") notices.push(<Notice key="o" icon="check" title="You’re out" body="Your hold was released. Changed your mind? Tap I’m in again while there’s space." />);
   if (v.inviteOnly && !v.canJoin && !org && v.p)
@@ -391,6 +432,10 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
             onInvite={async (personId, yes) => {
               if (await organizerAct(yes ? "invite" : "decline", { personId })) setToast(yes ? "Added. They got their link in the group." : "Okay. Nothing was posted.");
             }}
+            onRefund={(p) => { setFormErr(null); setRefundFor(p); setSheet("refund"); }}
+            onKeep={async (personId) => { if (await organizerAct("keep", { personId })) setToast("Kept the charge. They got a private note."); }}
+            onRetryPayout={async () => { if (await organizerAct("payout")) setToast("Trying the payout again."); }}
+            onEditPayout={() => { setFormErr(null); setSheet("payoutTo"); }}
           />
         )}
         {playersCard}
@@ -511,29 +556,96 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
             {sheet === "settle" && org && (
               <>
                 <SheetHead title="Settle up" />
-                <p className="sh-p">
-                  {count} played.{" "}
-                  {left > 0
-                    ? `${left} spot${left === 1 ? "" : "s"} stayed empty, so each player pays up to ${money(v.capCents)} more. You cover the rest.`
-                    : `The game was full, so everyone pays their ${money(v.shareCents)} share.`}
-                </p>
+                {org.gapCents > 0 ? (
+                  <p className="sh-p">
+                    {count} played, so the shares come to {money(org.totalCents - org.gapCents)} of the {money(org.totalCents)} court. Who covers the {money(org.gapCents)} gap?
+                  </p>
+                ) : (
+                  <p className="sh-p">{count} played and the shares cover the court, so everyone pays their {money(v.shareCents)} share.</p>
+                )}
+                <p className="sh-p" style={{ fontSize: 15 }}>Then what’s collected goes to your {org.payout.to ?? "Venmo or PayPal"}.</p>
                 {formErr && <p className="err" style={{ margin: "0 8px" }} role="alert">{formErr}</p>}
                 <div style={{ display: "grid", gap: 12, margin: "0 4px" }}>
-                  <button className="cta wide" disabled={busy} onClick={async () => { if (await organizerAct("settle")) { setSheet(null); setToast("Settled. Everyone got their receipt."); } }}>Charge players</button>
-                  <button className="cta ghost wide" onClick={() => setSheet(null)}>Not yet</button>
+                  {org.gapCents > 0 ? (
+                    <>
+                      <button className="cta wide" disabled={busy} onClick={async () => { if (await organizerAct("settle", { gap: "split" })) { setSheet(null); setToast("Settled. Everyone got their receipt."); } }}>
+                        Split it · {money(org.splitEachCents)} more each
+                      </button>
+                      <button className="cta ghost wide" disabled={busy} onClick={async () => { if (await organizerAct("settle", { gap: "cover" })) { setSheet(null); setToast(`Settled. You covered ${money(org.gapCents)}.`); } }}>
+                        I’ll cover {money(org.gapCents)}
+                      </button>
+                    </>
+                  ) : (
+                    <button className="cta wide" disabled={busy} onClick={async () => { if (await organizerAct("settle")) { setSheet(null); setToast("Settled. Everyone got their receipt."); } }}>Charge players</button>
+                  )}
+                  <button className="lnk" style={{ justifySelf: "center", padding: 10 }} onClick={() => setSheet(null)}>Not yet</button>
                 </div>
+                {org.gapCents > 0 && org.splitEachCents * count < org.gapCents && (
+                  <p className="sh-p" style={{ fontSize: 15 }}>Splitting stops at the {money(v.capCents)} cap players agreed to, so you’d still cover {money(org.gapCents - org.splitEachCents * count)}.</p>
+                )}
               </>
             )}
             {sheet === "calloff" && org && (
               <>
                 <SheetHead title="Call it off?" />
-                <p className="sh-p">Every hold is released and nobody is charged. The group gets a message.</p>
+                {v.beforeCancelBy || count <= 1 ? (
+                  <p className="sh-p">Every hold is released and nobody is charged. The group gets a message.</p>
+                ) : (
+                  <p className="sh-p">Free cancel has passed. If the court still charges you, you can charge everyone who’s in their {money(v.shareCents)} share. The group only hears that it’s off.</p>
+                )}
                 {formErr && <p className="err" style={{ margin: "0 8px" }} role="alert">{formErr}</p>}
                 <div style={{ display: "grid", gap: 12, margin: "0 4px" }}>
-                  <button className="cta wide" disabled={busy} style={{ background: "var(--danger)", boxShadow: "0 5px 0 #6E1909" }} onClick={async () => { if (await organizerAct("cancel")) { setSheet(null); setToast("Called off. Everyone’s hold is released."); } }}>Call off the game</button>
-                  <button className="cta ghost wide" onClick={() => setSheet(null)}>Keep it on</button>
+                  <button className="cta wide" disabled={busy} style={{ background: "var(--danger)", boxShadow: "0 5px 0 #6E1909" }} onClick={async () => { if (await organizerAct("cancel")) { setSheet(null); setToast("Called off. Everyone’s hold is released."); } }}>
+                    {v.beforeCancelBy || count <= 1 ? "Call off the game" : "Call off · release everyone"}
+                  </button>
+                  {!v.beforeCancelBy && count > 1 && (
+                    <button className="cta ghost wide" disabled={busy} onClick={async () => { if (await organizerAct("cancel", { charge: true })) { setSheet(null); setToast(`Called off. Shares charged; you’ll be paid back.`); } }}>
+                      Charge shares instead
+                    </button>
+                  )}
+                  <button className="lnk" style={{ justifySelf: "center", padding: 10 }} onClick={() => setSheet(null)}>Keep it on</button>
                 </div>
               </>
+            )}
+            {sheet === "refund" && org && refundFor && (
+              <>
+                <SheetHead title={`Refund ${refundFor.name}?`} />
+                <p className="sh-p">{money(refundFor.cents)} goes back to {refundFor.name}’s PayPal or Venmo, and {refundFor.name} gets a private note. It comes out of what you’re paid back.</p>
+                {formErr && <p className="err" style={{ margin: "0 8px" }} role="alert">{formErr}</p>}
+                <div style={{ display: "grid", gap: 12, margin: "0 4px" }}>
+                  <button className="cta wide" disabled={busy} onClick={async () => { if (await organizerAct("refund", { spotId: refundFor.id })) { setSheet(null); setToast(`Refunded ${refundFor.name} ${money(refundFor.cents)}.`); } }}>Refund {money(refundFor.cents)}</button>
+                  <button className="lnk" style={{ justifySelf: "center", padding: 10 }} onClick={() => setSheet(null)}>Not now</button>
+                </div>
+              </>
+            )}
+            {sheet === "payoutTo" && org && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const f = new FormData(e.currentTarget);
+                  if (await organizerAct("payoutTo", { payoutTo: String(f.get("payoutTo") ?? ""), wallet: String(f.get("wallet") ?? "VENMO") })) {
+                    setSheet(null);
+                    setToast("Saved. That’s where you’ll be paid back.");
+                  }
+                }}
+              >
+                <SheetHead title="Where should we pay you back?" close={() => setSheet(null)} />
+                <div style={{ display: "grid", gap: 14, margin: "0 8px 16px" }}>
+                  <label className="field">
+                    Send it to
+                    <select name="wallet" defaultValue={org.payout.wallet}>
+                      <option value="VENMO">Venmo</option>
+                      <option value="PAYPAL">PayPal</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    Phone, Venmo @handle or PayPal email
+                    <input name="payoutTo" defaultValue={org.payout.raw} autoComplete="off" required />
+                  </label>
+                  {formErr && <p className="err" role="alert">{formErr}</p>}
+                  <button className="cta wide" disabled={busy}>Save</button>
+                </div>
+              </form>
             )}
           </div>
         </div>
@@ -791,11 +903,60 @@ function ErrorSheet({ err, v, retry, close }: { err: { kind: ErrKind; text?: str
   );
 }
 
-function OrganizerCard({ v, onLate, onInvite, busy }: { v: ViewData; onLate: (spotId: string, d: "charge" | "cover") => void; onInvite: (personId: string, yes: boolean) => void; busy: boolean }) {
+type RefundTarget = { id: string; name: string; cents: number };
+
+function OrganizerCard({
+  v,
+  onLate,
+  onInvite,
+  onRefund,
+  onKeep,
+  onRetryPayout,
+  onEditPayout,
+  busy,
+}: {
+  v: ViewData;
+  onLate: (spotId: string, d: "charge" | "cover") => void;
+  onInvite: (personId: string, yes: boolean) => void;
+  onRefund: (p: RefundTarget) => void;
+  onKeep: (personId: string) => void;
+  onRetryPayout: () => void;
+  onEditPayout: () => void;
+  busy: boolean;
+}) {
   const org = v.organizer!;
   const settled = v.status === "settled";
+  const closed = settled || v.status === "cancelled";
+  const owed = (p: (typeof org.players)[number]) => p.holdStatus === "captured" ? p.capturedCents - p.refundedCents : 0;
+  const po = org.payout;
+  const to = po.to ?? "Venmo or PayPal";
+  const payoutLine: Record<string, string> = {
+    sending: `Sending to your ${to}`,
+    pending: `On its way to your ${to}`,
+    sent: `Sent to your ${to}`,
+    unclaimed: `Waiting for you to claim it in ${to}`,
+    failed: `Didn’t go through${po.error ? `: ${po.error}` : ""}`,
+    none: "Nothing was collected, so there’s nothing to send",
+  };
   return (
     <>
+      {org.players
+        .filter((p) => p.refundAsked && owed(p) > 0)
+        .map((p) => (
+          <div key={`r${p.id}`} className="notice lav" style={{ flexDirection: "column" }}>
+            <div style={{ display: "flex", gap: 14 }}>
+              <Icon name="receipt" />
+              <div className="tx">
+                <span className="ttl">{p.name} says they did show up</span>
+                <span className="sub">Refund their {money(owed(p))} through PayPal, or keep the charge. Only {p.name} hears what you decide.</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="cta" style={{ flex: 1, fontSize: 20 }} disabled={busy} onClick={() => onRefund({ id: p.id, name: p.name, cents: owed(p) })}>Refund {money(owed(p))}</button>
+              <button className="cta ghost" style={{ flex: 1, fontSize: 20 }} disabled={busy} onClick={() => onKeep(p.personId)}>Keep it</button>
+            </div>
+          </div>
+        ))}
       {org.waiting
         .filter((w) => w.kind === "request")
         .map((w) => (
@@ -857,14 +1018,21 @@ function OrganizerCard({ v, onLate, onInvite, busy }: { v: ViewData; onLate: (sp
                   ? "Paid the court"
                   : p.late
                     ? `Late cancel · ${money(p.holdCents)} held`
-                    : p.holdStatus === "captured"
-                      ? `Paid ${money(p.capturedCents)}`
+                    : p.holdStatus === "captured" && p.refundedCents >= p.capturedCents
+                      ? `Refunded ${money(p.refundedCents)}`
+                      : p.holdStatus === "captured"
+                        ? `${p.lateCharged ? "Late cancel · paid" : "Paid"} ${money(p.capturedCents - p.refundedCents)}`
                       : p.holdStatus === "held"
                         ? `${money(p.holdCents)} held`
                         : p.holdStatus === "voided"
                           ? "Hold released"
                           : "—"}
               </span>
+              {!p.isHost && owed(p) > 0 && (
+                <button className="lnk" style={{ marginLeft: 4, fontSize: 15 }} disabled={busy} onClick={() => onRefund({ id: p.id, name: p.name, cents: owed(p) })}>
+                  Refund
+                </button>
+              )}
             </div>
           ))}
           {org.waiting
@@ -877,6 +1045,22 @@ function OrganizerCard({ v, onLate, onInvite, busy }: { v: ViewData; onLate: (sp
               </div>
             ))}
         </div>
+      </section>
+      <section className="card" aria-label="Paying you back" style={{ padding: "14px 16px" }}>
+        <div className="line">
+          <span className="ttl">{closed && po.status ? `Payout · ${money(po.cents)}` : "Paying you back"}</span>
+          {po.status !== "sent" && po.status !== "pending" && po.status !== "sending" && (
+            <button className="lnk" onClick={onEditPayout}>Change</button>
+          )}
+        </div>
+        <p className="sub" style={{ margin: "6px 2px 4px", font: "500 16px/1.45 var(--sans)", color: "var(--muted)" }}>
+          {closed && po.status
+            ? (payoutLine[po.status] ?? po.status)
+            : `After the game, what players paid goes to your ${po.to ?? "Venmo or PayPal (add where)"}.`}
+        </p>
+        {po.status === "failed" && (
+          <button className="cta" style={{ marginTop: 8, fontSize: 20, height: 50 }} disabled={busy} onClick={onRetryPayout}>Retry payout</button>
+        )}
       </section>
     </>
   );
