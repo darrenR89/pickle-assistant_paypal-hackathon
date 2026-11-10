@@ -125,6 +125,31 @@ create table if not exists intents (
 );
 -- said_in: said "in" but hasn't approved the hold yet. maybe: tentative. waitlist: wants the next open spot.
 alter table intents add column if not exists kind text not null default 'said_in';
+-- Captures and refunds. capture_id is what PayPal refunds against.
+alter table spots add column if not exists capture_id text;
+alter table spots add column if not exists refunded_cents int not null default 0;
+-- Where the organizer is paid back: a Venmo phone/@handle or a PayPal email. Defaults to their phone on Venmo.
+alter table people add column if not exists payout_to text;
+alter table people add column if not exists payout_wallet text;
+-- Paying the organizer back after settle-up (PayPal Payouts).
+-- payout_status: null | sending | pending | sent | unclaimed | failed | none (nothing to pay).
+alter table games add column if not exists payout_status text;
+alter table games add column if not exists payout_cents int;
+alter table games add column if not exists payout_batch_id text;
+alter table games add column if not exists payout_error text;
+alter table games add column if not exists payout_attempts int not null default 0;
+-- Bumped when PayPal definitely rejected or returned a payout, so the next try is a new batch (a plain retry reuses the batch id and can't pay twice).
+alter table games add column if not exists payout_round int not null default 0;
+-- How the game closed: split | covered (short roster), released | charged (called off).
+alter table games add column if not exists close_choice text;
+-- PayPal webhook events already handled, so a redelivery is a no-op.
+create table if not exists webhook_events (
+  id text primary key,
+  type text not null,
+  resource_id text,
+  payload jsonb not null,
+  received_at timestamptz not null default now()
+);
 create table if not exists events (
   id bigserial primary key,
   game_id text not null,

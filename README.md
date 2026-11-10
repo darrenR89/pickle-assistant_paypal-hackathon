@@ -17,13 +17,15 @@ Rec pickleball is organized in group chats. One person books the court and pays 
 1. **The organizer texts the group:** `@Assistant Thu 6pm Riverside courts 3–4, $64`. Claude turns it into a game (8 spots, $8 each, free cancel until the day before) and posts a link. If details are missing, it starts a draft and asks the organizer privately.
 2. **Players hold their spot:** "yeah I'm down" gets them the link; tapping **I'm in** places a PayPal authorization (Orders v2, intent AUTHORIZE) for their share plus a small cap. Nothing is charged.
 3. **It handles the messy middle:** free-form replies (out, maybe, waitlist, "can Lee take my spot?", "is there parking?"), late cancels (organizer charges or covers), invite-only games and reminders.
-4. **It settles after the game:** each player is captured for their real share; the rest of each hold is released. Money details only ever go to people privately.
+4. **It settles after the game:** each player is captured for their real share; the rest of each hold is released. If the game ran short, the organizer chooses to split the gap (never past the cap players agreed to) or cover it. Money details only ever go to people privately.
+5. **It pays the organizer back:** what was collected goes to the organizer's Venmo (phone or @handle) or PayPal email in one PayPal Payout, with a private note when it lands.
+6. **It fixes mistakes:** a charged player can tap "I did show up"; the organizer refunds through PayPal in one tap. If the game is called off after free cancel and the court fee is lost, the organizer can charge each player their share instead of releasing everyone.
 
 ## How PayPal and AI are used
 
 | | What | Where |
 |---|---|---|
-| PayPal | Orders v2 intent AUTHORIZE, authorize, capture (partial), void, reauthorize; idempotent PayPal-Request-Id on every write; PayPal JS SDK buttons with PayPal and Venmo funding | `src/lib/paypal.ts`, `src/app/api/paypal/`, `src/bot/assistant.ts` |
+| PayPal | Orders v2 intent AUTHORIZE, authorize, capture (partial), void, reauthorize, refund; Payouts to Venmo or PayPal; verified webhooks; idempotent PayPal-Request-Id on every write; PayPal JS SDK buttons with PayPal and Venmo funding | `src/lib/paypal.ts`, `src/bot/payout.ts`, `src/lib/webhooks.ts`, `src/app/api/paypal/`, `src/bot/assistant.ts` |
 | AI | Claude Haiku 5.5 (Anthropic) with forced tool calls: `create_game` parses a setup message; `decide` interprets every other group message. A rules-based fallback runs if Claude is unavailable | `src/bot/parse.ts`, `src/bot/agent.ts` |
 | Boundary | The model only decides what people mean. Every money movement is deterministic code with fixed rules | `src/bot/assistant.ts` |
 
@@ -71,8 +73,14 @@ cloudflared tunnel --url http://localhost:3000
 - `sendGameDayReminder`: "Game in 2 hours" in the group
 - `settleGame`: settles a game 3 hours after it starts if the organizer hasn't
 - `reauthorizeHold`: renews a PayPal hold after its 3-day honor period while the game is still ahead
+- `payOrganizer`: retries a payout that failed (up to 3 attempts; the organizer can also tap Retry)
 
 Each task retries on its own and is safe to run twice. `render.workflows.yaml` is the Blueprint for the workflow service and the cron job. Try the logic locally with `pnpm tick:local`.
+
+## Payouts and webhooks
+
+- **Payouts** need the Payouts feature on your PayPal app (developer.paypal.com > your app > Features) and some balance in the sandbox business account. The organizer sets where to be paid on their organizer page; it defaults to their phone number on Venmo. Demo games where every hold is simulated get a simulated payout (`SIM-` batch id).
+- **Webhooks:** add a webhook in the PayPal app pointing at `https://<your-app>/api/paypal/webhook`, subscribe to `PAYMENT.AUTHORIZATION.VOIDED`, `PAYMENT.CAPTURE.*` and `PAYMENT.PAYOUTS*` events, and put its ID in `PAYPAL_WEBHOOK_ID`. Every event's signature is checked with PayPal, and each event is applied once. They keep our records in step with PayPal: expired holds, declined captures, refunds, and payouts that land, go unclaimed or come back.
 
 ## Test endpoints (sandbox only)
 

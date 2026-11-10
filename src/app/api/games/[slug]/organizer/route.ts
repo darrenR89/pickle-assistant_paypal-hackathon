@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { getGame } from "@/lib/games";
 import { toHalfHour, zonedTime } from "@/bot/parse";
-import { cancelGame, declineInvite, grantInvite, nudgeUnfinished, resolveLateCancel, settleGame, updateTerms } from "@/bot/assistant";
-import { one } from "@/lib/db";
+import { cancelGame, declineInvite, declineRefund, grantInvite, nudgeUnfinished, refundSpot, resolveLateCancel, settleGame, updateTerms } from "@/bot/assistant";
+import { retryPayout } from "@/bot/payout";
+import { payoutReceiver } from "@/lib/paypal";
+import { one, q } from "@/lib/db";
 import { errorResponse } from "@/lib/http";
 
 type Body = {
   o?: string;
-  action?: "nudge" | "settle" | "cancel" | "terms" | "late" | "invite" | "decline";
+  action?: "nudge" | "settle" | "cancel" | "terms" | "late" | "invite" | "decline" | "refund" | "keep" | "payout" | "payoutTo";
+  gap?: "split" | "cover"; // settle: split a short roster's gap (up to the cap) or cover it
+  charge?: boolean; // cancel: after free cancel, charge everyone holding a spot their share
+  payoutTo?: string; // Venmo phone or @handle, or PayPal email
+  wallet?: "VENMO" | "PAYPAL";
   personId?: string;
   spotId?: string;
   decision?: "charge" | "cover";
@@ -34,19 +40,50 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     if (!game || !body.o || body.o !== game.organizer_token) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (game.status === "draft" && !["terms", "cancel"].includes(body.action ?? ""))
+    // Money follow-ups (refunds, the payout and where it goes) still work after the game closes.
+    const afterClose = ["refund", "keep", "payout", "payoutTo"].includes(body.action ?? "");
+    if (game.status === "draft" && !["terms", "cancel", "payoutTo"].includes(body.action ?? ""))
       return NextResponse.json({ error: "Add the missing details first" }, { status: 409 });
-    if (game.status !== "open" && game.status !== "draft") return NextResponse.json({ error: "This game is already closed" }, { status: 409 });
+    if (game.status !== "open" && game.status !== "draft" && !(afterClose && (game.status === "settled" || game.status === "cancelled")))
+      return NextResponse.json({ error: "This game is already closed" }, { status: 409 });
 
     switch (body.action) {
       case "nudge":
         return NextResponse.json({ nudged: await nudgeUnfinished(game) });
       case "settle":
-        await settleGame(game);
+        await settleGame(game, { gap: body.gap === "cover" ? "cover" : "split" });
         return NextResponse.json({ ok: true });
       case "cancel":
-        await cancelGame(game);
+        try {
+          await cancelGame(game, { charge: body.charge === true });
+        } catch (err) {
+          if (err instanceof Error && !("status" in err)) return NextResponse.json({ error: err.message }, { status: 409 });
+          throw err;
+        }
         return NextResponse.json({ ok: true });
+      case "refund":
+        if (!body.spotId) return NextResponse.json({ error: "spotId required" }, { status: 400 });
+        try {
+          await refundSpot(game, body.spotId);
+        } catch (err) {
+          if (err instanceof Error && !("status" in err)) return NextResponse.json({ error: err.message }, { status: 409 });
+          throw err;
+        }
+        return NextResponse.json({ ok: true });
+      case "keep":
+        if (!body.personId) return NextResponse.json({ error: "personId required" }, { status: 400 });
+        await declineRefund(game, body.personId);
+        return NextResponse.json({ ok: true });
+      case "payout":
+        await retryPayout(game.id);
+        return NextResponse.json({ ok: true });
+      case "payoutTo": {
+        const wallet = body.wallet === "PAYPAL" ? "PAYPAL" : "VENMO";
+        const to = payoutReceiver(body.payoutTo ?? "", wallet);
+        if (!to) return NextResponse.json({ error: "Enter a 10-digit phone, a Venmo @handle or a PayPal email" }, { status: 400 });
+        await q("update people set payout_to = $2, payout_wallet = $3 where id = $1", [game.organizer_id, (body.payoutTo ?? "").trim().slice(0, 120), to.wallet]);
+        return NextResponse.json({ ok: true });
+      }
       case "late":
         if (!body.spotId || !body.decision) return NextResponse.json({ error: "spotId and decision required" }, { status: 400 });
         await resolveLateCancel(game, body.spotId, body.decision);

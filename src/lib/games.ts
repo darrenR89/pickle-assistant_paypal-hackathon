@@ -27,13 +27,20 @@ export type Game = {
   cancel_by: Date;
   organizer_pays: boolean;
   organizer_token: string;
-  status: "draft" | "open" | "settling" | "cancelled" | "settled";
+  status: "draft" | "open" | "settling" | "cancelling" | "cancelled" | "settled";
   cancel_reminder_sent: boolean;
   gameday_reminder_sent: boolean;
+  payout_status: null | "sending" | "pending" | "sent" | "unclaimed" | "failed" | "none";
+  payout_cents: number | null;
+  payout_batch_id: string | null;
+  payout_error: string | null;
+  payout_attempts: number;
+  payout_round: number;
+  close_choice: null | "split" | "covered" | "released" | "charged";
   created_at: Date;
 };
 
-export type Person = { id: string; name: string; phone: string; token: string };
+export type Person = { id: string; name: string; phone: string; token: string; payout_to: string | null; payout_wallet: "VENMO" | "PAYPAL" | null };
 
 export type Spot = {
   id: string;
@@ -45,6 +52,8 @@ export type Spot = {
   hold_cents: number | null;
   hold_status: "none" | "held" | "voided" | "captured";
   captured_cents: number | null;
+  capture_id: string | null;
+  refunded_cents: number;
   late_cancel: null | "pending" | "charged" | "covered";
   authorized_at: Date | null;
   created_at: Date;
