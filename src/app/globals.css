@@ -899,24 +899,24 @@ a{color:var(--link)}
 }
 
 /* Hover states.
-   Primary buttons press in without moving: the outer bottom shadow stays, an inner shadow appears on the top edge,
+   Primary buttons press in without moving: the outer bottom shadow goes, an inner shadow appears on the top edge,
    and the label takes that shadow's colour so it reads as indented. The pressed colour is darker than the resting
    edge so the label keeps 4.5:1+ contrast (#6A5DB3 on white is 5.5:1).
    Secondary buttons and controls on dark surfaces get a soft outer glow (as on Cosmos and Threads); secondary
    controls and links on light surfaces fade to 70%. */
 .lp-btn:focus-visible,.lp-isle-cta:focus-visible,.lp-isle-peek:focus-visible,.dr-btn:focus-visible{outline:3px solid var(--ball);outline-offset:3px}
-.lp-isle-side a,.lp-isle-more a,.lp-isle-peek,.lp-isle-more-btn,.lp-close,.lp-rail-pp,.lp-rail-yt,.lp-motion,.lp-tl-ctrl,.lp-play-disc,.dr-btn,.dr-link,.dr-back,.dr-onphone{transition:box-shadow .2s,background .2s,color .2s,opacity .2s,scale .25s}
+.lp-isle-side a,.lp-isle-more a,.lp-isle-peek,.lp-isle-cta,.lp-isle-more-btn,.lp-close,.lp-rail-pp,.lp-rail-yt,.lp-motion,.lp-tl-ctrl,.lp-play-disc,.dr-btn,.dr-link,.dr-back,.dr-onphone{transition:box-shadow .2s,background .2s,color .2s,opacity .2s,scale .25s}
 @media (hover:hover){
   /* primaries: pressed in place */
-  .lp-btn:not(.ghost):hover{box-shadow:0 5px 0 #C9C1E6,inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
-  .lp-final .lp-btn:hover{background:var(--lav);box-shadow:0 5px 0 var(--btn-edge),inset 0 5px 0 var(--btn);color:var(--btn)!important}
-  .lp-isle-side .lp-isle-cta:hover{background:#fff;box-shadow:inset 0 3px 0 #6A5DB3;color:#6A5DB3!important}
-  .dr-btn.p:not(:disabled):hover,.dr-btns .dr-btn:first-child:not(:disabled):hover{background:var(--lav);border-color:var(--lav);box-shadow:0 4px 0 var(--btn-edge),inset 0 4px 0 var(--btn);color:var(--btn)}
-  .lp-rail-pp:hover{box-shadow:0 4px 0 #C9C1E6,inset 0 4px 0 #6A5DB3;color:#6A5DB3}
+  .lp-btn:not(.ghost):hover{box-shadow:inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
+  .lp-final .lp-btn:hover{background:var(--lav);box-shadow:inset 0 5px 0 var(--btn);color:var(--btn)!important}
+  .dr-btn.p:not(:disabled):hover,.dr-btns .dr-btn:first-child:not(:disabled):hover{background:var(--lav);border-color:var(--lav);box-shadow:inset 0 4px 0 var(--btn);color:var(--btn)}
+  .lp-rail-pp:hover{box-shadow:inset 0 4px 0 #6A5DB3;color:#6A5DB3}
   /* secondaries on dark: outer glow */
   .lp-btn.ghost:hover{box-shadow:inset 0 0 0 2px #fff,0 0 0 4px rgba(255,255,255,.12),0 0 28px rgba(255,255,255,.35)}
   .lp-isle-side a:not(.lp-isle-cta):hover,.lp-isle-more a:not(.lp-isle-cta):hover{color:#fff!important;background:transparent;text-shadow:0 0 14px rgba(255,255,255,.75)}
-  .lp-isle.scrolled .lp-isle-peek:hover,.lp-isle-more .lp-isle-cta:hover{box-shadow:0 0 0 3px rgba(255,201,168,.25),0 0 22px rgba(255,201,168,.65)}
+  /* header: every item uses the secondary glow, the CTA pills included */
+  .lp-isle-side .lp-isle-cta:hover,.lp-isle.scrolled .lp-isle-peek:hover,.lp-isle-more .lp-isle-cta:hover{box-shadow:0 0 0 4px rgba(255,255,255,.12),0 0 28px rgba(255,255,255,.35)}
   .lp-isle-more-btn:hover,.lp-close:hover,.lp-motion:hover,.lp-tl-ctrl:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 22px rgba(255,255,255,.28)}
   .lp-play:hover .lp-play-disc{box-shadow:inset 0 0 0 1.5px #fff,0 0 0 6px rgba(255,255,255,.18),0 0 36px rgba(255,255,255,.55),0 18px 40px rgba(10,6,30,.45)}
   .lp-rail-yt:hover{opacity:.7}
