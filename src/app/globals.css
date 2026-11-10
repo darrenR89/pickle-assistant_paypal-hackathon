@@ -784,7 +784,7 @@ a{color:var(--link)}
   .lp-cs-body{padding:0 20px 28px}
   .lp-final{border-radius:28px 28px 0 0;padding-top:72px;padding-bottom:56px;margin-top:130px}
   .lp-final-low{grid-template-columns:1fr;margin-top:32px}
-  .lp-final-gl{top:-72px;right:-30px;width:210px;height:330px}
+  .lp-final-gl{top:-72px;right:-52px;width:210px;height:330px}
 }
 .dp-top{position:sticky}
 .dp-ctl{position:absolute;right:12px;top:calc(56px + env(safe-area-inset-top));border:none;background:var(--lav);color:var(--btn);font:700 12px/1 var(--sans);padding:6px 10px;border-radius:999px}
