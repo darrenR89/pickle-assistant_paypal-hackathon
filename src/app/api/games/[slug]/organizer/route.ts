@@ -124,9 +124,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
             place: typeof body.place === "string" ? body.place.slice(0, 80) : undefined,
             courts: typeof body.courts === "string" ? body.courts.slice(0, 40) : undefined,
             level: typeof body.level === "string" ? body.level.slice(0, 20) : undefined,
-            kind: ["mixed", "womens", "mens", "any", "singles"].includes(body.kind ?? "") ? (body.kind as never) : undefined,
-            partners: ["rotating", "fixed"].includes(body.partners ?? "") ? (body.partners as never) : undefined,
-            setting: ["indoor", "outdoor"].includes(body.setting ?? "") ? (body.setting as never) : undefined,
+            kind: oneOf(body.kind, KINDS),
+            partners: oneOf(body.partners, PARTNERS),
+            setting: oneOf(body.setting, SETTINGS),
           });
         } catch (err) {
           return NextResponse.json({ error: (err as Error).message }, { status: 409 });
@@ -143,4 +143,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
 function num(v: unknown) {
   return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : undefined;
+}
+
+const KINDS = ["mixed", "womens", "mens", "any", "singles"] as const;
+const PARTNERS = ["rotating", "fixed"] as const;
+const SETTINGS = ["indoor", "outdoor"] as const;
+
+/** The value if it is one of the allowed options, otherwise undefined. */
+function oneOf<T extends string>(v: unknown, options: readonly T[]): T | undefined {
+  return options.find((o) => o === v);
 }

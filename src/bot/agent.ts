@@ -15,8 +15,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { q } from "@/lib/db";
 import { type Game, TZ, inPlayers, inviteeNames, isBeforeCancelBy, money, personById, roster, whenLabel } from "@/lib/games";
-
-export const AGENT_MODEL = "claude-haiku-5-5";
+import { CLAUDE_MODEL } from "./model";
 
 export type Action =
   | "ignore" // small talk, or not about the game
@@ -107,7 +106,7 @@ async function withClaude(ctx: GroupContext, text: string): Promise<Decision> {
   const client = new Anthropic();
   const history = ctx.recent.map((m) => `${m.from}: ${m.text}`).join("\n");
   const res = await client.messages.create({
-    model: AGENT_MODEL,
+    model: CLAUDE_MODEL,
     max_tokens: 300,
     system: [
       "You are the assistant in a friends' pickleball group chat. You keep track of who's playing.",
