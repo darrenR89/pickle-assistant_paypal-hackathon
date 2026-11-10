@@ -628,7 +628,7 @@ a{color:var(--link)}
 .lp-hero h1{margin:0;font:800 clamp(52px,6.4vw,92px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em}
 .lp-sub{margin:22px 0 0;font:500 20px/1.5 var(--sans);color:var(--onm);max-width:560px}
 .lp-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
-.lp-btn{display:inline-flex;align-items:center;justify-content:center;height:58px;padding:0 26px;border-radius:18px;background:rgba(255,255,255,.75);color:var(--btn)!important;font:800 22px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;box-shadow:0 5px 0 #C9C1E6;cursor:pointer;transition:box-shadow .15s,background .15s,color .15s}
+.lp-btn{display:inline-flex;align-items:center;justify-content:center;height:58px;padding:0 26px;border-radius:18px;background:#fff;color:var(--btn)!important;font:800 22px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;box-shadow:0 5px 0 #C9C1E6;cursor:pointer;transition:box-shadow .15s,background .15s,color .15s}
 .lp-btn.ghost{background:transparent;color:#fff!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
 .lp-fine{margin:18px 0 0;font:500 15px/1.5 var(--sans);color:#C9BFE3;max-width:520px}
 .lp-phone{display:block;border-radius:34px;padding:7px;background:#14102a;box-shadow:0 24px 48px rgba(10,6,30,.35),inset 0 0 0 1.5px rgba(255,255,255,.12)}
@@ -646,13 +646,15 @@ a{color:var(--link)}
 .lp-h2{margin:0 0 14px;font:800 clamp(40px,4.4vw,60px)/.95 var(--cond);text-transform:uppercase}
 .lp-h2.light{color:#fff}
 .lp-lead{margin:0 0 34px;font:500 19px/1.5 var(--sans);color:var(--muted);max-width:640px}
+.lp-section.lp-how>*{max-width:1000px;margin-left:auto;margin-right:auto}
 .lp-steps{list-style:none;margin:28px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .lp-steps li{background:#fff;border:2px solid var(--edge);box-shadow:0 5px 0 var(--edge);border-radius:24px;padding:26px}
 .lp-n{display:inline-block;width:44px;height:44px;border-radius:22px;background:var(--lav);color:var(--btn);font:800 26px/44px var(--cond);text-align:center}
 .lp-steps h3{margin:16px 0 8px;font:700 22px/1.2 var(--sans)}
 .lp-steps p{margin:0;font:500 17px/1.5 var(--sans);color:var(--muted)}
 /* "The app" showcase: dark stage, copy left (title, tabs, slogan at the bottom), phone right with two callouts */
-.lp-show{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:40px;align-items:stretch;padding:56px 64px;border-radius:40px;background:#1C1640;color:#E2DAF2;overflow:hidden;isolation:isolate}
+.lp-show{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:40px;align-items:stretch;padding:80px 96px;border-radius:40px;background:#1C1640;color:#E2DAF2;overflow:hidden;isolation:isolate}
+.lp-show{margin-left:max(-50px,min(0px,calc((1220px - 100vw)/2)));margin-right:max(-50px,min(0px,calc((1220px - 100vw)/2)))}
 .lp-show::before{content:"";position:absolute;z-index:-1;right:-6%;top:50%;width:62%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(160,132,255,.38),rgba(255,201,168,.12) 60%,transparent)}
 .lp-show-copy{display:flex;flex-direction:column;min-width:0}
 .lp-show .lp-h2{margin-bottom:12px}
@@ -701,7 +703,7 @@ a{color:var(--link)}
 @keyframes lpShowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes lpChipIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
 @media (max-width:900px){
-  .lp-show{grid-template-columns:1fr;gap:8px;padding:36px 20px 32px;border-radius:28px}
+  .lp-show{grid-template-columns:1fr;gap:8px;padding:44px 24px 40px;border-radius:28px}
   .lp-show::before{right:50%;top:auto;bottom:18%;width:110%;transform:translateX(50%)}
   .lp-show-copy{display:contents}
   .lp-show .lp-h2,.lp-show-lead,.lp-tl,.lp-tl-ctrl{order:0}
@@ -750,7 +752,7 @@ a{color:var(--link)}
 .lp-stack{margin:30px 0 0;padding-top:24px;border-top:1px solid var(--line);font:500 16px/1.6 var(--sans);color:var(--muted)}
 .lp-stack a{color:var(--link)}
 /* Closing section: one dark, glowing slab with a big headline (the ball is its full stop), joined to the footer */
-.lp-final{position:relative;isolation:isolate;margin-top:250px;padding:96px max(20px,calc((100% - 1180px)/2)) 72px;background:#1b1440;color:#fff;border-radius:44px 44px 0 0}
+.lp-final{position:relative;isolation:isolate;margin-top:250px;padding:96px max(20px,calc((100% - 1180px)/2)) 132px;background:#1b1440;color:#fff;border-radius:44px 44px 0 0}
 .lp-final::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 50% at 50% 0%,rgba(140,120,230,.5),transparent 70%),radial-gradient(35% 45% at 10% 80%,rgba(255,201,168,.2),transparent 70%),radial-gradient(35% 45% at 92% 75%,rgba(182,221,228,.18),transparent 70%)}
 .lp-final-h{margin:0;font:800 clamp(56px,9.4vw,132px)/.86 var(--cond);text-transform:uppercase;letter-spacing:-.01em;text-wrap:balance}
 .lp-final-h>span{display:block;background:linear-gradient(90deg,#fff,#CFC6F2 75%);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -760,7 +762,7 @@ a{color:var(--link)}
 .lp-final-low>p{margin:0;max-width:440px;font:500 19px/1.5 var(--sans);color:var(--onm)}
 .lp-final-act{display:flex;flex-wrap:wrap;gap:14px}
 /* the 3D phone: behind the copy, rising out of the top of the slab */
-.lp-final-gl{position:absolute;z-index:0;top:-270px;right:max(-60px,calc((100% - 1180px)/2 - 170px));width:min(600px,46%);height:calc(100% + 250px);pointer-events:none;opacity:0;transition:opacity .8s}
+.lp-final-gl{position:absolute;z-index:0;top:-150px;right:max(-60px,calc((100% - 1180px)/2 - 170px));width:min(600px,46%);height:calc(100% + 190px);pointer-events:none;opacity:0;transition:opacity .8s}
 .lp-final-gl[data-ready]{opacity:1}
 .lp-final>:not(.lp-final-gl){position:relative;z-index:1}
 .lp-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:24px max(20px,calc((100% - 1180px)/2)) 40px;background:#1b1440;border-top:1px solid rgba(255,255,255,.14);font:500 15px/1.5 var(--sans);color:var(--onm)}
@@ -819,7 +821,7 @@ a{color:var(--link)}
 /* ---------- landing: Island header ----------
    Over the hero: links left, centered wordmark, actions right. Scrolled: a black pill like the
    iPhone's Dynamic Island; hover, focus or the menu button (touch) opens the links. */
-.lp-isle{position:sticky;top:0;z-index:30;height:76px;margin-bottom:-76px;display:flex;align-items:center;justify-content:center;color:#fff;pointer-events:none;transition:height .35s}
+.lp-isle{position:sticky;top:0;z-index:30;height:76px;margin-bottom:-76px;display:flex;align-items:center;justify-content:center;color:#fff;pointer-events:none;}
 .lp-isle>*{pointer-events:auto}
 .lp-isle a,.lp-isle button{color:inherit;text-decoration:none}
 .lp-isle-side{position:absolute;top:0;height:76px;display:flex;align-items:center;gap:4px;transition:opacity .3s,visibility .3s}
@@ -897,6 +899,8 @@ a{color:var(--link)}
 .lp-motion[hidden]{display:none}
 .lp-motion svg{width:14px;height:14px;fill:currentColor;display:block}
 .lp-hero.playing .lp-motion{opacity:0;visibility:hidden}
+.lp-isle{transition:height .35s,opacity .3s,visibility .3s}
+.lp:has(.lp-hero.playing) .lp-isle{opacity:0;visibility:hidden}
 @media (prefers-reduced-motion:reduce){.lp-motion{display:none}}
 .lp-close{all:unset;position:absolute;z-index:5;top:96px;right:max(20px,calc((100% - 1180px)/2));padding:10px 16px;border-radius:99px;background:rgba(18,14,36,.75);color:#fff;font:600 15px var(--sans);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s}
 .lp-hero.playing .lp-close{opacity:1;pointer-events:auto}
@@ -950,7 +954,7 @@ a{color:var(--link)}
 .lp-isle-side a,.lp-isle-more a,.lp-isle-peek,.lp-isle-cta,.lp-isle-more-btn,.lp-close,.lp-rail-pp,.lp-rail-yt,.lp-motion,.lp-tl-ctrl,.lp-play-disc,.dr-btn,.dr-link,.dr-back,.dr-onphone{transition:box-shadow .2s,background .2s,color .2s,opacity .2s,scale .25s}
 @media (hover:hover){
   /* primaries: pressed in place */
-  .lp-btn:not(.ghost):hover{box-shadow:inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
+  .lp-btn:not(.ghost):hover{background:rgba(255,255,255,.75);box-shadow:inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
   .lp-cs-cta:hover{background:var(--lav);box-shadow:inset 0 5px 0 var(--btn);color:var(--btn)}
   .dr-btn.p:not(:disabled):hover,.dr-btns .dr-btn:first-child:not(:disabled):hover{background:var(--lav);border-color:var(--lav);box-shadow:inset 0 4px 0 var(--btn);color:var(--btn)}
   .lp-rail-pp:hover{box-shadow:inset 0 4px 0 #6A5DB3;color:#6A5DB3}
