@@ -1,10 +1,23 @@
 import Link from "next/link";
+import HeroStage, { type Chapter } from "./landing/HeroStage";
+import IslandNav from "./landing/IslandNav";
 
-// Landing page. Humans see the video, the live phone demo and the screens; the same page is
+// Landing page. Humans see the 3D phone and its demo player, the live phone demo and the screens; the same page is
 // plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
 
 const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
 const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID; // YouTube id, set once the walkthrough is uploaded
+const VERTICAL_SRC = process.env.NEXT_PUBLIC_DEMO_VERTICAL_SRC; // vertical MP4 of the phone recording; plays on the 3D phone's screen
+
+// Chapters for the hero player. Times follow the demo plan; set them from the final edit.
+const CHAPTERS: Chapter[] = [
+  { t: 0, shot: "chat", title: "The organizer texts the group", body: "“@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude turns it into a game: 8 spots, $8 each." },
+  { t: 14, shot: "chat", title: "Friends reply like normal", body: "“yeah I’m down” is enough. The assistant counts them in and posts the game link." },
+  { t: 28, shot: "game", title: "One tap to hold a spot", body: "Time, courts and the share up front. Players pay with PayPal or Venmo, no app needed." },
+  { t: 44, shot: "in", title: "Held, not charged", body: "PayPal authorizes the $8 share plus a small cap. Nothing leaves the account yet." },
+  { t: 60, shot: "late", title: "A late cancel, handled fairly", body: "After free cancel ends, the organizer chooses: charge the share or cover it." },
+  { t: 75, shot: "paid", title: "Settled after the game", body: "Each player is charged their real share and the rest of every hold is released." },
+];
 
 const SCREENS = [
   { src: "chat", title: "Say it in the group", body: "“yeah I’m down” is enough. The assistant reads the chat and replies with the game link." },
@@ -28,19 +41,12 @@ const INFO: Array<[string, string]> = [
 export default function Home() {
   return (
     <div className="lp">
-      <nav className="lp-nav" aria-label="Main">
-        <Link href="/" className="lp-logo">
-          <span className="lp-ball" aria-hidden="true" /> Pickleball assistant
-        </Link>
-        <div className="lp-navlinks">
-          <a href="#screens">The app</a>
-          <a href="#built">How it was built</a>
-          <a href={REPO}>GitHub</a>
-          <Link href="/demo" className="lp-navcta">Try it on your phone</Link>
-        </div>
-      </nav>
+      <IslandNav repo={REPO} />
 
-      <header className="lp-hero">
+      <header className="lp-hero" id="top">
+        <div className="lp-mesh" aria-hidden="true"><i /><i /><i /><i /></div>
+        <HeroStage chapters={CHAPTERS} duration={90} videoSrc={VERTICAL_SRC} youtubeId={VIDEO_ID} />
+        <div className="lp-grain" aria-hidden="true" />
         <div className="lp-hero-copy">
           <p className="lp-eyebrow">PayPal AI Hackathon 2026 · PayPal sandbox</p>
           <h1>Pickleball games that settle themselves.</h1>
@@ -50,28 +56,11 @@ export default function Home() {
           </p>
           <div className="lp-ctas">
             <Link href="/demo" className="lp-btn">Try it live on your phone</Link>
-            <a href="#video" className="lp-btn ghost">Watch the demo</a>
+            <a href={VIDEO_ID ? `https://www.youtube.com/watch?v=${VIDEO_ID}` : "#how"} className="lp-btn ghost" data-play-demo="">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" /></svg>Watch the demo
+            </a>
           </div>
           <p className="lp-fine">The live demo runs on your own phone: you organize, the page plays your friends, and you pay with a PayPal sandbox account.</p>
-        </div>
-
-        <div className="lp-hero-media" id="video">
-          {VIDEO_ID ? (
-            <div className="lp-video">
-              <iframe
-                src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?rel=0`}
-                title="Pickleball assistant demo video"
-                allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
-            </div>
-          ) : (
-            <div className="lp-trio" aria-label="The app on a phone">
-              <Phone src="chat" alt="Group chat where friends reply and the assistant posts the game link" />
-              <Phone src="game" alt="Game page with the time, spots left and an I'm in button" />
-              <Phone src="paid" alt="Receipt showing the player paid their share after the game" />
-            </div>
-          )}
         </div>
       </header>
 

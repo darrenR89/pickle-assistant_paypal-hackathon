@@ -620,16 +620,10 @@ a{color:var(--link)}
 .has-demo .hdr{padding-top:calc(58px + env(safe-area-inset-top))}
 
 /* ---------- landing page ---------- */
-.lp{background:var(--page);color:var(--ink);font-family:var(--sans);overflow-x:hidden}
+.lp{background:var(--page);color:var(--ink);font-family:var(--sans);overflow-x:clip}
 .lp a{color:inherit}
-.lp-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px max(20px,calc((100% - 1180px)/2));background:rgba(32,24,74,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff}
-.lp-logo{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--cond);text-transform:uppercase;letter-spacing:.02em;text-decoration:none;color:#fff!important}
+.lp-logo{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--cond);text-transform:uppercase;letter-spacing:.02em;text-decoration:none;color:#fff!important;white-space:nowrap}
 .lp-ball{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE3D2,var(--ball) 55%,#F2A97F);box-shadow:inset 0 0 0 2px rgba(0,0,0,.08)}
-.lp-navlinks{display:flex;align-items:center;gap:22px;font:600 15px var(--sans)}
-.lp-navlinks a{text-decoration:none;color:#E2DAF2!important}
-.lp-navlinks a:hover{color:#fff!important}
-.lp-navcta{background:#fff;color:var(--btn)!important;padding:10px 16px;border-radius:12px}
-.lp-hero{background:var(--mesh);color:#fff;padding:64px max(20px,calc((100% - 1180px)/2)) 88px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;border-radius:0 0 44px 44px}
 .lp-eyebrow{margin:0 0 16px;font:700 14px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ball)}
 .lp-hero h1{margin:0;font:800 clamp(52px,6.4vw,92px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em}
 .lp-sub{margin:22px 0 0;font:500 20px/1.5 var(--sans);color:var(--onm);max-width:560px}
@@ -638,13 +632,6 @@ a{color:var(--link)}
 .lp-final .lp-btn{background:var(--btn);color:#fff!important;box-shadow:0 5px 0 var(--btn-edge)}
 .lp-btn.ghost{background:transparent;color:#fff!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
 .lp-fine{margin:18px 0 0;font:500 15px/1.5 var(--sans);color:#C9BFE3;max-width:520px}
-.lp-video{position:relative;aspect-ratio:16/9;border-radius:24px;overflow:hidden;background:#000;box-shadow:0 30px 60px rgba(10,6,30,.45)}
-.lp-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.lp-trio{display:flex;justify-content:center;align-items:flex-end;gap:0}
-.lp-trio .lp-phone{width:min(220px,30%)}
-.lp-trio .lp-phone:nth-child(1){transform:translateX(18%) rotate(-6deg) scale(.9);z-index:1}
-.lp-trio .lp-phone:nth-child(2){z-index:2;transform:translateY(-14px)}
-.lp-trio .lp-phone:nth-child(3){transform:translateX(-18%) rotate(6deg) scale(.9);z-index:1}
 .lp-phone{display:block;border-radius:34px;padding:7px;background:#14102a;box-shadow:0 24px 48px rgba(10,6,30,.35),inset 0 0 0 1.5px rgba(255,255,255,.12)}
 .lp-screen{display:block;border-radius:28px;overflow:hidden;container-type:inline-size}
 .lp-screen img{display:block;width:100%;height:auto}
@@ -689,14 +676,11 @@ a{color:var(--link)}
 .lp-final .lp-lead{margin:0 auto 28px}
 .lp-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:28px max(20px,calc((100% - 1180px)/2)) 40px;border-top:1px solid var(--line);font:500 15px/1.5 var(--sans);color:var(--muted)}
 @media (max-width:900px){
-  .lp-hero{grid-template-columns:1fr;padding-top:40px}
-  .lp-navlinks a:not(.lp-navcta){display:none}
   .lp-steps,.lp-info{grid-template-columns:1fr}
   .lp-flow{grid-template-columns:1fr 1fr}
   .lp-ch{grid-template-columns:1fr;gap:6px}
   .lp-built{border-radius:28px;padding:56px 20px}
 }
-.lp-navlinks a.lp-navcta{color:var(--btn)!important}
 .lp-gallery{scroll-padding-inline:max(20px,calc((100vw - 1180px)/2))}
 .dp-top{position:sticky}
 .dp-ctl{position:absolute;right:12px;top:calc(56px + env(safe-area-inset-top));border:none;background:var(--lav);color:var(--btn);font:700 12px/1 var(--sans);padding:6px 10px;border-radius:999px}
@@ -726,4 +710,121 @@ a{color:var(--link)}
   .has-demo .demo-back{top:48px}
   .has-demo .hdr{padding-top:96px}
   .has-demo .sheet{max-height:calc(100% - 56px)}
+}
+
+/* ---------- landing: Island header ----------
+   Over the hero: links left, centered wordmark, actions right. Scrolled: a black pill like the
+   iPhone's Dynamic Island; hover, focus or the menu button (touch) opens the links. */
+.lp-isle{position:sticky;top:0;z-index:30;height:76px;margin-bottom:-76px;display:flex;align-items:center;justify-content:center;color:#fff;pointer-events:none;transition:height .35s}
+.lp-isle>*{pointer-events:auto}
+.lp-isle a,.lp-isle button{color:inherit;text-decoration:none}
+.lp-isle-side{position:absolute;top:0;height:76px;display:flex;align-items:center;gap:4px;transition:opacity .3s,visibility .3s}
+.lp-isle-side.l{left:max(10px,calc((100% - 1180px)/2 - 12px))}
+.lp-isle-side.r{right:max(10px,calc((100% - 1180px)/2 - 12px))}
+.lp-isle-side a{font:600 13px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:11px 13px;border-radius:99px;color:#E2DAF2!important}
+.lp-isle-side a:hover{color:#fff!important;background:rgba(255,255,255,.08)}
+.lp-isle-side .lp-isle-cta{background:#fff;color:var(--btn)!important}
+.lp-isle-pill{position:relative;display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;border-radius:23px;transition:background .45s,box-shadow .45s,padding .45s}
+.lp-isle-pill .lp-logo{font-size:23px;transition:font-size .35s}
+.lp-isle-peek,.lp-isle-more-btn{display:none}
+.lp-isle-more{display:flex;align-items:center;gap:2px;max-width:0;opacity:0;visibility:hidden;overflow:hidden;transition:max-width .45s,opacity .3s,visibility .45s}
+.lp-isle-more a{font:600 14px/1 var(--sans);padding:10px 12px;border-radius:99px;color:#E2DAF2!important;white-space:nowrap}
+.lp-isle-more a:hover{background:rgba(255,255,255,.1);color:#fff!important}
+.lp-isle-more .lp-isle-cta{background:var(--ball);color:#171428!important}
+.lp-isle :focus-visible{outline:2px solid var(--ball);outline-offset:3px;border-radius:99px}
+.lp-isle.scrolled{height:64px}
+.lp-isle.scrolled .lp-isle-side{opacity:0;visibility:hidden}
+.lp-isle.scrolled .lp-isle-pill{background:#000;box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.08);padding:0 5px 0 16px}
+.lp-isle.scrolled .lp-isle-pill .lp-logo{font-size:17px}
+.lp-isle.scrolled .lp-isle-peek{display:inline-block;font:700 13px/1 var(--sans);padding:10px 13px;border-radius:99px;background:var(--ball);color:#171428!important}
+.lp-isle.scrolled .lp-isle-pill:focus-within .lp-isle-more,.lp-isle.open .lp-isle-more{max-width:460px;opacity:1;visibility:visible}
+.lp-isle.open .lp-isle-peek{display:none}
+@media (hover:hover){
+  .lp-isle.scrolled .lp-isle-pill:hover .lp-isle-more{max-width:460px;opacity:1;visibility:visible}
+  .lp-isle.scrolled .lp-isle-pill:hover .lp-isle-peek{display:none}
+}
+.lp-isle-more-btn{width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.12);cursor:pointer;place-items:center;padding:0}
+.lp-isle-more-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+@media (hover:none){.lp-isle.scrolled .lp-isle-more-btn{display:grid}}
+@media (max-width:640px){
+  .lp-isle{justify-content:flex-start;padding-left:6px}
+  .lp-isle.scrolled{justify-content:center;padding-left:0}
+  .lp-isle-side.l{display:none}
+  .lp-isle-side.r a:not(.lp-isle-cta){display:none}
+  .lp-isle-pill .lp-logo{font-size:20px}
+  .lp-isle.scrolled .lp-isle-more-btn{display:grid}
+  .lp-isle.open .lp-isle-more{position:absolute;top:54px;left:50%;translate:-50% 0;flex-direction:column;align-items:stretch;gap:4px;max-width:none;width:min(280px,calc(100vw - 32px));padding:8px;border-radius:22px;background:#000;box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .lp-isle.open .lp-isle-more a{padding:14px 16px;font-size:16px}
+}
+
+/* ---------- landing: hero ----------
+   Drifting color mesh under a still grain; the WebGL phone with chat lines drifting around it on the right. */
+.lp-hero{position:relative;isolation:isolate;overflow:hidden;min-height:clamp(640px,92vh,860px);display:grid;align-items:center;padding:110px max(20px,calc((100% - 1180px)/2)) 72px;background:#2a1f5e;color:#fff;border-radius:0 0 44px 44px}
+.lp-mesh{position:absolute;inset:0;z-index:-1;overflow:hidden}
+.lp-mesh i{position:absolute;border-radius:50%;filter:blur(60px);animation:lpDrift 16s ease-in-out infinite alternate}
+.lp-mesh i:nth-child(1){width:60%;height:80%;left:-10%;top:-20%;background:#13707f}
+.lp-mesh i:nth-child(2){width:55%;height:75%;right:-8%;top:-10%;background:#7a3fb0;animation-duration:12s}
+.lp-mesh i:nth-child(3){width:70%;height:70%;left:25%;bottom:-35%;background:#b0466f;animation-duration:18s}
+.lp-mesh i:nth-child(4){width:30%;height:35%;right:12%;bottom:5%;background:#ff9f73;opacity:.7;animation-duration:10s}
+@keyframes lpDrift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(6%,4%) scale(1.08)}100%{transform:translate(-5%,6%) scale(.95)}}
+.lp-grain{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.85;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.9%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22/%3E%3CfeColorMatrix%20values%3D%220%200%200%200%20.5%200%200%200%200%20.5%200%200%200%200%20.5%200%200%200%201.4%20-.2%22/%3E%3C/filter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url%28%23n%29%22/%3E%3C/svg%3E");background-size:180px}
+.lp-gl{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;opacity:0;transition:opacity .8s}
+.lp-gl[data-ready]{opacity:1}
+.lp-hero-copy{position:relative;z-index:3;max-width:560px;transition:opacity .5s,translate .5s,visibility .5s}
+.lp-hero.playing .lp-hero-copy{opacity:0;translate:-30px 0;visibility:hidden}
+.lp-btn svg{width:16px;height:16px;margin-right:10px;fill:currentColor}
+.lp-still{position:absolute;z-index:1;top:50%;right:max(40px,calc((100% - 1180px)/2 + 60px));width:250px;translate:0 -50%;rotate:6deg;padding:8px;border-radius:40px;background:#14102a;box-shadow:0 30px 60px rgba(10,6,30,.5),inset 0 0 0 1.5px rgba(255,255,255,.14)}
+.lp-still img{display:block;width:100%;height:auto;border-radius:32px}
+
+/* play button: placed on the phone's screen each frame */
+.lp-play{all:unset;position:absolute;z-index:4;left:0;top:0;translate:-50% -50%;display:grid;justify-items:center;gap:8px;cursor:pointer;transition:opacity .3s,scale .3s}
+.lp-play[hidden]{display:none}
+.lp-play-disc{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.22);backdrop-filter:blur(12px) saturate(1.4);-webkit-backdrop-filter:blur(12px) saturate(1.4);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6),0 18px 40px rgba(10,6,30,.45);transition:scale .25s,background .25s}
+.lp-play-disc svg{width:24px;height:24px;margin-left:4px;fill:#fff}
+.lp-play-label{font:700 13px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(18,14,36,.72);padding:7px 11px;border-radius:99px;white-space:nowrap}
+.lp-play-ring{position:absolute;top:0;width:66px;height:66px;border-radius:50%;pointer-events:none;animation:lpRing 2.4s ease-out infinite}
+@keyframes lpRing{0%{box-shadow:0 0 0 0 rgba(255,201,168,.55)}100%{box-shadow:0 0 0 26px rgba(255,201,168,0)}}
+.lp-play:hover .lp-play-disc{scale:1.08;background:rgba(255,255,255,.32)}
+.lp-play:focus-visible .lp-play-disc{outline:3px solid var(--ball);outline-offset:4px}
+.lp-hero.playing .lp-play{opacity:0;scale:.7;pointer-events:none}
+.lp-close{all:unset;position:absolute;z-index:5;top:96px;right:max(20px,calc((100% - 1180px)/2));padding:10px 16px;border-radius:99px;background:rgba(18,14,36,.75);color:#fff;font:600 15px var(--sans);box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s}
+.lp-hero.playing .lp-close{opacity:1;pointer-events:auto}
+.lp-close:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
+
+/* chapter rail beside the upright phone */
+.lp-rail{position:absolute;z-index:4;top:50%;right:max(20px,calc((100% - 1180px)/2));width:min(420px,40%);translate:24px -50%;display:grid;gap:14px;opacity:0;pointer-events:none;transition:opacity .45s,translate .45s}
+.lp-hero.playing .lp-rail{opacity:1;pointer-events:auto;translate:0 -50%;transition-delay:.3s}
+.lp-rail-head{display:flex;align-items:center;gap:14px}
+.lp-rail-pp{all:unset;flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#fff;color:var(--btn);box-shadow:0 4px 0 #C9C1E6;cursor:pointer}
+.lp-rail-pp svg{width:16px;height:16px;fill:currentColor}
+.lp-rail-title{margin:0;font:800 30px/1 var(--cond);text-transform:uppercase}
+.lp-rail-time{font:600 15px var(--sans);font-variant-numeric:tabular-nums;color:#C9BFE3}
+.lp-rail-ch{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.lp-rail-ch button{all:unset;box-sizing:border-box;width:100%;position:relative;overflow:hidden;display:grid;grid-template-columns:48px minmax(0,1fr);gap:3px 12px;padding:11px 14px;border-radius:16px;cursor:pointer;transition:background .3s}
+.lp-rail-ch button:hover{background:rgba(255,255,255,.06)}
+.lp-rail-ch time{font:600 15px/1.45 var(--sans);font-variant-numeric:tabular-nums;color:#C9BFE3}
+.lp-rail-ch b{font:700 18px/1.3 var(--sans);color:#E2DAF2}
+.lp-rail-ch span{grid-column:2;display:none;font:500 16px/1.45 var(--sans);color:#F1ECFA}
+.lp-rail-ch li.on button{background:rgba(18,14,36,.5);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.lp-rail-ch li.on b{color:#fff}.lp-rail-ch li.on time{color:var(--ball)}.lp-rail-ch li.on span{display:block}
+.lp-rail-ch i{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--ball)}
+.lp-rail-seg{display:none;gap:4px}
+.lp-rail-seg i{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden}
+.lp-rail-seg b{display:block;height:100%;width:0;background:var(--ball)}
+.lp-rail-yt{font:600 15px var(--sans);color:var(--ball)!important;padding-left:14px}
+.lp-rail :focus-visible{outline:2px solid var(--ball);outline-offset:2px}
+
+@media (max-width:760px){
+  .lp-hero{display:block;min-height:0;padding:100px 20px 500px;border-radius:0 0 28px 28px}
+  .lp-still{top:auto;bottom:40px;right:50%;translate:50% 0;width:190px;rotate:4deg}
+  .lp-close{top:84px;right:16px}
+  .lp-rail{top:134px;left:16px;right:16px;width:auto;translate:0 -12px}
+  .lp-hero.playing .lp-rail{translate:0 0}
+  .lp-rail-head .lp-rail-title{font-size:26px}
+  .lp-rail-seg{display:flex}
+  .lp-rail-ch li:not(.on){display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .lp-mesh i,.lp-play-ring{animation:none}
+  .lp-isle,.lp-isle *,.lp-hero *{transition:none!important}
 }
