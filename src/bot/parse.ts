@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TZ } from "@/lib/games";
 import { type Details, cleanPlace, extractDetails } from "./details";
+import { CLAUDE_MODEL } from "./model";
 
 export type ParsedGame = {
   startsAt?: Date;
@@ -15,7 +16,6 @@ export type ParsedGame = {
   dayGiven?: boolean;
 } & Details;
 
-const MODEL = "claude-haiku-5-5";
 
 /** Turn "Thu 6pm Riverside courts 3-4, 8 spots, $64" into game fields. Claude first, regex fallback. */
 export async function parseGameRequest(text: string, now = new Date()): Promise<ParsedGame> {
@@ -50,7 +50,7 @@ async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {
     timeZone: TZ,
   }).format(now);
   const res = await client.messages.create({
-    model: MODEL,
+    model: CLAUDE_MODEL,
     max_tokens: 400,
     system:
       `You extract pickleball game details from a group-chat message. It is now ${nowLocal} (${TZ}). ` +
