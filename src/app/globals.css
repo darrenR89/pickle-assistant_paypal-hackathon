@@ -766,7 +766,7 @@ a{color:var(--link)}
 .lp-isle-side{position:absolute;top:0;height:76px;display:flex;align-items:center;gap:4px;transition:opacity .3s,visibility .3s}
 .lp-isle-side.l{left:max(10px,calc((100% - 1180px)/2 - 12px))}
 .lp-isle-side.r{right:max(10px,calc((100% - 1180px)/2 - 12px))}
-.lp-isle-side a{font:600 13px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:11px 13px;border-radius:99px;color:#E2DAF2!important}
+.lp-isle-side a{font:600 14px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:11px 13px;border-radius:99px;color:#E2DAF2!important}
 .lp-isle-side a:hover{color:#fff!important;background:rgba(255,255,255,.08)}
 .lp-isle-side .lp-isle-cta{background:#fff;color:var(--btn)!important}
 .lp-isle-pill{position:relative;display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;border-radius:23px;transition:background .45s,box-shadow .45s,padding .45s}

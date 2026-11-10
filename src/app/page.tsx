@@ -69,13 +69,13 @@ export default function Home() {
     <div className="lp">
       <IslandNav repo={REPO} />
 
-      <header className="lp-hero" id="top">
+      <section className="lp-hero" id="top" aria-labelledby="hero-h">
         <div className="lp-mesh" aria-hidden="true"><i /><i /><i /><i /></div>
         <HeroStage chapters={CHAPTERS} duration={90} videoSrc={VERTICAL_SRC} youtubeId={VIDEO_ID} />
         <div className="lp-grain" aria-hidden="true" />
         <div className="lp-hero-copy">
           <p className="lp-eyebrow">PayPal AI Hackathon 2026 · PayPal sandbox</p>
-          <h1>Pickleball games that settle themselves.</h1>
+          <h1 id="hero-h">Pickleball games that settle themselves.</h1>
           <p className="lp-sub">
             An AI assistant that lives in your group chat. Friends say they’re in, hold their spot with PayPal or Venmo, and after the game
             each one is charged their real share. Nobody chases payment requests.
@@ -88,7 +88,7 @@ export default function Home() {
           </div>
           <p className="lp-fine">The live demo runs on your own phone: you organize, the page plays your friends, and you pay with a PayPal sandbox account.</p>
         </div>
-      </header>
+      </section>
 
       <section className="lp-section" aria-labelledby="how">
         <h2 id="how" className="lp-h2">How it works</h2>
