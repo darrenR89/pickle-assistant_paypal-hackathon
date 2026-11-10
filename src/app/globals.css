@@ -646,15 +646,17 @@ a{color:var(--link)}
 .lp-h2{margin:0 0 14px;font:800 clamp(40px,4.4vw,60px)/.95 var(--cond);text-transform:uppercase}
 .lp-h2.light{color:#fff}
 .lp-lead{margin:0 0 34px;font:500 19px/1.5 var(--sans);color:var(--muted);max-width:640px}
-.lp-section.lp-how>*{max-width:1000px;margin-left:auto;margin-right:auto}
+/* How it works, the app block and the facts share one content column. The app block grows outward by --sp so its
+   content lines up with the sections around it; on phones it runs edge to edge with the same 20px inset. */
+.lp-al{--sp:clamp(40px,6vw,96px);padding-left:max(calc(var(--sp) + 16px),calc((100% - 1080px)/2));padding-right:max(calc(var(--sp) + 16px),calc((100% - 1080px)/2))}
 .lp-steps{list-style:none;margin:28px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .lp-steps li{background:#fff;border:2px solid var(--edge);box-shadow:0 5px 0 var(--edge);border-radius:24px;padding:26px}
 .lp-n{display:inline-block;width:44px;height:44px;border-radius:22px;background:var(--lav);color:var(--btn);font:800 26px/44px var(--cond);text-align:center}
 .lp-steps h3{margin:16px 0 8px;font:700 22px/1.2 var(--sans)}
 .lp-steps p{margin:0;font:500 17px/1.5 var(--sans);color:var(--muted)}
 /* "The app" showcase: dark stage, copy left (title, tabs, slogan at the bottom), phone right with two callouts */
-.lp-show{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:40px;align-items:stretch;padding:80px 96px;border-radius:40px;background:#1C1640;color:#E2DAF2;overflow:hidden;isolation:isolate}
-.lp-show{margin-left:max(-50px,min(0px,calc((1220px - 100vw)/2)));margin-right:max(-50px,min(0px,calc((1220px - 100vw)/2)))}
+.lp-show{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:40px;align-items:stretch;padding:80px var(--sp,96px);border-radius:40px;background:#1C1640;color:#E2DAF2;overflow:hidden;isolation:isolate}
+.lp-al .lp-show{margin-left:calc(-1 * var(--sp));margin-right:calc(-1 * var(--sp))}
 .lp-show::before{content:"";position:absolute;z-index:-1;right:-6%;top:50%;width:62%;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(160,132,255,.38),rgba(255,201,168,.12) 60%,transparent)}
 .lp-show-copy{display:flex;flex-direction:column;min-width:0}
 .lp-show .lp-h2{margin-bottom:12px}
@@ -703,7 +705,8 @@ a{color:var(--link)}
 @keyframes lpShowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes lpChipIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
 @media (max-width:900px){
-  .lp-show{grid-template-columns:1fr;gap:8px;padding:44px 24px 40px;border-radius:28px}
+  .lp-al{--sp:20px;padding-left:20px;padding-right:20px}
+  .lp-show{grid-template-columns:1fr;gap:8px;padding:44px var(--sp,20px) 40px;border-radius:28px}
   .lp-show::before{right:50%;top:auto;bottom:18%;width:110%;transform:translateX(50%)}
   .lp-show-copy{display:contents}
   .lp-show .lp-h2,.lp-show-lead,.lp-tl,.lp-tl-ctrl{order:0}
@@ -717,7 +720,7 @@ a{color:var(--link)}
 }
 @media (prefers-reduced-motion:reduce){.lp-show-phone,.lp-tl-body{transition:none}.lp-show-slogan h3,.lp-chip,.lp-tl-line::after,.lp-tl-ring{animation:none}.lp-tl-ctrl{display:none}}
 /* Narrower than the sections around it, so its edges sit inside theirs; the text column is sized so every fact wraps to two lines */
-.lp-info{max-width:1000px;margin:112px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px 80px}
+.lp-info{margin:112px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px 80px}
 .lp-info div{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:32px;align-items:start}
 .lp-info-ic{grid-row:1/3;display:grid;place-items:center;width:147px;height:147px;border-radius:40px;background:var(--lav);color:var(--btn)}
 .lp-info-ic svg{width:84px;height:84px;fill:none;stroke:currentColor;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}

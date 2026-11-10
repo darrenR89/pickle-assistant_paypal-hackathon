@@ -93,7 +93,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="lp-section lp-how" aria-labelledby="how">
+      <section className="lp-section lp-al" aria-labelledby="how">
         <h2 id="how" className="lp-h2">How it works</h2>
         <ol className="lp-steps">
           <li>
@@ -114,7 +114,7 @@ export default function Home() {
         </ol>
       </section>
 
-      <section className="lp-section" id="screens" aria-labelledby="screens-h">
+      <section className="lp-section lp-al" id="screens" aria-labelledby="screens-h">
         <AppShowcase
           title="The app"
           lead="Players never download anything. Every screen is a web page that opens from a text."
