@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type * as THREE_NS from "three";
 
-// The closing section's 3D phone: the hero's phone (metal frame, glass front) showing the settled game, set behind
+// The closing section's 3D phone: the hero's phone (metal frame, glass front) showing a "game complete" recap, set behind
 // the copy and rising out of the top of the section. It turns as the section scrolls into view and leans toward the
 // pointer. There is no idle animation, so nothing moves on its own; reduced motion holds it at its resting angle.
 // three.js loads only when the section is near the screen. Without WebGL nothing is drawn.
@@ -57,23 +57,89 @@ function start(T: typeof THREE_NS, canvas: HTMLCanvasElement, onReady: () => voi
     g.translate(0, 0, -d / 2); return new T.Mesh(g, mats);
   };
 
-  /* screen: the settled game, with a status bar like the hero's */
+  /* screen: a "game complete" recap, like a sports app's end-of-week screen. The card is painted once; when the
+     section comes into view a burst of pickleballs with motion trails and confetti plays over it for a few seconds. */
   const screenCanvas = document.createElement("canvas"); screenCanvas.width = SW; screenCanvas.height = SH;
+  const sx = screenCanvas.getContext("2d")!;
   const screenTex = new T.CanvasTexture(screenCanvas); screenTex.encoding = T.sRGBEncoding; screenTex.anisotropy = 8;
-  const paint = (im?: HTMLImageElement) => {
-    const sx = screenCanvas.getContext("2d")!;
-    sx.clearRect(0, 0, SW, SH); sx.save(); rr(sx, 0, 0, SW, SH, SR); sx.clip();
-    const g = sx.createLinearGradient(0, 0, SW, 0); g.addColorStop(0, "#114C5D"); g.addColorStop(0.5, "#2B3970"); g.addColorStop(1, "#3B2F7A");
-    sx.fillStyle = g; sx.fillRect(0, 0, SW, SH);
-    if (im) sx.drawImage(im, 0, 110, SW, (SW * im.height) / im.width);
-    sx.fillStyle = "#fff"; sx.font = "600 38px Figtree, system-ui, sans-serif"; sx.textBaseline = "middle"; sx.fillText("9:41", 74, 58);
-    [[620, 46, 22], [632, 40, 28], [644, 34, 34], [656, 28, 40]].forEach(([x, y, h]) => { rr(sx, x, y, 8, h, 2); sx.fill(); });
-    rr(sx, 676, 38, 52, 26, 8); sx.lineWidth = 3; sx.strokeStyle = "#fff"; sx.stroke(); rr(sx, 680, 42, 38, 18, 5); sx.fill();
-    sx.fillStyle = "#000"; rr(sx, SW / 2 - 118, 22, 236, 70, 35); sx.fill();
+  const base = document.createElement("canvas"); base.width = SW; base.height = SH;
+  const COND = '"Barlow Condensed", "Arial Narrow", sans-serif', SANS = "Figtree, system-ui, sans-serif";
+  const paintBase = () => {
+    const x = base.getContext("2d")!;
+    x.clearRect(0, 0, SW, SH); x.save(); rr(x, 0, 0, SW, SH, SR); x.clip();
+    x.fillStyle = "#1b1440"; x.fillRect(0, 0, SW, SH);
+    let g = x.createRadialGradient(SW / 2, 420, 0, SW / 2, 420, 700); g.addColorStop(0, "rgba(140,120,230,.55)"); g.addColorStop(1, "rgba(140,120,230,0)");
+    x.fillStyle = g; x.fillRect(0, 0, SW, SH);
+    g = x.createRadialGradient(80, 1500, 0, 80, 1500, 600); g.addColorStop(0, "rgba(255,201,168,.22)"); g.addColorStop(1, "rgba(255,201,168,0)");
+    x.fillStyle = g; x.fillRect(0, 0, SW, SH);
+    // status bar
+    x.fillStyle = "#fff"; x.font = `600 38px ${SANS}`; x.textBaseline = "middle"; x.fillText("9:41", 74, 58);
+    [[620, 46, 22], [632, 40, 28], [644, 34, 34], [656, 28, 40]].forEach(([X, Y, H]) => { rr(x, X, Y, 8, H, 2); x.fill(); });
+    rr(x, 676, 38, 52, 26, 8); x.lineWidth = 3; x.strokeStyle = "#fff"; x.stroke(); rr(x, 680, 42, 38, 18, 5); x.fill();
+    x.fillStyle = "#000"; rr(x, SW / 2 - 118, 22, 236, 70, 35); x.fill();
+    // eyebrow pill
+    x.font = `700 28px ${SANS}`; const pill = "GAME COMPLETE · THU 6PM", pw = x.measureText(pill).width + 56;
+    rr(x, (SW - pw) / 2, 176, pw, 60, 30); x.fillStyle = "rgba(255,201,168,.16)"; x.fill(); x.lineWidth = 2; x.strokeStyle = "rgba(255,201,168,.7)"; x.stroke();
+    x.fillStyle = "#FFC9A8"; x.textAlign = "center"; x.fillText(pill, SW / 2, 207);
+    // headline
+    x.font = `800 150px ${COND}`; x.textBaseline = "alphabetic";
+    x.fillStyle = "#fff"; x.fillText("HOPE YOU", SW / 2, 420); x.fillText("DIDN’T GET", SW / 2, 552);
+    x.fillStyle = "#FFC9A8"; x.fillText("PICKLED.", SW / 2, 684);
+    x.font = `500 34px ${SANS}`; x.fillStyle = "#E2DAF2"; x.fillText("Riverside courts 3–4 · 8 players", SW / 2, 764);
+    // recap card
+    rr(x, 48, 830, SW - 96, 560, 44); x.fillStyle = "#fff"; x.fill();
+    x.textAlign = "left"; x.font = `700 26px ${SANS}`; x.fillStyle = "#47425E"; x.fillText("YOUR RECAP", 96, 900);
+    const rows: Array<[string, string, string?]> = [["Showed up", "8 of 8"], ["Court cost", "$64.00"], ["Hold released", "$2.00"], ["You paid", "$8.00", "#3B2F7A"]];
+    rows.forEach(([k, v, c], i) => {
+      const y = 990 + i * 104;
+      if (i) { x.fillStyle = "#E2DFEA"; x.fillRect(96, y - 58, SW - 192, 2); }
+      x.font = `500 36px ${SANS}`; x.fillStyle = "#47425E"; x.textAlign = "left"; x.fillText(k, 96, y);
+      x.font = c ? `800 54px ${COND}` : `700 38px ${SANS}`; x.fillStyle = c ?? "#171428"; x.textAlign = "right"; x.fillText(v, SW - 96, y);
+    });
+    x.textAlign = "left";
+    x.font = `500 28px ${SANS}`; x.fillStyle = "#47425E"; x.fillText("Receipt sent privately. Nobody chased anyone.", 96, 1350);
+    // button + home bar
+    rr(x, 48, 1470, SW - 96, 120, 36); x.fillStyle = "#FFC9A8"; x.fill();
+    x.font = `800 50px ${COND}`; x.fillStyle = "#1b1440"; x.textAlign = "center"; x.fillText("RUN IT BACK NEXT THURSDAY", SW / 2, 1548);
+    x.fillStyle = "rgba(255,255,255,.6)"; rr(x, SW / 2 - 130, 1700, 260, 10, 5); x.fill();
+    x.restore();
+  };
+
+  // burst: pickleballs and confetti thrown up from behind the headline, falling with gravity; positions come from time
+  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const G = 1500, BURST = 3.6;
+  const balls = Array.from({ length: 13 }, () => ({ x: SW / 2 + (rnd() - 0.5) * 160, y: 560, vx: (rnd() - 0.5) * 900, vy: -900 - rnd() * 700, r: 24 + rnd() * 16, d: rnd() * 0.25, spin: (rnd() - 0.5) * 8 }));
+  const COLORS = ["#FFC9A8", "#CFC6F2", "#B6DDE4", "#ffffff", "#E9C2E2"];
+  const bits = Array.from({ length: 46 }, (_, i) => ({ x: SW / 2 + (rnd() - 0.5) * 240, y: 560, vx: (rnd() - 0.5) * 1100, vy: -700 - rnd() * 900, w: 12 + rnd() * 12, h: 22 + rnd() * 14, c: COLORS[i % COLORS.length], d: rnd() * 0.3, spin: (rnd() - 0.5) * 14 }));
+  const at = (p: { x: number; y: number; vx: number; vy: number; d: number }, t: number, drag: number) => {
+    const u = Math.max(0, t - p.d); return [p.x + p.vx * u * drag, p.y + p.vy * u + 0.5 * G * u * u] as const;
+  };
+  const ball = (x: CanvasRenderingContext2D, X: number, Y: number, R: number, a: number, rot: number) => {
+    x.save(); x.globalAlpha = a; x.translate(X, Y); x.rotate(rot);
+    const g = x.createRadialGradient(-R * 0.35, -R * 0.35, R * 0.1, 0, 0, R); g.addColorStop(0, "#FFE3D2"); g.addColorStop(0.55, "#FFC9A8"); g.addColorStop(1, "#E89B72");
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R, 0, Math.PI * 2); x.fill();
+    x.fillStyle = "rgba(150,80,50,.45)";
+    [[0, 0], [0.5, 0.15], [-0.45, 0.25], [0.1, -0.52], [-0.2, 0.58], [0.48, -0.42]].forEach(([hx, hy]) => { x.beginPath(); x.arc(hx * R, hy * R, R * 0.11, 0, Math.PI * 2); x.fill(); });
+    x.restore();
+  };
+  const draw = (t: number) => {
+    sx.clearRect(0, 0, SW, SH); sx.drawImage(base, 0, 0);
+    if (t <= 0 || t >= BURST) { screenTex.needsUpdate = true; return; }
+    sx.save(); rr(sx, 0, 0, SW, SH, SR); sx.clip();
+    const fade = clamp((BURST - t) / 0.8);
+    bits.forEach((b) => {
+      if (t < b.d) return; const [X, Y] = at(b, t, 0.75), u = t - b.d;
+      sx.save(); sx.globalAlpha = fade; sx.translate(X, Y); sx.rotate(b.spin * u); sx.scale(1, Math.cos(u * 9 + b.spin)); sx.fillStyle = b.c; sx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); sx.restore();
+    });
+    balls.forEach((b) => {
+      if (t < b.d) return;
+      for (let k = 6; k >= 1; k--) { const [X, Y] = at(b, t - k * 0.035, 1); if (t - k * 0.035 > b.d) ball(sx, X, Y, b.r * (1 - k * 0.07), (0.32 - k * 0.045) * fade, 0); }
+      const [X, Y] = at(b, t, 1); ball(sx, X, Y, b.r, fade, b.spin * (t - b.d));
+    });
     sx.restore(); screenTex.needsUpdate = true;
   };
-  paint();
-  const shot = new Image(); shot.onload = () => paint(shot); shot.src = "/shots/settled.webp";
+  paintBase(); draw(0);
+  void document.fonts.load(`800 150px ${COND}`).then(() => document.fonts.load(`600 38px ${SANS}`)).then(() => { paintBase(); draw(RM ? 0.62 : 0); });
 
   /* scene */
   const r = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -115,15 +181,18 @@ function start(T: typeof THREE_NS, canvas: HTMLCanvasElement, onReady: () => voi
   const onMove = (e: PointerEvent) => { const b = section.getBoundingClientRect(); ptr.tx = ((e.clientX - b.left) / b.width) * 2 - 1; ptr.ty = ((e.clientY - b.top) / b.height) * 2 - 1; };
   const onLeave = () => { ptr.tx = 0; ptr.ty = 0; };
   if (!RM) { section.addEventListener("pointermove", onMove); section.addEventListener("pointerleave", onLeave); }
-  let visible = true, raf = 0, sp = RM ? 1 : 0, first = true;
-  const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }); io.observe(canvas);
-  const frame = () => {
+  let visible = true, raf = 0, sp = RM ? 1 : 0, first = true, burst = -1, last = performance.now();
+  // the burst replays each time the section comes back into view
+  const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (!visible) burst = -1; }); io.observe(canvas);
+  const frame = (ms: number) => {
     raf = requestAnimationFrame(frame);
+    const dt = Math.min(0.05, (ms - last) / 1000); last = ms;
     if (!visible || document.hidden) return;
     // 0 while the section's top is at the bottom of the screen, 1 once it reaches the upper third
     const b = section.getBoundingClientRect(), vh = innerHeight;
     const target = RM ? 1 : clamp((vh - b.top) / (vh * 0.7));
     sp += (target - sp) * 0.08;
+    if (!RM) { if (burst < 0 && target > 0.75) burst = 0; if (burst >= 0 && burst < BURST + 0.1) { burst += dt; draw(burst); } }
     ptr.x += (ptr.tx - ptr.x) * 0.06; ptr.y += (ptr.ty - ptr.y) * 0.06;
     tilt.rotation.set(0.12 - 0.3 * (1 - sp) + ptr.y * 0.12, -0.42 - 0.7 * (1 - sp) + ptr.x * 0.25, 0.1 * (1 - sp) + 0.06);
     phone.position.y = -0.8 * (1 - sp);
