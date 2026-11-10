@@ -646,7 +646,16 @@ a{color:var(--link)}
 .lp-trio .lp-phone:nth-child(2){z-index:2;transform:translateY(-14px)}
 .lp-trio .lp-phone:nth-child(3){transform:translateX(-18%) rotate(6deg) scale(.9);z-index:1}
 .lp-phone{display:block;border-radius:34px;padding:7px;background:#14102a;box-shadow:0 24px 48px rgba(10,6,30,.35),inset 0 0 0 1.5px rgba(255,255,255,.12)}
-.lp-phone img{display:block;width:100%;height:auto;border-radius:28px}
+.lp-screen{display:block;border-radius:28px;overflow:hidden;container-type:inline-size}
+.lp-screen img{display:block;width:100%;height:auto}
+.lp-status{position:relative;display:flex;align-items:center;justify-content:space-between;aspect-ratio:390/50;padding:0 7cqw 0 9cqw}
+.lp-screen.dark .lp-status{background:linear-gradient(90deg,#114C5D,#2B3970 50%,#3B2F7A);color:#fff}
+.lp-screen.light .lp-status{background:#fff;color:#000}
+.lp-status-time{font:600 4.4cqw/1 var(--sans);letter-spacing:-.01em}
+.lp-status-island{position:absolute;left:50%;top:22%;width:31cqw;height:8.8cqw;transform:translateX(-50%);border-radius:5cqw;background:#000}
+.lp-status-icons{display:flex;align-items:center;gap:1.4cqw}
+.lp-status-icons svg{display:block;height:3.1cqw;width:auto;fill:currentColor}
+.lp-status-icons svg:last-child{height:3.4cqw}
 .lp-section{padding:88px max(20px,calc((100% - 1180px)/2)) 24px}
 .lp-h2{margin:0 0 14px;font:800 clamp(40px,4.4vw,60px)/.95 var(--cond);text-transform:uppercase}
 .lp-h2.light{color:#fff}
