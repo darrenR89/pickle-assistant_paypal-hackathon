@@ -3,13 +3,12 @@ import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
 import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
 import CaseStudy from "./landing/CaseStudy";
-import QRCode from "qrcode";
+import FinalPhone from "./landing/FinalPhone";
 
 // Landing page. Humans see the 3D phone and its demo player, the live phone demo and the screens; the same page is
 // plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
 
 const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
-const DEMO_URL = `${process.env.APP_URL || "https://pickle-assistant.onrender.com"}/demo`; // the QR in the closing section
 const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID; // YouTube id, set once the walkthrough is uploaded
 const VERTICAL_SRC = process.env.NEXT_PUBLIC_DEMO_VERTICAL_SRC; // vertical MP4 of the phone recording; plays on the 3D phone's screen
 
@@ -67,8 +66,7 @@ const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   },
 ];
 
-export default async function Home() {
-  const qr = await QRCode.toString(DEMO_URL, { type: "svg", margin: 0, color: { dark: "#1b1440", light: "#ffffff" } });
+export default function Home() {
   return (
     <div className="lp">
       <IslandNav repo={REPO} />
@@ -217,6 +215,7 @@ export default async function Home() {
       </section>
 
       <section className="lp-final" aria-labelledby="final-h">
+        <FinalPhone />
         <h2 id="final-h" className="lp-final-h">
           Run a game <span>from your <span className="lp-nowrap">phone<i className="lp-dot" aria-hidden="true" /></span></span>
         </h2>
@@ -226,10 +225,6 @@ export default async function Home() {
             <Link href="/demo" className="lp-btn">Open the live demo</Link>
             <a href={`${REPO}/blob/main/JUDGES.md`} className="lp-btn ghost">For judges</a>
           </div>
-          <figure className="lp-qr">
-            <span className="lp-qr-code" role="img" aria-label="QR code that opens the live demo" dangerouslySetInnerHTML={{ __html: qr }} />
-            <figcaption>Scan to open it on your phone</figcaption>
-          </figure>
         </div>
       </section>
 
