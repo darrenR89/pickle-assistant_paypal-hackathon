@@ -586,7 +586,7 @@ a{color:var(--link)}
 .demo-back{position:fixed;z-index:5;top:calc(10px + env(safe-area-inset-top));left:10px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--ink);font:700 15px/1 var(--sans);text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 
 /* ---------- desktop remote for the phone demo ---------- */
-.dr{min-height:100vh;background:var(--glow);padding:32px max(24px,calc((100% - 1120px)/2)) 64px;font-family:var(--sans);color:var(--ink)}
+.dr{position:relative;isolation:isolate;min-height:100vh;background:var(--glow);padding:32px max(24px,calc((100% - 1120px)/2)) 64px;font-family:var(--sans);color:var(--ink)}
 .dr-head{margin-bottom:28px}
 .dr-back{font:600 15px var(--sans);text-decoration:none}
 .dr-head h1{margin:14px 0 10px;font:800 56px/.95 var(--cond);text-transform:uppercase}
@@ -714,12 +714,13 @@ a{color:var(--link)}
   .lp-chip.b{right:0;bottom:16%}
 }
 @media (prefers-reduced-motion:reduce){.lp-show-phone,.lp-tl-body{transition:none}.lp-show-slogan h3,.lp-chip,.lp-tl-line::after,.lp-tl-ring{animation:none}.lp-tl-ctrl{display:none}}
-.lp-info{margin:112px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px 80px}
+/* Narrower than the sections around it, so its edges sit inside theirs; the text column is sized so every fact wraps to two lines */
+.lp-info{max-width:1000px;margin:112px auto 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px 80px}
 .lp-info div{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:32px;align-items:start}
 .lp-info-ic{grid-row:1/3;display:grid;place-items:center;width:147px;height:147px;border-radius:40px;background:var(--lav);color:var(--btn)}
 .lp-info-ic svg{width:84px;height:84px;fill:none;stroke:currentColor;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
 .lp-info dt{align-self:end;padding-top:28px;font:700 14px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.lp-info dd{margin:10px 0 0;font:600 21px/1.4 var(--sans)}
+.lp-info dd{margin:10px 0 0;max-width:290px;font:600 21px/1.4 var(--sans)}
 /* Case study: one light card that unfolds (the portfolio's "Open the build" pattern) */
 .lp-built{margin-top:88px;padding:0 max(20px,calc((100% - 1180px)/2))}
 .lp-cs{background:#fff;border-radius:32px;box-shadow:inset 0 0 0 1px var(--line),0 18px 40px rgba(40,30,90,.06);overflow:hidden}
@@ -868,7 +869,9 @@ a{color:var(--link)}
 .lp-mesh i:nth-child(3){width:70%;height:70%;left:25%;bottom:-35%;background:#b0466f;animation-duration:18s}
 .lp-mesh i:nth-child(4){width:30%;height:35%;right:12%;bottom:5%;background:#ff9f73;opacity:.7;animation-duration:10s}
 @keyframes lpDrift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(6%,4%) scale(1.08)}100%{transform:translate(-5%,6%) scale(.95)}}
-.lp-grain{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.85;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.9%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22/%3E%3CfeColorMatrix%20values%3D%220%200%200%200%20.5%200%200%200%200%20.5%200%200%200%200%20.5%200%200%200%201.4%20-.2%22/%3E%3C/filter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url%28%23n%29%22/%3E%3C/svg%3E");background-size:180px}
+.lp-grain,.lp-show::after,.lp-final::after,.dr::after{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.85;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22220%22%20height%3D%22220%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%22.9%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22/%3E%3CfeColorMatrix%20values%3D%220%200%200%200%20.5%200%200%200%200%20.5%200%200%200%200%20.5%200%200%200%201.4%20-.2%22/%3E%3C/filter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url%28%23n%29%22/%3E%3C/svg%3E");background-size:180px}
+/* the hero's grain on every gradient background: above the glow, below the content */
+.lp-show::after,.lp-final::after,.dr::after{content:"";z-index:-1}
 .lp-gl{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;opacity:0;transition:opacity .8s}
 .lp-gl[data-ready]{opacity:1}
 .lp-hero-copy{position:relative;z-index:3;max-width:560px;transition:opacity .5s,translate .5s,visibility .5s}
