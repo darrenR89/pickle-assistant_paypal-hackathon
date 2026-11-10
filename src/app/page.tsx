@@ -192,8 +192,8 @@ export default function Home() {
               <h3>The design</h3>
               <p>
                 Pickleball skews older, so the floor was set first: body text 17px or larger, 7:1 contrast, 56px buttons, and nothing that
-                relies on color alone. The game page went through many rounds, with the time as the hero and money explained in plain words. Patterns
-                came from studying event and payment apps on Mobbin, then were redrawn from scratch.
+                relies on color alone. The game page went through many rounds, with the time as the hero and money explained in plain words. Its layout
+                borrows from event invites like Partiful and Eventbrite, redrawn from scratch.
               </p>
             </div>
           </article>
