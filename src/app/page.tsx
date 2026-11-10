@@ -1,6 +1,7 @@
 import Link from "next/link";
 import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
+import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
 
 // Landing page. Humans see the 3D phone and its demo player, the live phone demo and the screens; the same page is
 // plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
@@ -19,15 +20,15 @@ const CHAPTERS: Chapter[] = [
   { t: 75, shot: "paid", title: "Settled after the game", body: "Each player is charged their real share and the rest of every hold is released." },
 ];
 
-const SCREENS = [
-  { src: "chat", title: "Say it in the group", body: "“yeah I’m down” is enough. The assistant reads the chat and replies with the game link." },
-  { src: "game", title: "One tap to hold a spot", body: "Time, courts and your share up front. Tap I’m in and pay with PayPal or Venmo." },
-  { src: "partners", title: "Know the format", body: "Rotating or fixed partners, level, indoor or outdoor, so nobody shows up surprised." },
-  { src: "in", title: "Held, not charged", body: "PayPal holds your share plus a small cap. Nothing leaves your account before the game." },
-  { src: "late", title: "Late cancels, handled fairly", body: "After free cancel ends, the organizer decides: charge the share or cover it." },
-  { src: "paid", title: "Charged the real share", body: "After the game each player pays their share. The rest of the hold is released." },
-  { src: "dm", title: "Money talk stays private", body: "Holds, receipts and refunds go to each player privately, never to the group." },
+// "The app" section: five steps, each with a phone screen, a slogan and two callouts taken from that screen.
+const SHOW: Array<ShowcaseStep & { src: string }> = [
+  { src: "chat", tab: "Chat", title: "Say it in the group.", body: "“yeah I’m down” is enough. The assistant reads the chat and replies with the game link.", chips: ["“in 🙌” counts as in", "Claude reads every reply"] },
+  { src: "game", tab: "Join", title: "One tap to hold a spot.", body: "Time, courts and your share up front. Tap I’m in and pay with PayPal or Venmo.", chips: ["$8 is your share", "No app, no account"] },
+  { src: "in", tab: "Hold", title: "Held, not charged.", body: "PayPal holds your share plus a small cap. Nothing leaves your account before the game.", chips: ["$10 on hold", "Charged after the game"] },
+  { src: "late", tab: "Late cancel", title: "Late cancels, handled fairly.", body: "After free cancel ends, the organizer decides: charge the share or cover it.", chips: ["Organizer decides", "Charge $8 or cover it"] },
+  { src: "paid", tab: "Settle", title: "Charged the real share.", body: "After the game each player pays their share. The rest of the hold is released.", chips: ["Never more than the hold", "Receipts sent privately"] },
 ];
+
 
 // Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
 const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
@@ -67,14 +68,15 @@ export default function Home() {
   return (
     <div className="lp">
       <IslandNav repo={REPO} />
+      <main>
 
-      <header className="lp-hero" id="top">
+      <section className="lp-hero" id="top" aria-labelledby="hero-h">
         <div className="lp-mesh" aria-hidden="true"><i /><i /><i /><i /></div>
         <HeroStage chapters={CHAPTERS} duration={90} videoSrc={VERTICAL_SRC} youtubeId={VIDEO_ID} />
         <div className="lp-grain" aria-hidden="true" />
         <div className="lp-hero-copy">
           <p className="lp-eyebrow">PayPal AI Hackathon 2026 · PayPal sandbox</p>
-          <h1>Pickleball games that settle themselves.</h1>
+          <h1 id="hero-h">Pickleball games that settle themselves.</h1>
           <p className="lp-sub">
             An AI assistant that lives in your group chat. Friends say they’re in, hold their spot with PayPal or Venmo, and after the game
             each one is charged their real share. Nobody chases payment requests.
@@ -87,7 +89,7 @@ export default function Home() {
           </div>
           <p className="lp-fine">The live demo runs on your own phone: you organize, the page plays your friends, and you pay with a PayPal sandbox account.</p>
         </div>
-      </header>
+      </section>
 
       <section className="lp-section" aria-labelledby="how">
         <h2 id="how" className="lp-h2">How it works</h2>
@@ -111,17 +113,12 @@ export default function Home() {
       </section>
 
       <section className="lp-section" id="screens" aria-labelledby="screens-h">
-        <h2 id="screens-h" className="lp-h2">The app</h2>
-        <p className="lp-lead">Players never download anything. Everything below is a web page that opens from a text.</p>
-        <ul className="lp-gallery">
-          {SCREENS.map((s) => (
-            <li key={s.src}>
-              <Phone src={s.src} alt={s.title} />
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </li>
-          ))}
-        </ul>
+        <AppShowcase
+          title="The app"
+          lead="Players never download anything. Every screen is a web page that opens from a text."
+          steps={SHOW.map(({ src: _src, ...step }) => step)}
+          phones={SHOW.map((s) => <Phone key={s.src} src={s.src} alt={s.title} eager />)}
+        />
 
         <dl className="lp-info">
           {INFO.map(({ k, v, icon }) => (
@@ -223,6 +220,8 @@ export default function Home() {
         <Link href="/demo" className="lp-btn">Open the live demo</Link>
       </section>
 
+      </main>
+
       <footer className="lp-foot">
         <span>Built for the PayPal AI Hackathon 2026. Sandbox only: no real money moves.</span>
         <span>
@@ -236,12 +235,12 @@ export default function Home() {
 // Shots whose top edge is white (chat screens); the rest start on the dark game header.
 const LIGHT_TOP = new Set(["chat", "dm"]);
 
-function Phone({ src, alt }: { src: string; alt: string }) {
+function Phone({ src, alt, eager }: { src: string; alt: string; eager?: boolean }) {
   return (
     <span className="lp-phone">
       <span className={`lp-screen ${LIGHT_TOP.has(src) ? "light" : "dark"}`}>
         <StatusBar />
-        <img src={`/shots/${src}.webp`} alt={alt} width={390} height={844} loading="lazy" />
+        <img src={`/shots/${src}.webp`} alt={alt} width={390} height={844} loading={eager ? "eager" : "lazy"} />
       </span>
     </span>
   );
