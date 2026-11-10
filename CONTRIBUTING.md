@@ -14,10 +14,11 @@ Node 22+ and pnpm (`corepack enable`). Copy `.env.example` to `.env` and fill in
 | Dev server | `pnpm dev` (then open `/play` or `/demo`) |
 | Type check | `pnpm typecheck` |
 | Lint | `pnpm lint` (ESLint with Next.js rules; errors fail CI) |
+| Unit tests | `pnpm test` (Node's built-in test runner via tsx) |
 | Production build | `pnpm build` |
 | Run the scheduled tick once | `pnpm tick:local` |
 
-`pnpm typecheck`, `pnpm lint` and `pnpm build` must pass before you open or update a PR. CI runs all three on every PR. Don't add new lint warnings, and never silence a rule with an `eslint-disable` comment without a reason next to it.
+`pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass before you open or update a PR. CI runs all four on every PR. Don't add new lint warnings, and never silence a rule with an `eslint-disable` comment without a reason next to it.
 
 ## Where code goes
 
@@ -58,6 +59,13 @@ These rules protect real money once we leave the sandbox. A PR that breaks one i
 7. **Money details go only to the person concerned**, privately. Never post amounts or payment status to the group.
 8. **Sandbox only** (`PAYPAL_ENV=sandbox`) until we decide otherwise.
 
+## Tests
+
+- Unit tests sit next to the code as `*.test.ts` and use `node:test` and `node:assert/strict`. No test framework to install.
+- Test pure logic: money maths, parsing, the rule-based fallback, PayPal payload building. Pass `now` in rather than reading the clock.
+- Tests never call PayPal, Claude or the database. Clear `ANTHROPIC_API_KEY` in a test that exercises a fallback.
+- A bug fix comes with a test that fails without the fix.
+
 ## Database
 
 - **Parameterized queries only** (`q("... where id = $1", [id])`). Never build SQL from user input. A column name in SQL must come from a typed union, as in `spotBy` in `src/lib/webhooks.ts`.
@@ -91,7 +99,8 @@ These rules protect real money once we leave the sandbox. A PR that breaks one i
 
 ## Definition of done
 
-- [ ] `pnpm typecheck`, `pnpm lint` and `pnpm build` pass locally and in CI
+- [ ] `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` pass locally and in CI
+- [ ] New or changed logic in `lib/` or `bot/` (money maths, parsing, rules) has a test
 - [ ] The change was tried in the running app (`/play`, `/demo`, or the page it touches)
 - [ ] Money rules above still hold; any PayPal call change was tried in the sandbox
 - [ ] New env vars are in `.env.example` and the Render blueprint

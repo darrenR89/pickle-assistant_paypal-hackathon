@@ -6,6 +6,7 @@
 
 - [ ] `pnpm typecheck`
 - [ ] `pnpm lint`
+- [ ] `pnpm test`
 - [ ] `pnpm build`
 - [ ] Tried it in the running app (which page, which steps):
 
