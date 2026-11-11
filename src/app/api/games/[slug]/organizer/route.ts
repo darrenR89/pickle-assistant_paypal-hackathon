@@ -6,6 +6,7 @@ import { retryPayout } from "@/bot/payout";
 import { payoutReceiver } from "@/lib/paypal";
 import { one, q } from "@/lib/db";
 import { errorResponse } from "@/lib/http";
+import { termsProblem } from "@/lib/limits";
 
 type Body = {
   o?: string;
@@ -113,13 +114,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
           if (startsAt.getTime() < Date.now()) return NextResponse.json({ error: "That time has already passed" }, { status: 400 });
           if (game.status !== "draft" && startsAt.getTime() === new Date(game.starts_at).getTime()) startsAt = undefined;
         }
+        const amounts = { capCents: num(body.capCents), totalCents: num(body.totalCents), spots: num(body.spots) };
+        const problem = termsProblem(amounts, game.status === "draft");
+        if (problem) return NextResponse.json({ error: problem }, { status: 400 });
         try {
           await updateTerms(game, {
             startsAt,
             cancelBy,
-            capCents: num(body.capCents),
-            totalCents: num(body.totalCents),
-            spots: num(body.spots),
+            ...amounts,
             address: typeof body.address === "string" ? body.address.slice(0, 200) : undefined,
             place: typeof body.place === "string" ? body.place.slice(0, 80) : undefined,
             courts: typeof body.courts === "string" ? body.courts.slice(0, 40) : undefined,

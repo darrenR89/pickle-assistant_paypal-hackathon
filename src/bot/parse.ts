@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TZ } from "@/lib/games";
 import { type Details, cleanPlace, extractDetails } from "./details";
+import { sanePriceCents, saneSpots, saneStart } from "@/lib/limits";
 import { CLAUDE_MODEL } from "./model";
 
 export type ParsedGame = {
@@ -39,7 +40,18 @@ export async function parseGameRequest(text: string, now = new Date()): Promise<
   if (base.place && !cleanPlace(base.place)) place = undefined;
   const timeGiven = /\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b|\bat\s+\d{1,2}\b|\b(noon|midday)\b|\b\d{1,2}\s*(-|–|to)\s*\d{1,2}\b/i.test(cleaned);
   const dayGiven = /\b(today|tonight|tomorrow|sun|mon|tue|wed|thu|fri|sat)[a-z]*\b|\b\d{1,2}\/\d{1,2}\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}\b/i.test(cleaned);
-  return { ...base, ...details, place, timeGiven, dayGiven, startsAt: base.startsAt && toHalfHour(base.startsAt) };
+  // Whatever read the message (the model or the rules), a game is never in the past, and its size
+  // and price stay within what we can hold against. Anything dropped here is asked for or defaulted.
+  return {
+    ...base,
+    ...details,
+    place,
+    timeGiven,
+    dayGiven,
+    spots: saneSpots(base.spots),
+    priceCents: sanePriceCents(base.priceCents),
+    startsAt: saneStart(base.startsAt && toHalfHour(base.startsAt), now),
+  };
 }
 
 async function parseWithClaude(text: string, now: Date): Promise<ParsedGame> {

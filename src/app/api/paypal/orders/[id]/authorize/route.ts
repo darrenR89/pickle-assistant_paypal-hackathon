@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { one, q } from "@/lib/db";
-import { type Game, roster } from "@/lib/games";
+import { type Game, inPlayers, roster } from "@/lib/games";
+import { holdBlocked } from "@/lib/limits";
 import { authorizeOrder, firstAuthorization } from "@/lib/paypal";
-import { playerJoined } from "@/bot/assistant";
+import { playerJoined, spotOfferFor } from "@/bot/assistant";
 import { errorResponse } from "@/lib/http";
 
 // Step 2 of joining: the player approved in PayPal or Venmo. Place the hold and add them.
@@ -18,8 +19,18 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (!game) return NextResponse.json({ error: "Unknown game" }, { status: 404 });
 
     // Already processed (double click, retry): return the existing hold.
-    const existing = (await roster(game.id)).find((e) => e.order_id === id && e.status === "in");
+    const entries = await roster(game.id);
+    const existing = entries.find((e) => e.order_id === id && e.status === "in");
     if (existing) return NextResponse.json({ authorizationId: existing.authorization_id, status: "CREATED" });
+
+    // The game can fill up or close while the player is in PayPal. Stop before the hold exists:
+    // an approved order that is never authorized takes nothing from the player.
+    const offered = !!(await spotOfferFor(game.id, pending.person_id));
+    const blocked = holdBlocked(game, inPlayers(entries).length, offered);
+    if (blocked) {
+      await q("delete from pending_orders where order_id = $1", [id]);
+      return NextResponse.json({ error: blocked }, { status: 409 });
+    }
 
     const order = await authorizeOrder(id);
     const auth = firstAuthorization(order);
