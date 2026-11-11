@@ -75,6 +75,14 @@ With `BLOOIO_API_KEY` set, the assistant also runs in real iMessage groups throu
 
 Blooio limits how many conversations the bot can start each day, so people opting in by texting first is the cheapest path.
 
+### Real texts on Sendblue's free sandbox
+
+A hands-on check with real phones, without a paid plan. Set `SENDBLUE_API_KEY`, `SENDBLUE_API_SECRET` and `SENDBLUE_FROM_NUMBER`, then:
+
+1. In the Sendblue dashboard, verify your phone and add up to 9 testers as contacts. Each texts the Sendblue number once.
+2. Text the number. Everyone who texts it is in one "Sendblue test" group. The sandbox has no group chats, so each group post (marked `[Group]`) and what others said go to each person 1:1, and private messages go only to the person concerned.
+3. The sandbox has no webhooks, so the server checks Sendblue for new texts every 4 seconds (`src/bot/sendblue.ts`, started in `src/instrumentation.ts`). Replies take a few seconds, and the web service must be awake.
+
 ## Scheduled work (Render Workflows)
 
 `src/workflows/tasks.ts` defines Render Workflow tasks with the Render SDK. A cron job (`pnpm trigger`) starts the `tick` task every 10 minutes; `tick` finds what's due and fans out one task run per item:

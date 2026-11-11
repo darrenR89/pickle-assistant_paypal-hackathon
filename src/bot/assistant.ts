@@ -24,7 +24,7 @@ import {
   whenLabel,
 } from "@/lib/games";
 import { captureAuthorization, refundCapture, voidAuthorization } from "@/lib/paypal";
-import { deliverToGroup, deliverToPerson } from "@/lib/blooio";
+import { deliverToGroup, deliverToPerson } from "@/lib/channels";
 import { payOrganizer } from "./payout";
 import { parseGameRequest, zonedTime } from "./parse";
 import { type Decision, type GroupContext, buildContext, resolveMember, understand, worthReading } from "./agent";

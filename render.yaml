@@ -31,6 +31,12 @@ services:
         sync: false
       - key: BLOOIO_FROM_NUMBER
         sync: false
+      - key: SENDBLUE_API_KEY
+        sync: false
+      - key: SENDBLUE_API_SECRET
+        sync: false
+      - key: SENDBLUE_FROM_NUMBER
+        sync: false
       - key: APP_URL
         value: https://pickle-assistant.onrender.com
       - key: DEMO_BUYER_EMAIL
