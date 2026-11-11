@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
@@ -7,6 +8,20 @@ import FinalPhone from "./landing/FinalPhone";
 
 // Landing page. Humans see the 3D phone and its demo player, the live phone demo and the screens; the same page is
 // plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
+
+// Link preview for the landing page when it is shared (chat apps, the hackathon gallery, social posts).
+const SHARE_TITLE = "Pickleball games that settle themselves";
+const SHARE_TEXT = "An AI assistant in your group chat. Friends hold their spot with PayPal or Venmo and are charged their real share after the game.";
+export const metadata: Metadata = {
+  openGraph: {
+    type: "website",
+    siteName: "Pickleball assistant",
+    title: SHARE_TITLE,
+    description: SHARE_TEXT,
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Pickleball games that settle themselves. An AI assistant for your group chat. The game page on a phone shows Thursday 6:00 pm, 4 spots left." }],
+  },
+  twitter: { card: "summary_large_image", title: SHARE_TITLE, description: SHARE_TEXT, images: ["/og.jpg"] },
+};
 
 const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
 const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID; // YouTube id, set once the walkthrough is uploaded
