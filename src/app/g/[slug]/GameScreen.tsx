@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import Icon from "../../Icon";
+import Icon from "@/app/Icon";
 import type { ViewData } from "./page";
+import GameRecap from "./GameRecap";
 
 // ---------- PayPal JS SDK (only the parts we use) ----------
 type PayPalButtons = { isEligible(): boolean; render(el: HTMLElement): Promise<void>; close?: () => Promise<void> };
@@ -58,7 +59,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
     on();
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
-  }, []);
+  }, [demo]);
   const org = v.organizer;
   const [asked, setAsked] = useState(v.asked);
   async function askToJoin() {
@@ -651,6 +652,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
         </div>
       )}
       {toast && <div className="toast" role="status">{toast}</div>}
+      <GameRecap v={v} />
     </div>
   );
 }

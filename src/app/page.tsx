@@ -1,10 +1,27 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
 import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
+import CaseStudy from "./landing/CaseStudy";
+import FinalPhone from "./landing/FinalPhone";
 
 // Landing page. Humans see the 3D phone and its demo player, the live phone demo and the screens; the same page is
 // plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
+
+// Link preview for the landing page when it is shared (chat apps, the hackathon gallery, social posts).
+const SHARE_TITLE = "Pickleball games that settle themselves";
+const SHARE_TEXT = "An AI assistant in your group chat. Friends hold their spot with PayPal or Venmo and are charged their real share after the game.";
+export const metadata: Metadata = {
+  openGraph: {
+    type: "website",
+    siteName: "Pickleball assistant",
+    title: SHARE_TITLE,
+    description: SHARE_TEXT,
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Pickleball games that settle themselves. An AI assistant for your group chat. The game page on a phone shows Thursday 6:00 pm, 4 spots left." }],
+  },
+  twitter: { card: "summary_large_image", title: SHARE_TITLE, description: SHARE_TEXT, images: ["/og.jpg"] },
+};
 
 const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
 const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID; // YouTube id, set once the walkthrough is uploaded
@@ -91,7 +108,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="lp-section" aria-labelledby="how">
+      <section className="lp-section lp-al" aria-labelledby="how">
         <h2 id="how" className="lp-h2">How it works</h2>
         <ol className="lp-steps">
           <li>
@@ -112,7 +129,7 @@ export default function Home() {
         </ol>
       </section>
 
-      <section className="lp-section" id="screens" aria-labelledby="screens-h">
+      <section className="lp-section lp-al" id="screens" aria-labelledby="screens-h">
         <AppShowcase
           title="The app"
           lead="Players never download anything. Every screen is a web page that opens from a text."
@@ -134,9 +151,7 @@ export default function Home() {
       </section>
 
       <section className="lp-built" id="built" aria-labelledby="built-h">
-        <div className="lp-built-in">
-          <p className="lp-eyebrow">Case study</p>
-          <h2 id="built-h" className="lp-h2 light">How this was built</h2>
+        <CaseStudy summary="Five short chapters: the problem, how Claude reads the chat, the PayPal money flow, the design and how it was tested.">
 
           <article className="lp-ch">
             <span className="lp-chn">01</span>
@@ -211,13 +226,21 @@ export default function Home() {
             Built with Next.js, TypeScript and Postgres on Render · PayPal Orders v2 and the PayPal JS SDK · Claude Haiku 5.5 by Anthropic ·{" "}
             <a href={REPO}>Source on GitHub</a> (MIT)
           </p>
-        </div>
+        </CaseStudy>
       </section>
 
       <section className="lp-final" aria-labelledby="final-h">
-        <h2 id="final-h" className="lp-h2">Run a game from your phone</h2>
-        <p className="lp-lead">Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
-        <Link href="/demo" className="lp-btn">Open the live demo</Link>
+        <FinalPhone />
+        <h2 id="final-h" className="lp-final-h">
+          Run a game <span>from your <span className="lp-nowrap">phone<i className="lp-dot" aria-hidden="true" /></span></span>
+        </h2>
+        <div className="lp-final-low">
+          <p>Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
+          <div className="lp-final-act">
+            <Link href="/demo" className="lp-btn">Open the live demo</Link>
+            <a href={`${REPO}/blob/main/JUDGES.md`} className="lp-btn ghost">For judges</a>
+          </div>
+        </div>
       </section>
 
       </main>

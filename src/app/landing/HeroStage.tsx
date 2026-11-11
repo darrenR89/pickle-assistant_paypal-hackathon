@@ -275,6 +275,7 @@ function start(T: typeof THREE_NS, env: Env): () => void {
   pp.addEventListener("click", () => { if (now() >= dur() - 0.05) seek(0); else setPaused(!S.paused); });
   const open = (e?: Event) => {
     e?.preventDefault(); if (S.playing) return;
+    window.scrollTo(0, 0);
     S.playing = true; S.sec = 0; S.chi = -1; hero.classList.add("playing"); rail.inert = false; close.inert = false;
     if (video) { video.currentTime = 0; } setPaused(false);
     close.focus({ preventScroll: true });
