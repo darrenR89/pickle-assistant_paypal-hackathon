@@ -4,6 +4,7 @@ import { q } from "@/lib/db";
 import {
   type Game,
   TZ,
+  cancelRule,
   getGame,
   holdCents,
   inPlayers,
@@ -18,7 +19,7 @@ import {
   whenLabel,
 } from "@/lib/games";
 import { KIND_LABEL } from "@/bot/details";
-import { shortfall } from "@/bot/assistant";
+import { chargedLateCancels, shortfall } from "@/bot/assistant";
 import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
 import GameScreen from "./GameScreen";
 
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const playing = inPlayers(await roster(game.id));
   const kind = game.kind ? `${KIND_LABEL[game.kind]} · ` : "";
   const title = `${kind}${whenLabel(game.starts_at)} · ${game.place}`;
-  const description = `${playing.length} of ${game.spots} in · ${money(game.share_cents)} each, free cancel until ${whenLabel(game.cancel_by)}`;
+  const description = `${playing.length} of ${game.spots} in · ${money(game.share_cents)} each, ${cancelRule(game)}`;
   // Open Graph tags drive the rich link preview in Messages and WhatsApp. No private money here.
   return { title, description, openGraph: { title, description } };
 }
@@ -137,7 +138,7 @@ async function organizerData(game: Game) {
   const collected = entries.filter((e) => e.hold_status === "captured").reduce((s, e) => s + (e.captured_cents ?? 0) - e.refunded_cents, 0);
   const host = await personById(game.organizer_id);
   const payTo = host ? organizerPayoutTo(host) : null;
-  const { gap, extraEach } = shortfall(game, playing.length);
+  const { gap, extraEach } = shortfall(game, playing.length, chargedLateCancels(entries));
   const waiting = await q<{ id: string; name: string; kind: string }>(
     "select p.id, p.name, i.kind from intents i join people p on p.id = i.person_id where i.game_id = $1 order by i.said_at",
     [game.id],

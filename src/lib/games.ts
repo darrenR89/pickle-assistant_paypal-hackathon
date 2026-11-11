@@ -37,6 +37,9 @@ export type Game = {
   payout_attempts: number;
   payout_round: number;
   close_choice: null | "split" | "covered" | "released" | "charged";
+  /** The choice a settle or call-off started with, kept so an interrupted one finishes the same way. */
+  closing_choice: null | "split" | "cover" | "charge" | "release";
+  status_changed_at: Date | null;
   created_at: Date;
 };
 
@@ -126,6 +129,23 @@ export function gameHeadline(game: Game) {
 
 export function isBeforeCancelBy(game: Game, now = new Date()) {
   return now.getTime() < new Date(game.cancel_by).getTime();
+}
+
+/** The free-cancel rule as it stands now. A game set up inside its last 24 hours has none left. */
+export function cancelRule(game: Pick<Game, "cancel_by">, now = new Date()) {
+  return now.getTime() < new Date(game.cancel_by).getTime() ? `free cancel until ${whenLabel(new Date(game.cancel_by))}` : "free cancel has ended";
+}
+
+/** The organizer's payout has gone out (or is going), so money can't be taken back out of it. */
+export function payoutUnderway(status: Game["payout_status"]) {
+  return status === "sending" || status === "pending" || status === "sent" || status === "unclaimed";
+}
+
+/** The game-day reminder, worded for how far off the game really is (a game can be set up an hour before). */
+export function gameDayLine(game: Pick<Game, "starts_at" | "place">, now = new Date()) {
+  const mins = (new Date(game.starts_at).getTime() - now.getTime()) / 60_000;
+  const lead = mins >= 100 ? "Game in 2 hours" : mins >= 45 ? "Game in about an hour" : "Game starting soon";
+  return `${lead}: ${whenLabel(new Date(game.starts_at))} at ${game.place}. See you there!`;
 }
 
 export async function logEvent(gameId: string, personId: string | null, kind: string, detail?: unknown) {

@@ -24,10 +24,14 @@ export default function DemoRemote() {
   const [qr, setQr] = useState<string | null>(null);
   const [busy, setBusy] = useState<Action | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [startErr, setStartErr] = useState<string | null>(null);
   const [done, setDone] = useState<Set<Action>>(new Set());
 
   async function fresh() {
-    const r = await fetch("/api/demo", { method: "POST" }).then((x) => x.json());
+    setStartErr(null);
+    // A failed start (server waking up, network drop) says so instead of leaving an empty QR box.
+    const r = await fetch("/api/demo", { method: "POST" }).then((x) => x.json()).catch(() => null);
+    if (!r?.groupId) return setStartErr("The demo didn’t start. Tap “Start over with a new chat” to try again.");
     try {
       localStorage.setItem("phoneDemo", r.groupId);
     } catch {}
@@ -67,11 +71,17 @@ export default function DemoRemote() {
     if (!id) return;
     setBusy(action);
     setNote(null);
-    const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
-    const body = await r.json().catch(() => ({}));
-    setBusy(null);
-    setNote(body.note ?? (r.ok ? "Done." : "That didn’t work."));
-    if (r.ok) setDone((d) => new Set(d).add(action));
+    try {
+      const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const body = await r.json().catch(() => ({}));
+      setNote(body.note ?? (r.ok ? "Done." : "That didn’t work."));
+      if (r.ok) setDone((d) => new Set(d).add(action));
+    } catch {
+      setNote("Couldn’t reach the server. Try again.");
+    } finally {
+      // Always unlock the buttons, even when the request never got an answer.
+      setBusy(null);
+    }
     load();
   }
 
@@ -173,6 +183,8 @@ export default function DemoRemote() {
               <span className="dr-pulse" aria-hidden="true" /> {state?.name}’s phone is connected
               {state?.viewer.role === "player" ? ` · acting as ${state.viewer.name}` : ""}
             </p>
+          ) : startErr ? (
+            <p className="dr-status" role="alert">{startErr}</p>
           ) : (
             <p className="dr-status">Scan with your phone’s camera</p>
           )}

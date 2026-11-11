@@ -68,16 +68,17 @@ export default function Playground({ groupId }: { groupId: string }) {
   const counts = useRef({ group: 0, dm: 0 });
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/play/groups/${groupId}?viewer=${viewerId ?? ""}`, { cache: "no-store" });
-    const body = await res.json();
-    if (!res.ok) {
-      if (res.status === 404) {
-        try {
-          localStorage.removeItem("playGroup");
-        } catch {}
-      }
+    // A dropped request or a server hiccup is retried on the next poll; only a missing group is final.
+    const res = await fetch(`/api/play/groups/${groupId}?viewer=${viewerId ?? ""}`, { cache: "no-store" }).catch(() => null);
+    if (!res) return;
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 404) {
+      try {
+        localStorage.removeItem("playGroup");
+      } catch {}
       return setError(body.error ?? "Couldn't load the chat");
     }
+    if (!res.ok) return;
     setData(body);
     setViewerId((v) => v ?? body.people[0]?.id ?? null);
   }, [groupId, viewerId]);
@@ -127,21 +128,31 @@ export default function Playground({ groupId }: { groupId: string }) {
 
   async function sendAs(senderId: string, body: string) {
     setSending(true);
-    const res = await fetch(`/api/play/groups/${groupId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId, text: body }),
-    });
-    setSending(false);
-    if (!res.ok) return setNote((await res.json()).error ?? "Couldn't send");
+    try {
+      const res = await fetch(`/api/play/groups/${groupId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId, text: body }),
+      });
+      if (!res.ok) {
+        setNote((await res.json().catch(() => ({}))).error ?? "Couldn't send");
+        return false;
+      }
+    } catch {
+      setNote("Couldn't reach the server. Try again.");
+      return false;
+    } finally {
+      setSending(false);
+    }
     load();
+    return true;
   }
 
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
     if (!text.trim() || sending) return;
-    await sendAs(viewerId!, text);
-    setText("");
+    // Keep the words in the box when the message didn't go out.
+    if (await sendAs(viewerId!, text)) setText("");
   }
 
   const organizerId = data.game?.organizerId ?? data.people[0]?.id;
@@ -160,7 +171,11 @@ export default function Playground({ groupId }: { groupId: string }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    });
+    }).catch(() => null);
+    if (!res) {
+      setNote("Couldn't reach the server. Try again.");
+      return {};
+    }
     const r = await res.json().catch(() => ({}));
     await load();
     setNote(res.ok ? (done ? done(r) : "Done.") : (r.error ?? "That didn't work"));

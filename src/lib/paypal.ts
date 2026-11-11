@@ -18,6 +18,18 @@ export class PayPalError extends Error {
   }
 }
 
+/** Give up on a PayPal call that hasn't answered, so one hung request can't hang a page or a settle. */
+const TIMEOUT_MS = 20_000;
+
+/**
+ * PayPal has said this exact request can never succeed (the hold is gone, expired, already used
+ * or declined), so trying again won't help. Anything else (a timeout, a 5xx, a rate limit, a bad
+ * token) is worth a retry.
+ */
+export function isTerminalPayPalError(err: unknown) {
+  return err instanceof PayPalError && (err.status === 404 || err.status === 422);
+}
+
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 function credentials() {
@@ -35,6 +47,7 @@ async function accessToken(): Promise<string> {
   }
   const { id, secret } = credentials();
   const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
+    signal: AbortSignal.timeout(TIMEOUT_MS),
     method: "POST",
     headers: {
       Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
@@ -54,7 +67,7 @@ async function accessToken(): Promise<string> {
 
 async function call<T>(
   path: string,
-  init: { method: string; body?: unknown; requestId?: string },
+  init: { method: string; body?: unknown; rawBody?: string; requestId?: string },
 ): Promise<T> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${await accessToken()}`,
@@ -66,8 +79,9 @@ async function call<T>(
   const res = await fetch(`${BASE_URL}${path}`, {
     method: init.method,
     headers,
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    body: init.rawBody ?? (init.body === undefined ? undefined : JSON.stringify(init.body)),
     cache: "no-store",
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   const text = await res.text();
   const body = text ? JSON.parse(text) : {};
@@ -132,7 +146,13 @@ export function voidAuthorization(authorizationId: string) {
   );
 }
 
-export type Capture = { id: string; status: string; simulated?: boolean };
+export type Capture = { id: string; status: string; amount?: Money; simulated?: boolean };
+
+/** What PayPal says it captured, in cents. Falls back to what we asked for (simulated holds, or no amount in the reply). */
+export function capturedCents(capture: Pick<Capture, "amount">, askedCents: number) {
+  const cents = Math.round(Number(capture.amount?.value) * 100);
+  return capture.amount?.value !== undefined && Number.isFinite(cents) && cents >= 0 ? cents : askedCents;
+}
 
 /** Charge the held share (all of it unless amountCents is given). Returns the capture, whose id refunds use. */
 export function captureAuthorization(authorizationId: string, amountCents?: number): Promise<Capture> {
@@ -236,22 +256,32 @@ export function createPayout(opts: { batchId: string; amountCents: number; to: P
 
 // ---------- Webhooks ----------
 
+/**
+ * The body for PayPal's signature check. The event goes in exactly as PayPal sent it: parsing and
+ * re-writing it can change number formatting or escapes, and then a genuine event fails the check.
+ */
+export function verifyBody(fields: Record<string, string>, rawEvent: string) {
+  return `${JSON.stringify(fields).slice(0, -1)},"webhook_event":${rawEvent}}`;
+}
+
 /** Ask PayPal whether a webhook really came from PayPal. Needs PAYPAL_WEBHOOK_ID from the app's webhook settings. */
-export async function verifyWebhook(headers: Headers, event: unknown) {
+export async function verifyWebhook(headers: Headers, rawEvent: string) {
   const webhookId = process.env.PAYPAL_WEBHOOK_ID;
   if (!webhookId) throw new Error("PAYPAL_WEBHOOK_ID must be set to receive webhooks");
   const h = (k: string) => headers.get(k) ?? "";
   const res = await call<{ verification_status: string }>("/v1/notifications/verify-webhook-signature", {
     method: "POST",
-    body: {
-      auth_algo: h("paypal-auth-algo"),
-      cert_url: h("paypal-cert-url"),
-      transmission_id: h("paypal-transmission-id"),
-      transmission_sig: h("paypal-transmission-sig"),
-      transmission_time: h("paypal-transmission-time"),
-      webhook_id: webhookId,
-      webhook_event: event,
-    },
+    rawBody: verifyBody(
+      {
+        auth_algo: h("paypal-auth-algo"),
+        cert_url: h("paypal-cert-url"),
+        transmission_id: h("paypal-transmission-id"),
+        transmission_sig: h("paypal-transmission-sig"),
+        transmission_time: h("paypal-transmission-time"),
+        webhook_id: webhookId,
+      },
+      rawEvent,
+    ),
   });
   return res.verification_status === "SUCCESS";
 }

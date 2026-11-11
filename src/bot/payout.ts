@@ -31,7 +31,7 @@ export function describeReceiver(to: PayoutReceiver) {
  */
 export async function payOrganizer(gameId: string) {
   const game = await one<Game>(
-    `update games set payout_status = 'sending', payout_attempts = payout_attempts + 1, payout_error = null
+    `update games set payout_status = 'sending', payout_started_at = now(), payout_attempts = payout_attempts + 1, payout_error = null
      where id = $1 and status in ('settled', 'cancelled') and (payout_status is null or payout_status = 'failed')
        and payout_attempts < $2
      returning *`,
