@@ -1,12 +1,11 @@
-// Polls Sendblue's free sandbox for new texts and hands them to the assistant, as the web
-// playground does. Started from src/instrumentation.ts when SENDBLUE_* is set.
+// Polls Sendblue's free sandbox for new texts and routes them into the phone demo. Started from
+// src/instrumentation.ts when SENDBLUE_* is set.
 
 import { one, q } from "@/lib/db";
-import { deliverToGroup, inboundSince, nameCommand, readSendblue, sendText } from "@/lib/sendblue";
+import { SETUP_MESSAGE, demoAct } from "@/lib/demo";
+import { inboundSince, joinCode, readSendblue, sendText } from "@/lib/sendblue";
 import { handleGroupMessage } from "./assistant";
-import { personByPhone } from "./people";
 
-const GROUP_ID = "grp_sendblue";
 const EVERY_MS = 4000;
 // Re-read a little of the past each time so nothing slips between polls; seen messages are skipped.
 const OVERLAP_MS = 2 * 60_000;
@@ -38,26 +37,36 @@ export function startSendbluePoller() {
 }
 
 async function receive(from: string, text: string) {
-  await q("insert into groups (id, name, sendblue) values ($1, 'Sendblue test', true) on conflict (id) do nothing", [GROUP_ID]);
-  const person = await personByPhone(from);
-  const joined = await one("insert into group_members (group_id, person_id) values ($1, $2) on conflict do nothing returning 1", [GROUP_ID, person.id]);
-  // They texted us, so private updates are wanted and free to send.
-  if (!person.texts_opt_in) await q("update people set texts_opt_in = true, texts_welcomed = true where id = $1", [person.id]);
-  if (joined) {
+  const code = joinCode(text);
+  if (code) {
+    const pending = await one<{ id: string; name: string }>(
+      "select id, demo_phone_name as name from groups where demo_code = $1 and demo_phone = $2 order by created_at desc limit 1",
+      [code, from],
+    );
+    if (!pending) {
+      await sendText(from, "That code doesn't match. Check the code on the demo page and the number you typed there.");
+      return;
+    }
+    const r = await demoAct(pending.id, { action: "connect", name: pending.name });
+    if (!r.ok) return sendText(from, r.note);
+    // One phone drives one demo at a time: unlink it from any older one.
+    await q("update groups set demo_phone = null where demo_phone = $1 and id <> $2", [from, pending.id]);
+    await q("update groups set demo_code = null where id = $1", [pending.id]);
     await sendText(
       from,
-      "You're in the Sendblue test group. Messages marked [Group] are what everyone sees; the rest are just for you. " +
-        "Text NAME and your first name so others see it (like NAME Sam). To start a game: @Assistant Thu 6pm Riverside, 4 spots, $40",
+      `You're connected, ${pending.name}. You're the organizer in the group chat on the demo page. Text the assistant to set up a game, like:\n${SETUP_MESSAGE}`,
     );
-  }
-  const newName = nameCommand(text);
-  if (newName) {
-    await q("update people set name = $2 where id = $1", [person.id, newName]);
-    await sendText(from, `Thanks, ${newName}.`);
     return;
   }
-  // Show everyone else what was said, as a real group chat would.
-  const name = (await one<{ name: string }>("select name from people where id = $1", [person.id]))?.name ?? from;
-  await deliverToGroup(GROUP_ID, `${name}: ${text}`, undefined, person.id);
-  await handleGroupMessage(GROUP_ID, person.id, text);
+
+  const demo = await one<{ id: string; viewer: string }>(
+    "select id, demo_viewer as viewer from groups where demo_phone = $1 and demo_code is null and demo_viewer is not null order by created_at desc limit 1",
+    [from],
+  );
+  if (!demo) {
+    await sendText(from, `Open ${process.env.APP_URL ?? "the app"}/demo, add your number there, and text the code it shows to start.`);
+    return;
+  }
+  // The phone speaks as whoever it's acting as in the demo: the organizer, or the player it switched to.
+  await handleGroupMessage(demo.id, demo.viewer, text);
 }

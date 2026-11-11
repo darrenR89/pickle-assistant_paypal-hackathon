@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { groupText, nameCommand, readSendblue } from "@/lib/sendblue";
+import { demoLinks, joinCode, readSendblue } from "@/lib/sendblue";
 
 describe("readSendblue", () => {
   it("reads an inbound text and normalizes the number", () => {
@@ -18,20 +18,25 @@ describe("readSendblue", () => {
   });
 });
 
-describe("groupText", () => {
-  it("labels group posts and keeps the game link on its own line", () => {
-    process.env.APP_URL = "https://example.test";
-    assert.equal(groupText("Tap to play:", "abc"), "[Group] Tap to play:\nhttps://example.test/g/abc");
+describe("joinCode", () => {
+  it("reads JOIN and a 4-digit code, any case and spacing", () => {
+    assert.equal(joinCode("JOIN 4821"), "4821");
+    assert.equal(joinCode(" join4821 "), "4821");
+  });
+  it("ignores other texts", () => {
+    assert.equal(joinCode("join the game"), null);
+    assert.equal(joinCode("JOIN 48210"), null);
   });
 });
 
-describe("nameCommand", () => {
-  it("reads NAME followed by a name, any case", () => {
-    assert.equal(nameCommand("NAME Sam"), "Sam");
-    assert.equal(nameCommand("  name  Sam Lee "), "Sam Lee");
-  });
-  it("ignores other messages", () => {
-    assert.equal(nameCommand("my name is Sam"), null);
-    assert.equal(nameCommand("in"), null);
+describe("demoLinks", () => {
+  it("opens plain game links as the phone's person, and keeps organizer links", () => {
+    process.env.APP_URL = "https://example.test";
+    assert.equal(
+      demoLinks("Tap to play:\nhttps://example.test/g/thu-6pm-ab12", "grp_1", "tok"),
+      "Tap to play:\nhttps://example.test/g/thu-6pm-ab12?p=tok&demo=grp_1",
+    );
+    assert.equal(demoLinks("Yours: https://example.test/g/thu-6pm-ab12?o=org", "grp_1", "tok"), "Yours: https://example.test/g/thu-6pm-ab12?o=org&demo=grp_1");
+    assert.equal(demoLinks("No link here", "grp_1", "tok"), "No link here");
   });
 });

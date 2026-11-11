@@ -75,13 +75,15 @@ With `BLOOIO_API_KEY` set, the assistant also runs in real iMessage groups throu
 
 Blooio limits how many conversations the bot can start each day, so people opting in by texting first is the cheapest path.
 
-### Real texts on Sendblue's free sandbox
+### The phone demo by real text (Sendblue free sandbox)
 
-A hands-on check with real phones, without a paid plan. Set `SENDBLUE_API_KEY`, `SENDBLUE_API_SECRET` and `SENDBLUE_FROM_NUMBER`, then:
+With `SENDBLUE_API_KEY`, `SENDBLUE_API_SECRET` and `SENDBLUE_FROM_NUMBER` set, `/demo` offers "Or use your own Messages app":
 
-1. In the Sendblue dashboard, verify your phone and add up to 9 testers as contacts. Each texts the Sendblue number once.
-2. Text the number. Everyone who texts it is in one "Sendblue test" group. The sandbox has no group chats, so each group post (marked `[Group]`) and what others said go to each person 1:1, and private messages go only to the person concerned.
-3. The sandbox has no webhooks, so the server checks Sendblue for new texts every 4 seconds (`src/bot/sendblue.ts`, started in `src/instrumentation.ts`). Replies take a few seconds, and the web service must be awake.
+1. The judge types their first name and mobile number. The app adds the number to the Sendblue contacts (the free plan only texts contacts, and allows 10).
+2. The page shows a code. Texting `JOIN 1234` to the Sendblue number links that phone to the demo and completes Sendblue's check.
+3. Their texts go into the demo's group chat as them (the organizer, or Jo after "Switch my phone to a player"). The assistant's group posts (marked `[Group]`) and their private messages come back as texts, with game links that open as them. The rest of the group stays simulated on the desktop.
+
+The sandbox has no webhooks, so the server checks Sendblue for new texts every 4 seconds (`src/bot/sendblue.ts`, started in `src/instrumentation.ts`). Replies take a few seconds, and the web service must be awake.
 
 ## Scheduled work (Render Workflows)
 

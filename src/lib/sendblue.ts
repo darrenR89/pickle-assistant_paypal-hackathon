@@ -1,11 +1,12 @@
-// Real texts through Sendblue's free sandbox, as a hands-on check that the assistant works over
-// iMessage/SMS. The sandbox has no group chats and no webhooks, so:
-// - a "Sendblue test" group is everyone who texts the number, and each group post goes to each member 1:1;
-// - the server checks Sendblue for new texts every few seconds (src/bot/sendblue.ts).
+// Real texts for the phone demo, through Sendblue's free sandbox. A judge links their own phone to a
+// demo by texting a code; the desktop still plays the rest of the group. Their texts go into the
+// group chat as them, and the assistant's posts and their private messages come back as real texts.
+// The sandbox has no webhooks, so src/bot/sendblue.ts checks for new texts every few seconds.
 // Off unless the three SENDBLUE_* variables are set.
 
-import { one, q } from "@/lib/db";
+import { one } from "@/lib/db";
 import { outboundText } from "@/lib/blooio";
+import { DEMO_PLAYER } from "@/lib/playground";
 import { normalizePhone } from "@/lib/phone";
 
 // SENDBLUE_BASE_URL is only for pointing tests at a stand-in server.
@@ -13,6 +14,10 @@ const API = process.env.SENDBLUE_BASE_URL || "https://api.sendblue.com";
 
 export function sendblueConfigured() {
   return Boolean(process.env.SENDBLUE_API_KEY && process.env.SENDBLUE_API_SECRET && process.env.SENDBLUE_FROM_NUMBER);
+}
+
+export function sendblueNumber() {
+  return sendblueConfigured() ? (process.env.SENDBLUE_FROM_NUMBER ?? null) : null;
 }
 
 function headers() {
@@ -40,13 +45,33 @@ export async function sendText(number: string, content: string) {
   }
 }
 
+/**
+ * Adds a number to the Sendblue contacts. On the free plan the bot can only text contacts, and only
+ * after they've texted the number once (the join code does that). The plan allows 10 contacts.
+ */
+export async function addContact(number: string, firstName: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${API}/api/v2/contacts`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ number, first_name: firstName, sendblue_number: process.env.SENDBLUE_FROM_NUMBER, update_if_exists: true }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (res.ok || res.status === 409) return { ok: true };
+    console.error("sendblue add contact failed", res.status, await res.text());
+    return { ok: false, error: "The free texting line is full right now. Use the phone view instead." };
+  } catch (err) {
+    console.error("sendblue add contact failed", err);
+    return { ok: false, error: "Couldn't reach the texting service. Use the phone view instead." };
+  }
+}
+
 export type SendblueMessage = {
   message_handle: string;
   content?: string | null;
   from_number?: string | null;
   number?: string | null;
   is_outbound?: boolean;
-  group_id?: string | null;
 };
 
 /** Texts people sent to our number since `since`, oldest first. */
@@ -73,34 +98,49 @@ export function readSendblue(m: SendblueMessage): { from: string; text: string }
   return text && from ? { from, text } : null;
 }
 
-/** A group post, labelled so it reads differently from private messages in the same 1:1 thread. */
-export function groupText(text: string, gameSlug?: string) {
-  return outboundText(`[Group] ${text}`, gameSlug);
+/** "JOIN 4821" links a phone to the demo showing that code. */
+export function joinCode(text: string) {
+  return /^join\s*(\d{4})$/i.exec(text.trim())?.[1] ?? null;
 }
 
-async function isSendblueGroup(groupId: string) {
-  if (!sendblueConfigured()) return false;
-  return !!(await one("select 1 from groups where id = $1 and sendblue", [groupId]));
+/**
+ * Game links in a text open as the person the phone is acting as, the way the on-screen phone demo
+ * does: their own token on a plain game link, and the demo id so the page knows it's the demo.
+ */
+export function demoLinks(text: string, groupId: string, token: string) {
+  const base = (process.env.APP_URL ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`${base}/g/([\\w-]+)(\\?[^\\s]*)?`, "g"), (_m, slug: string, query?: string) =>
+    query ? `${process.env.APP_URL}/g/${slug}${query}&demo=${groupId}` : `${process.env.APP_URL}/g/${slug}?p=${token}&demo=${groupId}`,
+  );
 }
 
-/** Sends a group post to every member of the Sendblue test group, except `skipPersonId` (who wrote it). */
-export async function deliverToGroup(groupId: string, text: string, gameSlug?: string, skipPersonId?: string) {
-  if (!(await isSendblueGroup(groupId))) return;
-  const members = await q<{ id: string; phone: string }>(
-    "select p.id, p.phone from group_members m join people p on p.id = m.person_id where m.group_id = $1 order by m.position, p.name",
+type LinkedDemo = { phone: string; viewer: string; viewer_token: string };
+
+/** The phone linked to this demo group by text, if any. */
+async function linkedPhone(groupId: string) {
+  if (!sendblueConfigured()) return null;
+  return one<LinkedDemo>(
+    `select g.demo_phone as phone, g.demo_viewer as viewer, p.token as viewer_token
+     from groups g join people p on p.id = g.demo_viewer
+     where g.id = $1 and g.demo_phone is not null and g.demo_code is null and g.demo_name is not null`,
     [groupId],
   );
-  for (const m of members) if (m.id !== skipPersonId) await sendText(m.phone, groupText(text, gameSlug));
 }
 
+/** The assistant's group posts, labelled so they read differently from private messages in the same thread. */
+export async function deliverToGroup(groupId: string, text: string, gameSlug?: string) {
+  const d = await linkedPhone(groupId);
+  if (d) await sendText(d.phone, demoLinks(outboundText(`[Group] ${text}`, gameSlug), groupId, d.viewer_token));
+}
+
+/** Private messages to the organizer (the judge) or the player they try paying as. */
 export async function deliverToPerson(groupId: string, personId: string, text: string, gameSlug?: string) {
-  if (!(await isSendblueGroup(groupId))) return;
-  const p = await one<{ phone: string }>("select phone from people where id = $1", [personId]);
-  if (p) await sendText(p.phone, outboundText(text, gameSlug));
-}
-
-/** "NAME Sam" sets how someone shows up in the group; the sandbox doesn't share contact names. */
-export function nameCommand(text: string) {
-  const m = /^name\s+(.{1,30})$/i.exec(text.trim());
-  return m ? m[1].trim() : null;
+  const d = await linkedPhone(groupId);
+  if (!d) return;
+  const p = await one<{ token: string; mine: boolean }>(
+    `select p.token, (m.position = 0 or p.name = $3 or p.id = $4) as mine
+     from group_members m join people p on p.id = m.person_id where m.group_id = $1 and p.id = $2`,
+    [groupId, personId, DEMO_PLAYER, d.viewer],
+  );
+  if (p?.mine) await sendText(d.phone, demoLinks(outboundText(text, gameSlug), groupId, p.token));
 }

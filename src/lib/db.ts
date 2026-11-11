@@ -109,8 +109,10 @@ alter table groups add column if not exists demo_name text;
 alter table people add column if not exists texts_welcomed boolean not null default false;
 -- Groups that live in a real iMessage group (Blooio's group id). Posts there are also texted.
 alter table groups add column if not exists blooio_chat text unique;
--- The Sendblue sandbox test group (no real group chat there; posts go to each member 1:1).
-alter table groups add column if not exists sendblue boolean not null default false;
+-- Phone demo by text (Sendblue): the judge's number, the join code they text, and their name until it connects.
+alter table groups add column if not exists demo_phone text;
+alter table groups add column if not exists demo_code text;
+alter table groups add column if not exists demo_phone_name text;
 create table if not exists sendblue_seen (
   message_handle text primary key,
   seen_at timestamptz not null default now()
