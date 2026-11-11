@@ -33,16 +33,23 @@ export default function PhoneDemo({ id }: { id: string }) {
   // On a phone with no second screen, the same steps as the desktop page, in a sheet.
   async function act(action: string) {
     setCtlNote("Working…");
-    const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
-    const b = await r.json().catch(() => ({}));
-    setCtlNote(b.note ?? null);
+    try {
+      const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const b = await r.json().catch(() => ({}));
+      setCtlNote(b.note ?? (r.ok ? null : "That didn’t work. Try again."));
+    } catch {
+      setCtlNote("Couldn’t reach the server. Try again.");
+    }
     load();
   }
   const end = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
-    const s = await fetch(`/api/demo/${id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null));
-    if (!s) return setError("This demo has ended. Scan the code on the demo page again.");
+    // Only a 404 means the demo is gone. A dropped request or a server hiccup is retried on the next poll.
+    const res = await fetch(`/api/demo/${id}`, { cache: "no-store" }).catch(() => null);
+    if (res?.status === 404) return setError("This demo has ended. Scan the code on the demo page again.");
+    const s = res?.ok ? await res.json().catch(() => null) : null;
+    if (!s) return;
     setState(s);
     if (lastViewer.current && lastViewer.current !== s.viewer.id) {
       setBanner(s.viewer.role === "organizer" ? "You’re the organizer again." : `You’re now ${s.viewer.name}, a player in the group.`);
@@ -50,8 +57,10 @@ export default function PhoneDemo({ id }: { id: string }) {
     }
     lastViewer.current = s.viewer.id;
     if (!s.connected) return;
-    const c = await fetch(`/api/play/groups/${id}?viewer=${s.viewer.id}`, { cache: "no-store" }).then((r) => r.json());
-    setChat(c);
+    const c = await fetch(`/api/play/groups/${id}?viewer=${s.viewer.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+    if (c) setChat(c);
   }, [id]);
 
   useEffect(() => {
@@ -59,6 +68,13 @@ export default function PhoneDemo({ id }: { id: string }) {
     const t = setInterval(load, 1500);
     return () => clearInterval(t);
   }, [load]);
+
+  useEffect(() => {
+    if (!controls) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setControls(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [controls]);
 
   useEffect(() => {
     if (!banner) return;
@@ -82,9 +98,14 @@ export default function PhoneDemo({ id }: { id: string }) {
     e.preventDefault();
     if (!name.trim()) return;
     setSending(true);
-    const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", name }) });
-    setSending(false);
-    if (!r.ok) return setError((await r.json()).note ?? "Couldn’t connect");
+    try {
+      const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", name }) });
+      if (!r.ok) return setError((await r.json().catch(() => ({}))).note ?? "Couldn’t connect");
+    } catch {
+      return setError("Couldn’t reach the server. Reload and try again.");
+    } finally {
+      setSending(false);
+    }
     load();
   }
 
@@ -92,12 +113,20 @@ export default function PhoneDemo({ id }: { id: string }) {
     if (!body.trim() || !state || sending) return;
     setSending(true);
     setText("");
-    await fetch(`/api/play/groups/${id}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId: state.viewer.id, text: body }),
-    });
-    setSending(false);
+    try {
+      const r = await fetch(`/api/play/groups/${id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId: state.viewer.id, text: body }),
+      });
+      if (!r.ok) throw new Error("not sent");
+    } catch {
+      // Put the words back so nothing typed is lost, and say why.
+      setText(body);
+      setBanner("That didn’t send. Try again.");
+    } finally {
+      setSending(false);
+    }
     load();
   }
 
@@ -132,12 +161,13 @@ export default function PhoneDemo({ id }: { id: string }) {
   return (
     <main className="dp sim">
       <header className="dp-top">
+        <h1 className="sr-only">Group chat demo</h1>
         <div className="dp-tabs" role="tablist">
           <button role="tab" aria-selected={thread === "group"} className={thread === "group" ? "on" : ""} onClick={() => setThread("group")}>
             Thursday crew
           </button>
           <button role="tab" aria-selected={thread === "dm"} className={thread === "dm" ? "on" : ""} onClick={() => setThread("dm")}>
-            Assistant{unread > 0 && <span className="dp-dot" aria-label={`${unread} new`}>{unread}</span>}
+            Assistant{unread > 0 && <span className="dp-dot">{unread}<span className="sr-only"> new</span></span>}
           </button>
         </div>
         <button className="dp-ctl" onClick={() => { setCtlNote(null); setControls(true); }}>Demo steps</button>
@@ -148,7 +178,7 @@ export default function PhoneDemo({ id }: { id: string }) {
       </header>
       {banner && <p className="dp-banner" role="status">{banner}</p>}
 
-      <div className="dp-body">
+      <div className="dp-body" role="log" aria-label={thread === "group" ? "Group chat" : "Private texts from the assistant"}>
         {list.length === 0 && <p className="phone-empty">{thread === "dm" ? "Private texts from the assistant land here." : ""}</p>}
         {list.map((m) => {
           if (!m.sender_id && / was added to the chat$/.test(m.text)) return <p key={m.id} className="im-system">{m.text}</p>;

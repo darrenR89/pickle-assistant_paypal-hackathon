@@ -8,6 +8,7 @@ import { newId, newToken, one, q } from "@/lib/db";
 import {
   type Game,
   type RosterEntry,
+  cancelRule,
   gameUrl,
   getGame,
   holdCents,
@@ -18,14 +19,16 @@ import {
   logEvent,
   money,
   openGameForGroup,
+  payoutUnderway,
   personById,
   roster,
   shortWhen,
   whenLabel,
 } from "@/lib/games";
-import { captureAuthorization, refundCapture, voidAuthorization } from "@/lib/paypal";
+import { capturedCents, captureAuthorization, isTerminalPayPalError, refundCapture, voidAuthorization } from "@/lib/paypal";
 import { deliverToGroup, deliverToPerson } from "@/lib/blooio";
 import { payOrganizer } from "./payout";
+import { dropSavedMethods } from "./delayed";
 import { parseGameRequest, zonedTime } from "./parse";
 import { type Decision, type GroupContext, buildContext, resolveMember, understand, worthReading } from "./agent";
 import { KIND_LABEL, perCourt } from "./details";
@@ -76,8 +79,17 @@ export async function handleGroupMessage(groupId: string, senderId: string, text
   const open = await openGameForGroup(groupId);
 
   if (MENTION.test(text)) {
-    if (open && !/\b(new game|another game)\b/i.test(text) && !/\$|\d+\s*spots/i.test(text)) {
-      await postGroup(groupId, `${(await rosterLine(open))} Tap to play:`, open.slug);
+    if (open && !/\b(new game|another game)\b/i.test(text)) {
+      // One game at a time unless they ask for another: a repeated or edited setup message must
+      // not quietly start a second game that the chat then loses track of.
+      const looksLikeSetup = /\$|\d+\s*spots/i.test(text);
+      await postGroup(
+        groupId,
+        looksLikeSetup
+          ? `There's already a game open for ${whenLabel(open.starts_at)}. To change it, use the organizer page. To add a second one, say "new game" with the details.`
+          : `${await rosterLine(open)} Tap to play:`,
+        open.slug,
+      );
       return;
     }
     await createGame(groupId, senderId, text);
@@ -396,7 +408,7 @@ async function announce(game: Game) {
   }
   await postGroup(
     game.group_id,
-    `${what}${whenLabel(game.starts_at)} · ${where} · ${game.spots} spots · ${money(game.share_cents)} each, free cancel until ${whenLabel(game.cancel_by)}.${tail}`,
+    `${what}${whenLabel(game.starts_at)} · ${where} · ${game.spots} spots · ${money(game.share_cents)} each, ${cancelRule(game)}.${tail}`,
     game.slug,
   );
 }
@@ -463,11 +475,13 @@ export async function declineInvite(game: Game, personId: string) {
 
 /** Called once a player's hold is approved. */
 export async function playerJoined(game: Game, personId: string, authorizationId: string, holdCentsValue: number, orderId: string) {
+  // Approving again after a refused later hold: they never left, so the group hears nothing new.
+  const retried = await one("select 1 from spots where game_id = $1 and person_id = $2 and status = 'in' and hold_status = 'failed'", [game.id, personId]);
   await q(
     `insert into spots (id, game_id, person_id, status, order_id, authorization_id, hold_cents, hold_status, authorized_at)
      values ($1, $2, $3, 'in', $4, $5, $6, 'held', now())
      on conflict (game_id, person_id) do update set status = 'in', order_id = $4, authorization_id = $5,
-       hold_cents = $6, hold_status = 'held', late_cancel = null, authorized_at = now(), updated_at = now()`,
+       hold_cents = $6, hold_status = 'held', late_cancel = null, authorized_at = now(), hold_failed_at = null, updated_at = now()`,
     [newId("spot"), game.id, personId, orderId, authorizationId, holdCentsValue],
   );
   await q("delete from intents where game_id = $1 and person_id = $2", [game.id, personId]);
@@ -480,7 +494,7 @@ export async function playerJoined(game: Game, personId: string, authorizationId
     await playerOut(game, giver, { replaced: true });
   }
 
-  await postGroup(game.group_id, await rosterLine(game));
+  if (!retried) await postGroup(game.group_id, await rosterLine(game));
   // First private text to someone who opted in: say who we are before anything else.
   const p = await one<{ name: string; texts_opt_in: boolean; texts_welcomed: boolean }>(
     "select name, texts_opt_in, texts_welcomed from people where id = $1",
@@ -494,7 +508,9 @@ export async function playerJoined(game: Game, personId: string, authorizationId
     game.group_id,
     personId,
     `You're in for ${whenLabel(game.starts_at)}. ${money(holdCentsValue)} is on hold; your share is ${money(game.share_cents)}. ` +
-      `Nothing is charged until after the game, and cancelling before ${whenLabel(game.cancel_by)} releases it.`,
+      (isBeforeCancelBy(game)
+        ? `Nothing is charged until after the game, and cancelling before ${whenLabel(game.cancel_by)} releases it.`
+        : `Nothing is charged until after the game. Free cancel has ended, so if you drop out the organizer decides whether your share is charged.`),
     game.slug,
   );
 }
@@ -515,9 +531,11 @@ export async function playerOut(game: Game, personId: string, opts: { replaced?:
 
   if (opts.replaced || isBeforeCancelBy(game) || mine.hold_status !== "held") {
     if (mine.authorization_id && mine.hold_status === "held") {
-      await voidAuthorization(mine.authorization_id);
+      await releaseHold(mine.authorization_id);
     }
     await q("update spots set status = 'out', hold_status = case when hold_status = 'held' then 'voided' else hold_status end, updated_at = now() where id = $1", [mine.id]);
+    // A saved payment method (delayed hold) is forgotten when its player leaves.
+    await dropSavedMethods(game.id, personId);
     await logEvent(game.id, personId, "out", { late: false, replaced: !!opts.replaced });
     if (opts.replaced) return postDm(game.group_id, personId, `Your spot was claimed, so your ${money(mine.hold_cents ?? 0)} hold is released. No charge.`);
     await postGroup(game.group_id, `${person?.name} is out. ${await rosterLine(game)}`);
@@ -548,7 +566,7 @@ export async function playerOut(game: Game, personId: string, opts: { replaced?:
 }
 
 /** A spot opened: tag the first person on the waitlist (first to approve the hold gets it). */
-async function tagWaitlist(game: Game) {
+export async function tagWaitlist(game: Game) {
   const next = await one<{ person_id: string; name: string }>(
     `select i.person_id, p.name from intents i join people p on p.id = i.person_id
      where i.game_id = $1 and i.kind = 'waitlist' order by i.said_at limit 1`,
@@ -562,14 +580,28 @@ export async function resolveLateCancel(game: Game, spotId: string, decision: "c
   const entries = await roster(game.id);
   const spot = entries.find((e) => e.id === spotId && e.late_cancel === "pending");
   if (!spot || !spot.authorization_id) return;
-  if (decision === "charge") {
-    const capture = await captureAuthorization(spot.authorization_id, game.share_cents);
-    await q("update spots set late_cancel = 'charged', hold_status = 'captured', captured_cents = $2, capture_id = $3, updated_at = now() where id = $1", [spot.id, game.share_cents, capture.id]);
-    await postDm(game.group_id, spot.person_id, `Your ${money(game.share_cents)} share for ${whenLabel(game.starts_at)} was charged for the late cancel.`);
-  } else {
-    await voidAuthorization(spot.authorization_id);
-    await q("update spots set late_cancel = 'covered', hold_status = 'voided', updated_at = now() where id = $1", [spot.id]);
-    await postDm(game.group_id, spot.person_id, `Good news: the organizer covered your late cancel. Your hold is released.`);
+  // Claim the decision first so a double tap can't charge or message twice.
+  const claimed = await q("update spots set late_cancel = $2, updated_at = now() where id = $1 and late_cancel = 'pending' returning id", [
+    spot.id,
+    decision === "charge" ? "charged" : "covered",
+  ]);
+  if (!claimed.length) return;
+  try {
+    const charged = decision === "charge" ? await chargeHold(game, spot, Math.min(game.share_cents, spot.hold_cents ?? 0)) : null;
+    if (charged) {
+      await q("update spots set hold_status = 'captured', captured_cents = $2, capture_id = $3, updated_at = now() where id = $1", [spot.id, charged.cents, charged.id]);
+      await postDm(game.group_id, spot.person_id, `Your ${money(charged.cents)} share for ${whenLabel(game.starts_at)} was charged for the late cancel.`);
+    } else if (decision === "charge") {
+      // PayPal couldn't take it (chargeHold told the organizer), so there is nothing left to decide.
+      await q("update spots set late_cancel = 'covered', updated_at = now() where id = $1", [spot.id]);
+    } else {
+      await releaseHold(spot.authorization_id);
+      await q("update spots set hold_status = 'voided', updated_at = now() where id = $1", [spot.id]);
+      await postDm(game.group_id, spot.person_id, `Good news: the organizer covered your late cancel. Your hold is released.`);
+    }
+  } catch (err) {
+    await q("update spots set late_cancel = 'pending' where id = $1", [spot.id]);
+    throw err;
   }
   await logEvent(game.id, spot.person_id, `late_cancel_${decision}`);
 }
@@ -609,16 +641,12 @@ export type TermsChange = {
 
 export async function updateTerms(game: Game, change: TermsChange) {
   const entries = await roster(game.id);
-  const playersHolding = entries.some((e) => e.hold_status === "held");
+  // Someone who saved their PayPal for a later hold agreed to these terms just the same.
+  const playersHolding = entries.some((e) => e.hold_status === "held" || e.hold_status === "saved");
   const draft = game.status === "draft";
   const oldStart = new Date(game.starts_at);
   const startsAt = change.startsAt ?? oldStart;
   const moved = startsAt.getTime() - oldStart.getTime();
-  if (moved) {
-    // Moving the game moves its end too. Free cancel moves with it, but never earlier for people already in.
-    const endsAt = game.ends_at ? new Date(new Date(game.ends_at).getTime() + moved) : null;
-    await q("update games set starts_at = $2, ends_at = $3, gameday_reminder_sent = false where id = $1", [game.id, startsAt, endsAt]);
-  }
   const shiftedCancel = new Date(new Date(game.cancel_by).getTime() + (moved > 0 || !playersHolding ? moved : 0));
   const next = {
     cancelBy: change.cancelBy ?? (draft ? new Date(startsAt.getTime() - CANCEL_BY_HOURS * 3600_000) : shiftedCancel),
@@ -635,6 +663,12 @@ export async function updateTerms(game: Game, change: TermsChange) {
   }
   const share = shareFor(next.totalCents, next.spots);
   if (playersHolding && share > game.share_cents) throw new Error("That would raise each share. Add spots only if the price drops too.");
+  // Every check has passed, so save. (Saving the new time before the checks could leave an edit half-applied.)
+  if (moved) {
+    // Moving the game moves its end too. Free cancel moves with it, but never earlier for people already in.
+    const endsAt = game.ends_at ? new Date(new Date(game.ends_at).getTime() + moved) : null;
+    await q("update games set starts_at = $2, ends_at = $3, gameday_reminder_sent = false where id = $1", [game.id, startsAt, endsAt]);
+  }
   await q(
     "update games set cancel_by = $2, cap_cents = $3, total_cents = $4, spots = $5, share_cents = $6 where id = $1",
     [game.id, next.cancelBy, next.capCents, next.totalCents, next.spots, share],
@@ -693,10 +727,14 @@ export type GapChoice = "split" | "cover";
  */
 export async function settleGame(game: Game, opts: { gap?: GapChoice } = {}) {
   // Claim the game so a scheduled run and the organizer's button can't both settle it.
-  const claimed = await q("update games set status = 'settling' where id = $1 and status = 'open' returning id", [game.id]);
+  const choice = await stickyChoice(game, opts.gap ?? "split", ["split", "cover"]);
+  const claimed = await q(
+    "update games set status = 'settling', status_changed_at = now(), closing_choice = $2 where id = $1 and status = 'open' returning id",
+    [game.id, choice],
+  );
   if (!claimed.length) return;
   try {
-    await settleClaimed(game, opts.gap ?? "split");
+    await settleClaimed(game, choice);
   } catch (err) {
     // Captures already done are recorded per player; a retry continues with the rest.
     await q("update games set status = 'open' where id = $1 and status = 'settling'", [game.id]);
@@ -712,11 +750,16 @@ export function shareFor(totalCents: number, spots: number) {
 }
 
 /** What settling would charge each player, for the organizer's choice screen and for settle itself. */
-export function shortfall(game: Pick<Game, "total_cents" | "share_cents" | "cap_cents" | "spots">, playingCount: number) {
-  // The gap is the shares of empty spots. Cents lost to rounding the share down are the organizer's,
-  // so a full game never has a gap. (min() keeps older games, whose shares were rounded up, unchanged.)
+export function shortfall(
+  game: Pick<Game, "total_cents" | "share_cents" | "cap_cents" | "spots">,
+  playingCount: number,
+  /** Empty spots someone already paid for: late cancels the organizer charged. */
+  paidEmptySpots = 0,
+) {
+  // The gap is the shares of empty spots nobody paid for. Cents lost to rounding the share down are
+  // the organizer's, so a full game never has a gap. (min() keeps older games, whose shares were rounded up, unchanged.)
   const sharesTotal = Math.min(game.total_cents, game.spots * game.share_cents);
-  const gap = Math.max(0, sharesTotal - playingCount * game.share_cents);
+  const gap = Math.max(0, sharesTotal - (playingCount + paidEmptySpots) * game.share_cents);
   // Rounded down: players never pay more than an exact split; the organizer absorbs the leftover cents.
   const extraEach = playingCount ? Math.min(game.cap_cents, Math.floor(gap / playingCount)) : 0;
   return { gap, extraEach };
@@ -727,13 +770,15 @@ async function settleClaimed(game: Game, choice: GapChoice) {
   const playing = inPlayers(entries);
   // Only players still holding are charged now; anyone captured on an earlier attempt is already done.
   const payers = playing.filter((e) => e.person_id !== game.organizer_id && e.hold_status === "held");
-  const { gap, extraEach: splitEach } = shortfall(game, playing.length);
+  const { gap, extraEach: splitEach } = shortfall(game, playing.length, chargedLateCancels(entries));
   const extraEach = choice === "cover" ? 0 : splitEach;
 
   for (const p of payers) {
-    const amount = Math.min(game.share_cents + extraEach, p.hold_cents ?? 0);
-    const capture = await captureAuthorization(p.authorization_id!, amount);
-    await q("update spots set hold_status = 'captured', captured_cents = $2, capture_id = $3, updated_at = now() where id = $1", [p.id, amount, capture.id]);
+    const charged = await chargeHold(game, p, Math.min(game.share_cents + extraEach, p.hold_cents ?? 0));
+    // A hold PayPal can no longer take is skipped (the organizer is told), so one bad hold can't block everyone else.
+    if (!charged) continue;
+    const amount = charged.cents;
+    await q("update spots set hold_status = 'captured', captured_cents = $2, capture_id = $3, updated_at = now() where id = $1", [p.id, amount, charged.id]);
     await postDm(
       game.group_id,
       p.person_id,
@@ -743,9 +788,10 @@ async function settleClaimed(game: Game, choice: GapChoice) {
   }
   // Late cancels nobody decided on are covered by default.
   for (const e of entries.filter((x) => x.late_cancel === "pending" && x.authorization_id)) {
-    await voidAuthorization(e.authorization_id!);
+    await releaseHold(e.authorization_id!);
     await q("update spots set late_cancel = 'covered', hold_status = 'voided' where id = $1", [e.id]);
   }
+  await dropSavedMethods(game.id);
   const collected = await collectedCents(game.id, game.organizer_id);
 
   await q("update games set status = 'settled', close_choice = $2 where id = $1", [game.id, gap ? (choice === "cover" ? "covered" : "split") : null]);
@@ -785,19 +831,24 @@ export async function cancelGame(game: Game, opts: { charge?: boolean } = {}) {
     return;
   }
   if (opts.charge && isBeforeCancelBy(game)) throw new Error("Free cancel hasn't ended, so calling off releases everyone's hold.");
-  const claimed = await q("update games set status = 'cancelling' where id = $1 and status = 'open' returning id", [game.id]);
+  const charge = (await stickyChoice(game, opts.charge ? "charge" : "release", ["charge", "release"])) === "charge";
+  const claimed = await q(
+    "update games set status = 'cancelling', status_changed_at = now(), closing_choice = $2 where id = $1 and status = 'open' returning id",
+    [game.id, charge ? "charge" : "release"],
+  );
   if (!claimed.length) return;
   try {
     const entries = await roster(game.id);
     for (const e of entries.filter((x) => x.hold_status === "held" && x.authorization_id)) {
-      const owes = opts.charge && e.person_id !== game.organizer_id && (e.status === "in" || e.late_cancel === "pending");
+      const owes = charge && e.person_id !== game.organizer_id && (e.status === "in" || e.late_cancel === "pending");
       if (owes) {
-        const amount = Math.min(game.share_cents, e.hold_cents ?? 0);
-        const capture = await captureAuthorization(e.authorization_id!, amount);
+        const charged = await chargeHold(game, e, Math.min(game.share_cents, e.hold_cents ?? 0));
+        if (!charged) continue;
+        const amount = charged.cents;
         await q(
           `update spots set hold_status = 'captured', captured_cents = $2, capture_id = $3,
              late_cancel = case when late_cancel = 'pending' then 'charged' else late_cancel end, updated_at = now() where id = $1`,
-          [e.id, amount, capture.id],
+          [e.id, amount, charged.id],
         );
         await postDm(
           game.group_id,
@@ -806,25 +857,29 @@ export async function cancelGame(game: Game, opts: { charge?: boolean } = {}) {
         );
         continue;
       }
-      await voidAuthorization(e.authorization_id!);
+      await releaseHold(e.authorization_id!);
       await q("update spots set hold_status = 'voided', late_cancel = case when late_cancel = 'pending' then 'covered' else late_cancel end where id = $1", [e.id]);
       if (e.person_id !== game.organizer_id) {
         await postDm(game.group_id, e.person_id, `${whenLabel(game.starts_at)} is cancelled. Your hold is released.`);
       }
+    }
+    // Players whose hold was still to come: nothing to release, just forget the saved PayPal.
+    for (const personId of await dropSavedMethods(game.id)) {
+      await postDm(game.group_id, personId, `${whenLabel(game.starts_at)} is cancelled. No hold had been placed, and your saved PayPal has been removed.`, undefined, { always: true });
     }
   } catch (err) {
     // Whatever was captured or released is recorded per player; a retry continues with the rest.
     await q("update games set status = 'open' where id = $1 and status = 'cancelling'", [game.id]);
     throw err;
   }
-  await q("update games set status = 'cancelled', close_choice = $2 where id = $1", [game.id, opts.charge ? "charged" : "released"]);
-  await logEvent(game.id, game.organizer_id, "cancelled", { charged: !!opts.charge });
+  await q("update games set status = 'cancelled', close_choice = $2 where id = $1", [game.id, charge ? "charged" : "released"]);
+  await logEvent(game.id, game.organizer_id, "cancelled", { charged: charge });
   // The group never hears about money: only that the game is off.
   await postGroup(
     game.group_id,
-    `${whenLabel(game.starts_at)} at ${game.place} is cancelled.` + (opts.charge ? "" : " All holds are released."),
+    `${whenLabel(game.starts_at)} at ${game.place} is cancelled.` + (charge ? "" : " All holds are released."),
   );
-  if (opts.charge) {
+  if (charge) {
     const collected = await collectedCents(game.id, game.organizer_id);
     await postDm(
       game.group_id,
@@ -844,6 +899,8 @@ export async function requestRefund(game: Game, personId: string) {
   const spot = (await roster(game.id)).find((e) => e.person_id === personId);
   const owed = spot ? (spot.captured_cents ?? 0) - spot.refunded_cents : 0;
   if (!spot || spot.hold_status !== "captured" || owed <= 0) throw new Error("There's no charge to refund.");
+  // Already asked and waiting on the organizer: don't message them again for every tap.
+  if (await one("select 1 from intents where game_id = $1 and person_id = $2 and kind = 'refund'", [game.id, personId])) return;
   await q(
     `insert into intents (game_id, person_id, kind) values ($1, $2, 'refund')
      on conflict (game_id, person_id) do update set kind = 'refund', said_at = now()`,
@@ -853,7 +910,9 @@ export async function requestRefund(game: Game, personId: string) {
   await postDm(
     game.group_id,
     game.organizer_id,
-    `${spot.name} says they did show up for ${whenLabel(game.starts_at)}. Refund their ${money(owed)}?`,
+    payoutUnderway(game.payout_status)
+      ? `${spot.name} says they did show up for ${whenLabel(game.starts_at)}. You've already been paid back for this game, so if you agree, send them ${money(owed)} yourself, then tap Keep it to clear the request.`
+      : `${spot.name} says they did show up for ${whenLabel(game.starts_at)}. Refund their ${money(owed)}?`,
     `${game.slug}?o=${game.organizer_token}`,
     { always: true },
   );
@@ -865,6 +924,8 @@ export async function refundSpot(game: Game, spotId: string) {
   const owed = spot ? (spot.captured_cents ?? 0) - spot.refunded_cents : 0;
   if (!spot || spot.hold_status !== "captured" || owed <= 0) throw new Error("There's nothing left to refund.");
   if (!spot.capture_id) throw new Error("This charge was made before refunds were tracked, so it can't be refunded here.");
+  // Once the organizer has been paid, a refund here would come out of the app's own balance.
+  if (payoutUnderway(game.payout_status)) throw new Error(`You've already been paid back for this game, so send ${spot.name} ${money(owed)} yourself.`);
   // Claim the refund first so a double tap can't send two.
   const claimed = await q("update spots set refunded_cents = refunded_cents + $2, updated_at = now() where id = $1 and refunded_cents = $3 returning id", [
     spot.id,
@@ -891,6 +952,66 @@ export async function declineRefund(game: Game, personId: string) {
 }
 
 // ---------- helpers ----------
+
+/** Late cancels the organizer charged: their empty spots are already paid for. */
+export function chargedLateCancels(entries: Array<Pick<RosterEntry, "late_cancel" | "hold_status">>) {
+  return entries.filter((e) => e.late_cancel === "charged" && e.hold_status === "captured").length;
+}
+
+/**
+ * Charge a hold. Returns what PayPal took, or null when PayPal says this hold can never be charged
+ * (expired, already released, declined): the spot is marked, the organizer is told privately, and
+ * the caller carries on with everyone else. Anything that might work on a retry still throws.
+ */
+async function chargeHold(game: Game, spot: RosterEntry, amountCents: number) {
+  try {
+    const capture = await captureAuthorization(spot.authorization_id!, amountCents);
+    return { id: capture.id, cents: capturedCents(capture, amountCents) };
+  } catch (err) {
+    if (!isTerminalPayPalError(err)) throw err;
+    // Don't leave money held that we will never charge. Best effort: an expired hold is already gone.
+    await releaseHold(spot.authorization_id!).catch((e) => console.error("couldn't release an unchargeable hold", spot.id, e));
+    await q(
+      `update spots set hold_status = 'voided', late_cancel = case when late_cancel = 'pending' then 'covered' else late_cancel end, updated_at = now()
+       where id = $1 and hold_status = 'held'`,
+      [spot.id],
+    );
+    await logEvent(game.id, spot.person_id, "capture_failed", { amountCents });
+    await postDm(
+      game.group_id,
+      game.organizer_id,
+      `PayPal couldn't charge ${spot.name} for ${whenLabel(game.starts_at)} (their hold expired or was declined), so their share wasn't collected.`,
+      `${game.slug}?o=${game.organizer_token}`,
+      { always: true },
+    );
+    return null;
+  }
+}
+
+/** Release a hold. One PayPal says is already gone (expired, released, used) counts as released. */
+async function releaseHold(authorizationId: string) {
+  try {
+    await voidAuthorization(authorizationId);
+  } catch (err) {
+    if (!isTerminalPayPalError(err)) throw err;
+    console.warn("hold was already gone at PayPal", authorizationId);
+  }
+}
+
+/**
+ * The choice to close a game with. If an earlier attempt already charged someone, finish with that
+ * attempt's choice, so everyone in one game is charged under the same rule.
+ */
+async function stickyChoice<T extends string>(game: Game, wanted: T, family: readonly T[]): Promise<T> {
+  const row = await one<{ closing_choice: string | null; started: boolean }>(
+    `select g.closing_choice,
+       exists (select 1 from spots s where s.game_id = g.id and s.hold_status = 'captured' and s.status = 'in') as started
+     from games g where g.id = $1`,
+    [game.id],
+  );
+  const prior = family.find((c) => c === row?.closing_choice);
+  return row?.started && prior ? prior : wanted;
+}
 
 export async function rosterLine(game: Game) {
   const playing = inPlayers(await roster(game.id));

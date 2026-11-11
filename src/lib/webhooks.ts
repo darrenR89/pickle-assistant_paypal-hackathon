@@ -46,6 +46,8 @@ export async function handleWebhookEvent(event: Event) {
         await logEvent(spot.game_id, spot.person_id, "capture_confirmed", { captureId: r.id });
         return;
       }
+      // Nothing was collected after all, so it must not count toward the organizer's payout.
+      await q("update spots set hold_status = 'voided', captured_cents = 0, updated_at = now() where id = $1 and hold_status = 'captured'", [spot.id]);
       await logEvent(spot.game_id, spot.person_id, "capture_failed", { captureId: r.id, status: r.status });
       const game = await gameById(spot.game_id);
       if (game) await postDm(game.group_id, game.organizer_id, `PayPal declined the charge for ${spot.name}. Their share wasn't collected.`, orgLink(game), { always: true });

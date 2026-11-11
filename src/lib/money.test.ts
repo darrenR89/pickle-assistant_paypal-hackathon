@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { holdCents, money } from "@/lib/games";
-import { payoutReceiver } from "@/lib/paypal";
+import { cancelRule, gameDayLine, holdCents, money, payoutUnderway } from "@/lib/games";
+import { PayPalError, capturedCents, isTerminalPayPalError, payoutReceiver, verifyBody } from "@/lib/paypal";
 import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
-import { shareFor, shortfall } from "@/bot/assistant";
+import { chargedLateCancels, shareFor, shortfall } from "@/bot/assistant";
 
 describe("holdCents", () => {
   it("holds the share plus the short-roster cap", () => {
@@ -96,5 +96,99 @@ describe("shareFor", () => {
   it("is free for a free game or no spots", () => {
     assert.equal(shareFor(0, 8), 0);
     assert.equal(shareFor(6400, 0), 0);
+  });
+});
+
+describe("shortfall with a charged late cancel", () => {
+  const game = { total_cents: 6400, share_cents: 800, cap_cents: 200, spots: 8 };
+
+  it("doesn't bill the players for an empty spot the late canceller already paid for", () => {
+    // 7 play, 1 cancelled late and was charged $8: every share is paid, so nobody owes extra.
+    assert.deepEqual(shortfall(game, 7, 1), { gap: 0, extraEach: 0 });
+  });
+  it("still splits the spots nobody paid for", () => {
+    // 6 play, 1 charged late cancel, 1 spot never filled: only that last $8 is split.
+    assert.deepEqual(shortfall(game, 6, 1), { gap: 800, extraEach: 133 });
+  });
+  it("never goes negative when a charged spot was filled again", () => {
+    assert.deepEqual(shortfall(game, 8, 1), { gap: 0, extraEach: 0 });
+  });
+  it("never collects more than the court cost less the organizer's share", () => {
+    for (let playing = 1; playing <= 8; playing++) {
+      for (let late = 0; playing + late <= 8; late++) {
+        const { extraEach } = shortfall(game, playing, late);
+        const collected = (playing - 1) * (game.share_cents + extraEach) + late * game.share_cents;
+        assert.ok(collected <= game.total_cents - game.share_cents, `${playing} playing, ${late} late: ${collected}`);
+      }
+    }
+  });
+});
+
+describe("chargedLateCancels", () => {
+  it("counts only late cancels whose charge went through", () => {
+    assert.equal(
+      chargedLateCancels([
+        { late_cancel: "charged", hold_status: "captured" },
+        { late_cancel: "charged", hold_status: "voided" }, // PayPal couldn't take it
+        { late_cancel: "covered", hold_status: "voided" },
+        { late_cancel: "pending", hold_status: "held" },
+        { late_cancel: null, hold_status: "captured" },
+      ]),
+      1,
+    );
+  });
+});
+
+describe("capturedCents", () => {
+  it("uses the amount PayPal reports", () => assert.equal(capturedCents({ amount: { currency_code: "USD", value: "9.14" } }, 1000), 914));
+  it("falls back to what was asked when PayPal gives no amount (simulated holds)", () => {
+    assert.equal(capturedCents({}, 800), 800);
+    assert.equal(capturedCents({ amount: { currency_code: "USD", value: "abc" } }, 800), 800);
+  });
+});
+
+describe("isTerminalPayPalError", () => {
+  it("treats a gone or unusable hold as final", () => {
+    assert.equal(isTerminalPayPalError(new PayPalError("x", 422, {})), true);
+    assert.equal(isTerminalPayPalError(new PayPalError("x", 404, {})), true);
+  });
+  it("leaves everything else to be retried", () => {
+    for (const status of [401, 403, 429, 500, 503]) assert.equal(isTerminalPayPalError(new PayPalError("x", status, {})), false, String(status));
+    assert.equal(isTerminalPayPalError(new Error("timeout")), false);
+  });
+});
+
+describe("verifyBody", () => {
+  it("passes the event through byte for byte", () => {
+    const raw = '{"id":"WH-1","resource":{"amount":{"value":"8.00"},"n":1.0,"s":"caf\\u00e9"}}';
+    const body = verifyBody({ webhook_id: "W1", auth_algo: "SHA256withRSA" }, raw);
+    assert.ok(body.endsWith(`,"webhook_event":${raw}}`));
+    assert.equal(JSON.parse(body).webhook_id, "W1");
+    assert.equal(JSON.parse(body).webhook_event.id, "WH-1");
+  });
+});
+
+describe("cancelRule", () => {
+  const cancelBy = new Date("2026-11-12T02:00:00Z"); // Wed 6pm Pacific
+  it("names the deadline while it's ahead", () => assert.equal(cancelRule({ cancel_by: cancelBy }, new Date("2026-11-11T20:00:00Z")), "free cancel until Wed 6:00pm"));
+  it("says so once it has passed", () => assert.equal(cancelRule({ cancel_by: cancelBy }, new Date("2026-11-12T20:00:00Z")), "free cancel has ended"));
+});
+
+describe("payoutUnderway", () => {
+  it("is true once money has left or is leaving", () => {
+    for (const s of ["sending", "pending", "sent", "unclaimed"] as const) assert.equal(payoutUnderway(s), true, s);
+  });
+  it("is false before a payout, after a failed one, or when there was nothing to pay", () => {
+    for (const s of [null, "failed", "none"] as const) assert.equal(payoutUnderway(s), false, String(s));
+  });
+});
+
+describe("gameDayLine", () => {
+  const game = { starts_at: new Date("2026-11-13T02:00:00Z"), place: "Riverside" };
+  const before = (mins: number) => new Date(game.starts_at.getTime() - mins * 60_000);
+  it("says 2 hours when it is", () => assert.match(gameDayLine(game, before(115)), /^Game in 2 hours: Thu 6:00pm at Riverside/));
+  it("doesn't claim 2 hours for a game set up later than that", () => {
+    assert.match(gameDayLine(game, before(60)), /^Game in about an hour/);
+    assert.match(gameDayLine(game, before(20)), /^Game starting soon/);
   });
 });

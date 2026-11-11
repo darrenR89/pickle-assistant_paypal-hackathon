@@ -15,6 +15,9 @@ services:
         value: "22"
       - key: PAYPAL_ENV
         value: sandbox
+      # "on" saves the player's PayPal for games more than 3 days away and holds 2 days before.
+      - key: DELAYED_HOLDS
+        value: "off"
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET

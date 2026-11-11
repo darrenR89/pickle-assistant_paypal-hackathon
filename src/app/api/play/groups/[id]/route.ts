@@ -15,7 +15,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const viewer = new URL(req.url).searchParams.get("viewer");
     const group = await one<{ id: string; name: string; playground: boolean }>("select id, name, playground from groups where id = $1", [id]);
-    if (!group) return NextResponse.json({ error: "Unknown group" }, { status: 404 });
+    // Demo groups only. This answers with every member's link token and the viewer's private
+    // messages, which is the point of the simulator and must never be readable for a real group.
+    if (!group?.playground) return NextResponse.json({ error: "Unknown group" }, { status: 404 });
 
     const people = await groupPeople(id);
     const messages = await q<Msg>(

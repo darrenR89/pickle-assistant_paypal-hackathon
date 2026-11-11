@@ -68,16 +68,17 @@ export default function Playground({ groupId }: { groupId: string }) {
   const counts = useRef({ group: 0, dm: 0 });
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/play/groups/${groupId}?viewer=${viewerId ?? ""}`, { cache: "no-store" });
-    const body = await res.json();
-    if (!res.ok) {
-      if (res.status === 404) {
-        try {
-          localStorage.removeItem("playGroup");
-        } catch {}
-      }
+    // A dropped request or a server hiccup is retried on the next poll; only a missing group is final.
+    const res = await fetch(`/api/play/groups/${groupId}?viewer=${viewerId ?? ""}`, { cache: "no-store" }).catch(() => null);
+    if (!res) return;
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 404) {
+      try {
+        localStorage.removeItem("playGroup");
+      } catch {}
       return setError(body.error ?? "Couldn't load the chat");
     }
+    if (!res.ok) return;
     setData(body);
     setViewerId((v) => v ?? body.people[0]?.id ?? null);
   }, [groupId, viewerId]);
@@ -127,21 +128,31 @@ export default function Playground({ groupId }: { groupId: string }) {
 
   async function sendAs(senderId: string, body: string) {
     setSending(true);
-    const res = await fetch(`/api/play/groups/${groupId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId, text: body }),
-    });
-    setSending(false);
-    if (!res.ok) return setNote((await res.json()).error ?? "Couldn't send");
+    try {
+      const res = await fetch(`/api/play/groups/${groupId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId, text: body }),
+      });
+      if (!res.ok) {
+        setNote((await res.json().catch(() => ({}))).error ?? "Couldn't send");
+        return false;
+      }
+    } catch {
+      setNote("Couldn't reach the server. Try again.");
+      return false;
+    } finally {
+      setSending(false);
+    }
     load();
+    return true;
   }
 
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
     if (!text.trim() || sending) return;
-    await sendAs(viewerId!, text);
-    setText("");
+    // Keep the words in the box when the message didn't go out.
+    if (await sendAs(viewerId!, text)) setText("");
   }
 
   const organizerId = data.game?.organizerId ?? data.people[0]?.id;
@@ -160,7 +171,11 @@ export default function Playground({ groupId }: { groupId: string }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    });
+    }).catch(() => null);
+    if (!res) {
+      setNote("Couldn't reach the server. Try again.");
+      return {};
+    }
     const r = await res.json().catch(() => ({}));
     await load();
     setNote(res.ok ? (done ? done(r) : "Done.") : (r.error ?? "That didn't work"));
@@ -210,7 +225,8 @@ export default function Playground({ groupId }: { groupId: string }) {
   }
 
   return (
-    <div className="sim">
+    <main className="sim">
+      <h1 className="sr-only">Pickleball assistant demo simulator</h1>
       <div className="sim-banner" role="note">
         <strong>Demo simulator.</strong> These chats are simulated so you can try the assistant without a real group. In real use it
         lives in your iMessage or WhatsApp group. The PayPal and Venmo holds are real sandbox transactions.
@@ -327,7 +343,7 @@ export default function Playground({ groupId }: { groupId: string }) {
             <span className="phone-title">{data.group.name}</span>
             <span className="phone-sub">{data.people.length} people + Assistant</span>
           </div>
-          <div className="phone-body">
+          <div className="phone-body" role="log" aria-label="Group messages">
             {groupMsgs.map((m) => bubble(m))}
             <div ref={groupEnd} />
           </div>
@@ -355,12 +371,12 @@ export default function Playground({ groupId }: { groupId: string }) {
             <span className="phone-title">Assistant</span>
             <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
           </div>
-          <div className="phone-body">
+          <div className="phone-body" role="log" aria-label="Private messages">
             {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="phone-empty">No private texts yet.</p>}
             <div ref={dmEnd} />
           </div>
         </section>
       </div>
-    </div>
+    </main>
   );
 }

@@ -8,6 +8,7 @@ A short map from each judging criterion to what you can try and the code behind 
 
 - **PayPal Orders v2 with intent AUTHORIZE.** Joining creates an order for the share plus a cap, then authorizes it: `createHoldOrder`, `authorizeOrder` in `src/lib/paypal.ts`; routes `src/app/api/paypal/orders/route.ts` and `src/app/api/paypal/orders/[id]/authorize/route.ts`.
 - **Release, renew, charge.** `voidAuthorization` (free cancel), `reauthorize` (after PayPal's 3-day honor period, scheduled in `src/workflows/tasks.ts`), `captureAuthorization` with a partial amount at settle-up: `settleGame` / `settleClaimed` in `src/bot/assistant.ts`.
+- **Recovers by itself.** A hold PayPal can no longer charge is skipped and the organizer is told, so one bad hold can't block a settle (`chargeHold` in `src/bot/assistant.ts`). A settle, call-off or payout cut off by a restart is finished by the next scheduled run with the choice it started with (`recoverGame` in `src/workflows/tasks.ts`).
 - **Safe to retry.** Every PayPal write (create order, authorize, capture, void, reauthorize) sends a `PayPal-Request-Id`. Settling claims the game row first so a scheduled run and the organizer's button can't both charge.
 - **Paying the organizer back.** After settle-up (or a called-off game where the court fee is lost), everything collected goes to the organizer's Venmo or PayPal in one Payout: `payOrganizer` in `src/bot/payout.ts`, `createPayout` in `src/lib/paypal.ts`. The batch id is tied to the game and address, so a retry can't pay twice.
 - **Refunds.** "I did show up" asks the organizer privately; one tap refunds the capture: `requestRefund` / `refundSpot` in `src/bot/assistant.ts`, `refundCapture` in `src/lib/paypal.ts`.
@@ -39,6 +40,15 @@ A short map from each judging criterion to what you can try and the code behind 
 - **Real:** Claude interpreting messages; the game pages; any hold you place with a PayPal sandbox account (authorize, capture, void against PayPal's sandbox API).
 - **Simulated:** the group chat itself (real iMessage delivery is next) and the other players' holds (ids start with `SIM-`, see `src/lib/sim.ts`).
 
+## Known limits
+
+- **Phone numbers aren't verified.** The game page recognises a returning player by the phone number they type. No code is texted to that phone yet, so someone who knows a player's number could drop them out of a game or ask for their refund. Organizer actions are not affected: those need the organizer's private link.
+- **Games up to 4 weeks ahead.** A PayPal hold lasts 29 days and can be renewed once, so a game further out is asked for a nearer date. Placing the hold later (approve now, hold a few days before the game) needs PayPal's vault and isn't built.
+- **Refunds after the organizer is paid.** Once the payout has gone out, a refund in the app would come from the app's own balance, so the app asks the organizer to pay the player back directly.
+- **The demo endpoints are open on purpose.** `/api/demo` and `/api/play` need no sign-in and hand out the simulated players' link tokens, so a judge can switch between them. They only answer for demo groups (`groups.playground`), are rate limited (`src/lib/rate.ts`), and never serve a real group's members or private messages.
+
 ## Not built yet
 
-Real iMessage/WhatsApp delivery, recurring games with regulars getting first pick.
+Real iMessage/WhatsApp delivery, recurring games with regulars getting first pick, phone number verification, games more than 4 weeks out.
+
+**Built, off by default, not yet run against the PayPal sandbox:** delayed holds (`DELAYED_HOLDS=on`). For a game more than 3 days away the player saves their PayPal at join (PayPal Vault), the scheduled job places the real hold 2 days before the start, and a refused hold gives the player a day to approve again before the spot opens up. See `src/bot/delayed.ts`.
