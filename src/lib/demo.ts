@@ -4,7 +4,9 @@
 
 import { one, q } from "./db";
 import { type Game, inPlayers, openGameForGroup, roster } from "./games";
-import { createPlaygroundGroup, groupPeople } from "./playground";
+import { DEMO_PLAYER, createPlaygroundGroup, groupPeople } from "./playground";
+import { addContact, sendblueNumber } from "./sendblue";
+import { normalizePhone } from "./phone";
 import { moveClock, runDue, simulatedJoin } from "./sim";
 import { handleGroupMessage, playerOut } from "@/bot/assistant";
 
@@ -14,7 +16,7 @@ const FRIENDS: Array<[string, string]> = [
   ["Priya", "count me in!"],
   ["Mei", "in 🙌"],
 ];
-const PLAYER_ROLE = "Jo";
+const PLAYER_ROLE = DEMO_PLAYER;
 const LATE_LINE = "ugh, something came up. I can't make it tonight, sorry!";
 
 export const SETUP_MESSAGE = "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
@@ -27,8 +29,8 @@ export async function createDemo() {
 }
 
 async function demoGroup(groupId: string) {
-  return one<{ id: string; playground: boolean; demo_viewer: string | null; demo_name: string | null }>(
-    "select id, playground, demo_viewer, demo_name from groups where id = $1",
+  return one<{ id: string; playground: boolean; demo_viewer: string | null; demo_name: string | null; demo_phone: string | null; demo_code: string | null }>(
+    "select id, playground, demo_viewer, demo_name, demo_phone, demo_code from groups where id = $1",
     [groupId],
   );
 }
@@ -69,6 +71,10 @@ export async function demoState(groupId: string) {
     organizer: { id: organizer.id, name: organizer.name, token: organizer.token },
     viewer: { id: viewer.id, name: viewer.name, token: viewer.token, role: viewer.id === organizer.id ? "organizer" : "player" },
     organizerToken: game?.organizer_token ?? null,
+    // Using the judge's own Messages app instead of the on-screen phone (Sendblue). Null when not set up.
+    texting: sendblueNumber()
+      ? { number: sendblueNumber(), code: g.demo_phone ? g.demo_code : null, linked: !!g.demo_phone && !g.demo_code && !!g.demo_name }
+      : null,
     game: gameInfo,
     // A PayPal sandbox test buyer (fake money) so judges can pay without their own developer account.
     buyer: process.env.DEMO_BUYER_EMAIL && process.env.DEMO_BUYER_PASSWORD ? { email: process.env.DEMO_BUYER_EMAIL, password: process.env.DEMO_BUYER_PASSWORD } : null,
@@ -77,6 +83,7 @@ export async function demoState(groupId: string) {
 
 export type DemoAction =
   | { action: "connect"; name?: string }
+  | { action: "text"; name?: string; phone?: string }
   | { action: "start" }
   | { action: "friends" }
   | { action: "player" }
@@ -105,6 +112,17 @@ export async function demoAct(groupId: string, a: DemoAction): Promise<{ ok: boo
       await q("update groups set demo_name = $2 where id = $1", [groupId, name]);
       await setViewer(organizer.id);
       return { ok: true, note: `${name}'s phone is connected.` };
+    }
+    case "text": {
+      if (!sendblueNumber()) return { ok: false, note: "Texting isn't set up on this server." };
+      const name = (a.name ?? "").trim().replace(/[^\p{L}' -]/gu, "").slice(0, 20);
+      const phone = normalizePhone(a.phone);
+      if (!name || !phone) return { ok: false, note: "Add your first name and phone number" };
+      const added = await addContact(phone, name);
+      if (!added.ok) return { ok: false, note: added.error ?? "Couldn't add your number." };
+      const code = String(1000 + Math.floor(Math.random() * 9000));
+      await q("update groups set demo_phone = $2, demo_code = $3, demo_phone_name = $4 where id = $1", [groupId, phone, code, name]);
+      return { ok: true, note: `Now text JOIN ${code} from that phone.` };
     }
     case "start": {
       if (game) return { ok: false, note: "There's already a game. Start over to make a new one." };

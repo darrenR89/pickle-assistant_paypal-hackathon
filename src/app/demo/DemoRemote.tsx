@@ -13,10 +13,15 @@ type State = {
   viewer: { name: string; role: "organizer" | "player" };
   game: { slug: string; status: string; spots: number; inCount: number; over: boolean; lateWaiting: boolean; playerHold: Hold } | null;
   buyer: { email: string; password: string } | null;
+  texting: { number: string; code: string | null; linked: boolean } | null;
 };
-type Action = "start" | "friends" | "player" | "organizer" | "late" | "after";
+type Action = "start" | "friends" | "player" | "organizer" | "late" | "after" | "text";
 
 const money = (c: number) => `$${(c / 100).toFixed(c % 100 ? 2 : 0)}`;
+const prettyPhone = (n: string) => {
+  const d = n.replace(/\D/g, "");
+  return d.length === 11 && d.startsWith("1") ? `(${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}` : n;
+};
 
 export default function DemoRemote() {
   const [id, setId] = useState<string | null>(null);
@@ -26,6 +31,8 @@ export default function DemoRemote() {
   const [note, setNote] = useState<string | null>(null);
   const [startErr, setStartErr] = useState<string | null>(null);
   const [done, setDone] = useState<Set<Action>>(new Set());
+  const [textName, setTextName] = useState("");
+  const [textPhone, setTextPhone] = useState("");
 
   async function fresh() {
     setStartErr(null);
@@ -67,12 +74,12 @@ export default function DemoRemote() {
     return () => clearInterval(t);
   }, [load]);
 
-  async function act(action: Action) {
+  async function act(action: Action, extra: Record<string, string> = {}) {
     if (!id) return;
     setBusy(action);
     setNote(null);
     try {
-      const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...extra }) });
       const body = await r.json().catch(() => ({}));
       setNote(body.note ?? (r.ok ? "Done." : "That didn’t work."));
       if (r.ok) setDone((d) => new Set(d).add(action));
@@ -94,11 +101,15 @@ export default function DemoRemote() {
   const g = state?.game;
   const hold = g?.playerHold;
   const connected = !!state?.connected;
+  const texting = state?.texting ?? null;
+  const byText = !!texting?.linked;
   const steps: Array<{ n: number; title: string; body: React.ReactNode; done: boolean; buttons?: Array<{ a: Action; label: string; primary?: boolean; disabled?: boolean }> }> = [
     {
       n: 1,
       title: "Set up the game from your phone",
-      body: "Tap the suggested message, or type it your own way. Claude reads it and posts the game to the group. Leave out the time or price and it asks you privately instead.",
+      body: byText
+        ? "Text the assistant from your Messages app, like the example it sent you, or type it your own way. Claude reads it and posts the game to the group here. Its replies, with real links, come back to your phone."
+        : "Tap the suggested message, or type it your own way. Claude reads it and posts the game to the group. Leave out the time or price and it asks you privately instead.",
       done: !!g,
       buttons: [{ a: "start", label: "Send it for me", disabled: !connected || !!g }],
     },
@@ -180,13 +191,46 @@ export default function DemoRemote() {
           <div className="dr-qr">{qr ? <img src={qr} alt="QR code that opens the demo on your phone" width={240} height={240} /> : <span className="dr-qr-blank" />}</div>
           {connected ? (
             <p className="dr-status on">
-              <span className="dr-pulse" aria-hidden="true" /> {state?.name}’s phone is connected
+              <span className="dr-pulse" aria-hidden="true" /> {state?.name}’s phone is connected{byText ? " by text" : ""}
               {state?.viewer.role === "player" ? ` · acting as ${state.viewer.name}` : ""}
             </p>
           ) : startErr ? (
             <p className="dr-status" role="alert">{startErr}</p>
           ) : (
             <p className="dr-status">Scan with your phone’s camera</p>
+          )}
+          {texting && !connected && (
+            <div className="dr-text">
+              {texting.code ? (
+                <>
+                  <p>
+                    Text <strong>JOIN {texting.code}</strong> to <strong>{prettyPhone(texting.number)}</strong> from the phone you added.
+                  </p>
+                  <a className="dr-btn p" href={`sms:${texting.number}?&body=${encodeURIComponent(`JOIN ${texting.code}`)}`}>Open Messages</a>
+                  <p className="dr-meta">Waiting for your text…</p>
+                </>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    act("text", { name: textName, phone: textPhone });
+                  }}
+                >
+                  <p>
+                    <strong>Or use your own Messages app.</strong> Text the assistant for real; replies with real links come back to your phone.
+                  </p>
+                  <label>
+                    First name
+                    <input value={textName} onChange={(e) => setTextName(e.target.value)} autoComplete="given-name" maxLength={20} required />
+                  </label>
+                  <label>
+                    Mobile number
+                    <input value={textPhone} onChange={(e) => setTextPhone(e.target.value)} type="tel" autoComplete="tel" inputMode="tel" required />
+                  </label>
+                  <button className="dr-btn" disabled={busy !== null}>{busy === "text" ? "Working…" : "Text me instead"}</button>
+                </form>
+              )}
+            </div>
           )}
           {g && (
             <p className="dr-meta">

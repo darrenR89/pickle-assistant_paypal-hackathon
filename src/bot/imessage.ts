@@ -4,9 +4,10 @@
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { Chat } from "chat";
 import { type BlooioMessagePayload, createBlooioAdapter } from "chat-adapter-blooio";
-import { newId, newToken, one, q } from "@/lib/db";
+import { newId, one, q } from "@/lib/db";
 import { type Inbound, readInbound, sendDirect } from "@/lib/blooio";
 import { handleGroupMessage } from "./assistant";
+import { personByPhone } from "./people";
 
 const globalForChat = globalThis as unknown as { blooioChat?: Chat };
 
@@ -42,18 +43,8 @@ export async function handleBlooioWebhook(req: Request, waitUntil: (task: Promis
   return c.webhooks.blooio(req, { waitUntil });
 }
 
-async function personFor(msg: Inbound) {
-  const existing = await one<{ id: string; texts_opt_in: boolean }>("select id, texts_opt_in from people where phone = $1", [msg.from]);
-  if (existing) return existing;
-  const name = (msg.name ?? msg.from).slice(0, 40);
-  return (await one<{ id: string; texts_opt_in: boolean }>(
-    "insert into people (id, name, phone, token) values ($1, $2, $3, $4) on conflict (phone) do update set phone = excluded.phone returning id, texts_opt_in",
-    [newId("per"), name, msg.from, newToken()],
-  ))!;
-}
-
 async function receive(msg: Inbound) {
-  const person = await personFor(msg);
+  const person = await personByPhone(msg.from, msg.name);
 
   if (!msg.groupChat) {
     // They texted us first, so private updates no longer count against Blooio's new-contact limit.

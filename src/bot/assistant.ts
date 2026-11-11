@@ -26,7 +26,7 @@ import {
   whenLabel,
 } from "@/lib/games";
 import { capturedCents, captureAuthorization, isTerminalPayPalError, refundCapture, voidAuthorization } from "@/lib/paypal";
-import { deliverToGroup, deliverToPerson } from "@/lib/blooio";
+import { deliverToGroup, deliverToPerson } from "@/lib/channels";
 import { payOrganizer } from "./payout";
 import { dropSavedMethods } from "./delayed";
 import { parseGameRequest, zonedTime } from "./parse";

@@ -4,6 +4,8 @@ import { newId, newToken, q, tx } from "./db";
 // testing at the same time never see each other's games.
 
 const CAST = ["Alex", "Sam", "Priya", "Jo", "Mei", "Chris", "Lee"];
+/** The player a phone demo switches to, to try paying. */
+export const DEMO_PLAYER = "Jo";
 
 const OPENING: Array<[number, string]> = [
   [0, "Anyone up for pickleball this week?"],
