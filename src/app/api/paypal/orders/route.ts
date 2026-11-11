@@ -4,6 +4,7 @@ import { type Person, getGame, holdCents, inPlayers, isInvited, personByToken, r
 import { delayedHoldsOn, delaysHold } from "@/lib/limits";
 import { createHoldOrder, createSetupToken } from "@/lib/paypal";
 import { errorResponse } from "@/lib/http";
+import { normalizePhone } from "@/lib/phone";
 import { spotOfferFor } from "@/bot/assistant";
 
 // Step 1 of joining: create an AUTHORIZE order for this person's hold.
@@ -83,11 +84,4 @@ export async function POST(req: Request) {
   } catch (err) {
     return errorResponse(err);
   }
-}
-
-function normalizePhone(raw?: string) {
-  const digits = (raw ?? "").replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : undefined;
 }

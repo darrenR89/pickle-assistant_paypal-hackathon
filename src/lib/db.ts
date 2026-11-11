@@ -107,6 +107,8 @@ alter table groups add column if not exists playground boolean not null default 
 alter table groups add column if not exists demo_viewer text;
 alter table groups add column if not exists demo_name text;
 alter table people add column if not exists texts_welcomed boolean not null default false;
+-- Groups that live in a real iMessage group (Blooio's group id). Posts there are also texted.
+alter table groups add column if not exists blooio_chat text unique;
 -- Binds a PayPal order to the game and person server-side, so the browser can't swap them.
 create table if not exists pending_orders (
   order_id text primary key,

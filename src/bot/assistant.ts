@@ -1,5 +1,5 @@
 // The assistant's group-chat behavior. Channel-agnostic: the web playground calls
-// handleGroupMessage today; a Chat SDK adapter (Blooio, etc.) can call it later.
+// handleGroupMessage, and so does the Blooio iMessage adapter (src/bot/imessage.ts).
 //
 // Rule: the AI only reads intent (a new game, or what a free-form message means).
 // Every money movement below is deterministic code.
@@ -26,6 +26,7 @@ import {
   whenLabel,
 } from "@/lib/games";
 import { capturedCents, captureAuthorization, isTerminalPayPalError, refundCapture, voidAuthorization } from "@/lib/paypal";
+import { deliverToGroup, deliverToPerson } from "@/lib/blooio";
 import { payOrganizer } from "./payout";
 import { dropSavedMethods } from "./delayed";
 import { parseGameRequest, zonedTime } from "./parse";
@@ -43,6 +44,7 @@ export async function postGroup(groupId: string, text: string, gameSlug?: string
     text,
     gameSlug ?? null,
   ]);
+  await deliverToGroup(groupId, text, gameSlug);
 }
 
 /**
@@ -61,6 +63,7 @@ export async function postDm(groupId: string, personId: string, text: string, ga
     text,
     gameSlug ?? null,
   ]);
+  await deliverToPerson(groupId, personId, text, gameSlug);
 }
 
 // ---------- intent matching ----------

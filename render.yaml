@@ -28,6 +28,12 @@ services:
         generateValue: true
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: BLOOIO_API_KEY
+        sync: false
+      - key: BLOOIO_WEBHOOK_SECRET
+        sync: false
+      - key: BLOOIO_FROM_NUMBER
+        sync: false
       - key: APP_URL
         value: https://pickle-assistant.onrender.com
       - key: DEMO_BUYER_EMAIL
