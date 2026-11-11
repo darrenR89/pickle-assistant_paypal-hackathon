@@ -9,6 +9,12 @@ export const MAX_TOTAL_CENTS = 1_000_000;
 export const MAX_CAP_CENTS = 10_000;
 
 const WEEK = 7 * 86400_000;
+/** A PayPal hold lasts 29 days, so a game further out than this couldn't be charged from a hold placed today. */
+export const MAX_DAYS_AHEAD = 28;
+
+export function tooFarAhead(startsAt: Date, now: Date) {
+  return startsAt.getTime() - now.getTime() > MAX_DAYS_AHEAD * 86400_000;
+}
 
 /** A spot count we can run a game with, else undefined (the caller falls back to its default). */
 export function saneSpots(n: number | undefined) {
@@ -26,10 +32,12 @@ export function sanePriceCents(n: number | undefined) {
 
 /**
  * A start time that is still ahead. "Thu 6pm" said on Thursday night means next Thursday, so a
- * time in the last week moves forward one week; anything older is dropped and asked for again.
+ * time in the last week moves forward one week; anything older, or more than four weeks out (longer
+ * than a PayPal hold lasts), is dropped and asked for again.
  */
 export function saneStart(startsAt: Date | undefined, now: Date) {
   if (!startsAt || Number.isNaN(startsAt.getTime())) return undefined;
+  if (tooFarAhead(startsAt, now)) return undefined;
   if (startsAt.getTime() > now.getTime()) return startsAt;
   const bumped = new Date(startsAt.getTime() + WEEK);
   return bumped.getTime() > now.getTime() ? bumped : undefined;

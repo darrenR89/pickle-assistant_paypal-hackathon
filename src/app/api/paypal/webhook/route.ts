@@ -12,15 +12,16 @@ type Event = PayPalEvent;
 
 export async function POST(req: Request) {
   let event: Event;
+  const raw = await req.text();
   try {
-    event = (await req.json()) as Event;
+    event = JSON.parse(raw) as Event;
   } catch {
     return NextResponse.json({ error: "Bad JSON" }, { status: 400 });
   }
   if (!event?.id || !event.event_type) return NextResponse.json({ error: "Not a PayPal event" }, { status: 400 });
 
   try {
-    if (!(await verifyWebhook(req.headers, event))) return NextResponse.json({ error: "Signature check failed" }, { status: 401 });
+    if (!(await verifyWebhook(req.headers, raw))) return NextResponse.json({ error: "Signature check failed" }, { status: 401 });
   } catch (err) {
     console.error("webhook verify failed", err);
     return NextResponse.json({ error: "Couldn't verify" }, { status: 503 }); // PayPal retries later

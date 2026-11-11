@@ -41,6 +41,8 @@ const money = (c: number) => `$${(c / 100).toFixed(c % 100 === 0 ? 0 : 2)}`;
 type Sheet = null | "who" | "join" | "placing" | "success" | "manage" | "cancel" | "explain" | "error" | "edit" | "more" | "settle" | "calloff" | "refund" | "payoutTo";
 type ErrKind = "closed" | "declined" | "full" | "invite" | "other";
 
+const OFFLINE = "Couldn’t reach the server. Check your connection and try again.";
+
 export default function GameScreen({ view: v, demo = null }: { view: ViewData; demo?: string | null }) {
   const router = useRouter();
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -62,12 +64,24 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   }, [demo]);
   const org = v.organizer;
   const [asked, setAsked] = useState(v.asked);
+  // Every action below goes through this, so a request that never gets an answer (no signal, the
+  // server waking up) unlocks the buttons and says so instead of leaving them disabled until a reload.
+  async function post(path: string, body: Record<string, unknown>) {
+    try {
+      const res = await fetch(`/api/games/${v.slug}/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; nudged?: number };
+      return { ok: res.ok, data };
+    } catch {
+      return { ok: false, data: { error: OFFLINE } as { error?: string; nudged?: number } };
+    }
+  }
+
   async function askToJoin() {
-    const res = await fetch(`/api/games/${v.slug}/request`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p: v.p }) });
+    const res = await post("request", { p: v.p });
     if (res.ok) {
       setAsked(true);
       setToast(`Asked ${v.hostName} privately.`);
-    }
+    } else setToast(res.data.error ?? "Couldn’t send that");
   }
 
   const draft = v.status === "draft";
@@ -94,12 +108,8 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   async function organizerAct(action: string, extra: Record<string, unknown> = {}) {
     setBusy(true);
     setFormErr(null);
-    const res = await fetch(`/api/games/${v.slug}/organizer`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ o: v.o, action, ...extra }),
-    });
-    const body = await res.json().catch(() => ({}));
+    const res = await post("organizer", { o: v.o, action, ...extra });
+    const body = res.data;
     setBusy(false);
     if (!res.ok) {
       setFormErr(body.error ?? "Something went wrong");
@@ -112,19 +122,19 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
 
   async function askRefund() {
     setBusy(true);
-    const res = await fetch(`/api/games/${v.slug}/refund`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p: v.p }) });
+    const res = await post("refund", { p: v.p });
     setBusy(false);
-    if (!res.ok) setToast((await res.json().catch(() => ({}))).error ?? "Couldn’t send that");
+    if (!res.ok) setToast(res.data.error ?? "Couldn’t send that");
     else setToast(`Asked ${v.hostName} privately.`);
     router.refresh();
   }
 
   async function dropOut() {
     setBusy(true);
-    const res = await fetch(`/api/games/${v.slug}/out`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p: v.p }) });
+    const res = await post("out", { p: v.p });
     setBusy(false);
     setSheet(null);
-    if (!res.ok) setToast((await res.json().catch(() => ({}))).error ?? "Couldn’t drop out");
+    if (!res.ok) setToast(res.data.error ?? "Couldn’t drop out");
     else setToast(v.beforeCancelBy ? "You’re out. Your hold was released." : `You’re out. ${v.hostName} will decide on your share.`);
     router.refresh();
   }

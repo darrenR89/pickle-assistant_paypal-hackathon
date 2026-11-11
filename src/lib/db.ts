@@ -142,6 +142,13 @@ alter table games add column if not exists payout_attempts int not null default 
 alter table games add column if not exists payout_round int not null default 0;
 -- How the game closed: split | covered (short roster), released | charged (called off).
 alter table games add column if not exists close_choice text;
+-- Recovering from a restart mid-settle or mid-call-off: when the game last changed status, and the
+-- choice it was closing with (split | cover | charge | release), so the scheduled job can finish it.
+alter table games add column if not exists status_changed_at timestamptz;
+alter table games add column if not exists closing_choice text;
+alter table games add column if not exists payout_started_at timestamptz;
+-- PayPal allows one reauthorization per hold.
+alter table spots add column if not exists reauthorized boolean not null default false;
 -- PayPal webhook events already handled, so a redelivery is a no-op.
 create table if not exists webhook_events (
   id text primary key,

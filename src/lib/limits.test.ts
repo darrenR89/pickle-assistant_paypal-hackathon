@@ -29,6 +29,10 @@ describe("saneStart", () => {
   it("moves a time earlier this week to next week", () => {
     assert.equal(saneStart(new Date("2026-11-12T02:00:00Z"), now)?.toISOString(), "2026-11-19T02:00:00.000Z");
   });
+  it("drops a time further out than a PayPal hold lasts", () => {
+    assert.equal(saneStart(new Date("2026-12-25T02:00:00Z"), now), undefined);
+    assert.notEqual(saneStart(new Date("2026-12-09T02:00:00Z"), now), undefined);
+  });
   it("drops anything older, a bad date, or nothing", () => {
     assert.equal(saneStart(new Date("2025-11-12T02:00:00Z"), now), undefined);
     assert.equal(saneStart(new Date("nope"), now), undefined);
