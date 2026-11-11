@@ -49,4 +49,6 @@ A short map from each judging criterion to what you can try and the code behind 
 
 ## Not built yet
 
-Real iMessage/WhatsApp delivery, recurring games with regulars getting first pick, phone number verification, delayed holds for games more than 4 weeks out.
+Real iMessage/WhatsApp delivery, recurring games with regulars getting first pick, phone number verification, games more than 4 weeks out.
+
+**Built, off by default, not yet run against the PayPal sandbox:** delayed holds (`DELAYED_HOLDS=on`). For a game more than 3 days away the player saves their PayPal at join (PayPal Vault), the scheduled job places the real hold 2 days before the start, and a refused hold gives the player a day to approve again before the spot opens up. See `src/bot/delayed.ts`.

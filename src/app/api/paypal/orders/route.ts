@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { newId, newToken, one, q } from "@/lib/db";
 import { type Person, getGame, holdCents, inPlayers, isInvited, personByToken, roster, whenLabel } from "@/lib/games";
-import { createHoldOrder } from "@/lib/paypal";
+import { delayedHoldsOn, delaysHold } from "@/lib/limits";
+import { createHoldOrder, createSetupToken } from "@/lib/paypal";
 import { errorResponse } from "@/lib/http";
 import { spotOfferFor } from "@/bot/assistant";
 
@@ -34,22 +35,41 @@ export async function POST(req: Request) {
     if (typeof body.texts === "boolean") await q("update people set texts_opt_in = $2 where id = $1", [person!.id, body.texts]);
 
     const entries = await roster(game.id);
-    if (entries.some((e) => e.person_id === person!.id && e.status === "in")) {
+    const mine = entries.find((e) => e.person_id === person!.id && e.status === "in");
+    // A player whose later hold was refused keeps their spot for a while and approves again here.
+    const retrying = mine?.hold_status === "failed";
+    if (mine && !retrying) {
       return NextResponse.json({ error: "You're already in" }, { status: 409 });
     }
     const offered = await spotOfferFor(game.id, person!.id);
-    if (!offered && !(await isInvited(game, person!.id))) {
+    if (!retrying && !offered && !(await isInvited(game, person!.id))) {
       return NextResponse.json({ error: "This game is invite-only. Ask the organizer to add you." }, { status: 403 });
     }
     // A full game can still be joined by someone who was handed a spot.
-    if (inPlayers(entries).length >= game.spots && !offered) {
+    if (inPlayers(entries).length >= game.spots && !offered && !retrying) {
       return NextResponse.json({ error: "The game is full" }, { status: 409 });
     }
 
     const amount = holdCents(game);
+    const description = `Pickleball ${whenLabel(game.starts_at)} · ${game.place} (hold)`;
+
+    // Far-off game: a hold placed today would lapse before the game, so the player saves their
+    // PayPal now and the hold is placed two days before the start (see bot/delayed.ts).
+    if (!retrying && delaysHold(game.starts_at, new Date(), delayedHoldsOn())) {
+      const base = (process.env.APP_URL || new URL(req.url).origin).replace(/\/$/, "");
+      const setup = await createSetupToken({ description, returnUrl: `${base}/g/${game.slug}`, requestId: crypto.randomUUID() });
+      await q("insert into pending_orders (order_id, game_id, person_id, hold_cents, kind) values ($1, $2, $3, $4, 'save')", [
+        setup.id,
+        game.id,
+        person!.id,
+        amount,
+      ]);
+      return NextResponse.json({ id: setup.id, p: person!.token, save: true });
+    }
+
     const order = await createHoldOrder({
       amountCents: amount,
-      description: `Pickleball ${whenLabel(game.starts_at)} · ${game.place} (hold)`,
+      description,
       referenceId: game.slug,
       requestId: crypto.randomUUID(),
     });

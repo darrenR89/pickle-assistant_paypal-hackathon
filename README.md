@@ -73,6 +73,7 @@ cloudflared tunnel --url http://localhost:3000
 - `sendGameDayReminder`: "Game in 2 hours" in the group
 - `settleGame`: settles a game 3 hours after it starts if the organizer hasn't
 - `reauthorizeHold`: renews a PayPal hold after its 3-day honor period while the game is still ahead
+- `placeSavedHold` / `freeFailedSpot`: with `DELAYED_HOLDS=on`, places the hold 2 days before a far-off game from the player's saved PayPal, and opens the spot if a refused hold isn't approved again within a day
 - `payOrganizer`: retries a payout that failed (up to 3 attempts; the organizer can also tap Retry)
 
 Each task retries on its own and is safe to run twice. `render.workflows.yaml` is the Blueprint for the workflow service and the cron job. Try the logic locally with `pnpm tick:local`.

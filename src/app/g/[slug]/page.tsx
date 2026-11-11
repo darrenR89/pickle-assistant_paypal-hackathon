@@ -18,6 +18,8 @@ import {
   roster,
   whenLabel,
 } from "@/lib/games";
+import { delayedHoldsOn, delaysHold, fixDeadline, holdDate } from "@/lib/limits";
+import { userIdToken } from "@/lib/paypal";
 import { KIND_LABEL } from "@/bot/details";
 import { chargedLateCancels, shortfall } from "@/bot/assistant";
 import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
@@ -87,8 +89,17 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
   else if (mine?.status === "out") me = "out";
   if (mine?.hold_status === "captured" && (mine.captured_cents ?? 0) > 0 && mine.refunded_cents >= (mine.captured_cents ?? 0)) me = "refunded";
 
+  // Delayed holds: a far-off game saves the player's PayPal now and holds two days before.
+  const savesFirst = game.status === "open" && mine?.status !== "in" && delaysHold(start, new Date(), delayedHoldsOn());
+  const myHold = mine?.status === "in" && (mine.hold_status === "saved" || mine.hold_status === "failed") ? mine.hold_status : null;
+
   const view = {
     slug,
+    savesFirst,
+    saveToken: savesFirst ? await userIdToken() : null,
+    holdDateLabel: fmt(holdDate(start), { weekday: "short", month: "short", day: "numeric" }),
+    myHold,
+    fixByLabel: myHold === "failed" && mine?.hold_failed_at ? whenLabel(fixDeadline(mine.hold_failed_at, start)) : null,
     p: viewer?.token ?? null,
     o: isOrganizer ? o! : null,
     clientId: process.env.PAYPAL_CLIENT_ID ?? "",

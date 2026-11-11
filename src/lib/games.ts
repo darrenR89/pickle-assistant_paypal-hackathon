@@ -53,7 +53,10 @@ export type Spot = {
   order_id: string | null;
   authorization_id: string | null;
   hold_cents: number | null;
-  hold_status: "none" | "held" | "voided" | "captured";
+  /** saved: payment method saved, hold placed later. failed: that later hold didn't go through. */
+  hold_status: "none" | "held" | "voided" | "captured" | "saved" | "failed";
+  vault_token: string | null;
+  hold_failed_at: Date | null;
   captured_cents: number | null;
   capture_id: string | null;
   refunded_cents: number;
