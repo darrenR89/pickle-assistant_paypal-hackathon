@@ -210,7 +210,8 @@ export default function Playground({ groupId }: { groupId: string }) {
   }
 
   return (
-    <div className="sim">
+    <main className="sim">
+      <h1 className="sr-only">Pickleball assistant demo simulator</h1>
       <div className="sim-banner" role="note">
         <strong>Demo simulator.</strong> These chats are simulated so you can try the assistant without a real group. In real use it
         lives in your iMessage or WhatsApp group. The PayPal and Venmo holds are real sandbox transactions.
@@ -327,7 +328,7 @@ export default function Playground({ groupId }: { groupId: string }) {
             <span className="phone-title">{data.group.name}</span>
             <span className="phone-sub">{data.people.length} people + Assistant</span>
           </div>
-          <div className="phone-body">
+          <div className="phone-body" role="log" aria-label="Group messages">
             {groupMsgs.map((m) => bubble(m))}
             <div ref={groupEnd} />
           </div>
@@ -355,12 +356,12 @@ export default function Playground({ groupId }: { groupId: string }) {
             <span className="phone-title">Assistant</span>
             <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
           </div>
-          <div className="phone-body">
+          <div className="phone-body" role="log" aria-label="Private messages">
             {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="phone-empty">No private texts yet.</p>}
             <div ref={dmEnd} />
           </div>
         </section>
       </div>
-    </div>
+    </main>
   );
 }

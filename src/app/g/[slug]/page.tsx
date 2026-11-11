@@ -20,6 +20,7 @@ import {
 import { KIND_LABEL } from "@/bot/details";
 import { shortfall } from "@/bot/assistant";
 import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
+import ModalFocus from "@/app/ModalFocus";
 import GameScreen from "./GameScreen";
 
 // Read env and the live roster at request time.
@@ -65,7 +66,12 @@ export default async function GamePage({ params, searchParams }: Props) {
   const { p, o, demo } = await searchParams;
   const game = await getGame(slug);
   if (!game) notFound();
-  return <GameScreen view={await buildView(game, slug, p, o)} demo={demo && /^grp_[a-f0-9]+$/.test(demo) ? demo : null} />;
+  return (
+    <>
+      <GameScreen view={await buildView(game, slug, p, o)} demo={demo && /^grp_[a-f0-9]+$/.test(demo) ? demo : null} />
+      <ModalFocus />
+    </>
+  );
 }
 
 async function buildView(game: Game, slug: string, p?: string, o?: string) {

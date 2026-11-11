@@ -150,7 +150,7 @@ export default function DemoRemote() {
   ];
 
   return (
-    <div className="dr">
+    <main className="dr">
       <header className="dr-head">
         <Link href="/" className="dr-back">← Pickleball assistant</Link>
         <h1>Run a game from your phone</h1>
@@ -212,6 +212,6 @@ export default function DemoRemote() {
         </ol>
       </div>
       {note && <p className="dr-note" role="status">{note}</p>}
-    </div>
+    </main>
   );
 }

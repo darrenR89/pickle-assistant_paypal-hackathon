@@ -61,6 +61,13 @@ export default function PhoneDemo({ id }: { id: string }) {
   }, [load]);
 
   useEffect(() => {
+    if (!controls) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setControls(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [controls]);
+
+  useEffect(() => {
     if (!banner) return;
     const t = setTimeout(() => setBanner(null), 4000);
     return () => clearTimeout(t);
@@ -132,12 +139,13 @@ export default function PhoneDemo({ id }: { id: string }) {
   return (
     <main className="dp sim">
       <header className="dp-top">
+        <h1 className="sr-only">Group chat demo</h1>
         <div className="dp-tabs" role="tablist">
           <button role="tab" aria-selected={thread === "group"} className={thread === "group" ? "on" : ""} onClick={() => setThread("group")}>
             Thursday crew
           </button>
           <button role="tab" aria-selected={thread === "dm"} className={thread === "dm" ? "on" : ""} onClick={() => setThread("dm")}>
-            Assistant{unread > 0 && <span className="dp-dot" aria-label={`${unread} new`}>{unread}</span>}
+            Assistant{unread > 0 && <span className="dp-dot">{unread}<span className="sr-only"> new</span></span>}
           </button>
         </div>
         <button className="dp-ctl" onClick={() => { setCtlNote(null); setControls(true); }}>Demo steps</button>
@@ -148,7 +156,7 @@ export default function PhoneDemo({ id }: { id: string }) {
       </header>
       {banner && <p className="dp-banner" role="status">{banner}</p>}
 
-      <div className="dp-body">
+      <div className="dp-body" role="log" aria-label={thread === "group" ? "Group chat" : "Private texts from the assistant"}>
         {list.length === 0 && <p className="phone-empty">{thread === "dm" ? "Private texts from the assistant land here." : ""}</p>}
         {list.map((m) => {
           if (!m.sender_id && / was added to the chat$/.test(m.text)) return <p key={m.id} className="im-system">{m.text}</p>;
