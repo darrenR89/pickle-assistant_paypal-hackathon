@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import Icon from "../../Icon";
+import Icon from "@/app/Icon";
 import type { ViewData } from "./page";
 import GameRecap from "./GameRecap";
 
@@ -59,7 +59,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
     on();
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
-  }, []);
+  }, [demo]);
   const org = v.organizer;
   const [asked, setAsked] = useState(v.asked);
   async function askToJoin() {
