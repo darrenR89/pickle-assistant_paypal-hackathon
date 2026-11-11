@@ -27,6 +27,7 @@ import {
 } from "@/lib/games";
 import { capturedCents, captureAuthorization, isTerminalPayPalError, refundCapture, voidAuthorization } from "@/lib/paypal";
 import { payOrganizer } from "./payout";
+import { dropSavedMethods } from "./delayed";
 import { parseGameRequest, zonedTime } from "./parse";
 import { type Decision, type GroupContext, buildContext, resolveMember, understand, worthReading } from "./agent";
 import { KIND_LABEL, perCourt } from "./details";
@@ -471,11 +472,13 @@ export async function declineInvite(game: Game, personId: string) {
 
 /** Called once a player's hold is approved. */
 export async function playerJoined(game: Game, personId: string, authorizationId: string, holdCentsValue: number, orderId: string) {
+  // Approving again after a refused later hold: they never left, so the group hears nothing new.
+  const retried = await one("select 1 from spots where game_id = $1 and person_id = $2 and status = 'in' and hold_status = 'failed'", [game.id, personId]);
   await q(
     `insert into spots (id, game_id, person_id, status, order_id, authorization_id, hold_cents, hold_status, authorized_at)
      values ($1, $2, $3, 'in', $4, $5, $6, 'held', now())
      on conflict (game_id, person_id) do update set status = 'in', order_id = $4, authorization_id = $5,
-       hold_cents = $6, hold_status = 'held', late_cancel = null, authorized_at = now(), updated_at = now()`,
+       hold_cents = $6, hold_status = 'held', late_cancel = null, authorized_at = now(), hold_failed_at = null, updated_at = now()`,
     [newId("spot"), game.id, personId, orderId, authorizationId, holdCentsValue],
   );
   await q("delete from intents where game_id = $1 and person_id = $2", [game.id, personId]);
@@ -488,7 +491,7 @@ export async function playerJoined(game: Game, personId: string, authorizationId
     await playerOut(game, giver, { replaced: true });
   }
 
-  await postGroup(game.group_id, await rosterLine(game));
+  if (!retried) await postGroup(game.group_id, await rosterLine(game));
   // First private text to someone who opted in: say who we are before anything else.
   const p = await one<{ name: string; texts_opt_in: boolean; texts_welcomed: boolean }>(
     "select name, texts_opt_in, texts_welcomed from people where id = $1",
@@ -528,6 +531,8 @@ export async function playerOut(game: Game, personId: string, opts: { replaced?:
       await releaseHold(mine.authorization_id);
     }
     await q("update spots set status = 'out', hold_status = case when hold_status = 'held' then 'voided' else hold_status end, updated_at = now() where id = $1", [mine.id]);
+    // A saved payment method (delayed hold) is forgotten when its player leaves.
+    await dropSavedMethods(game.id, personId);
     await logEvent(game.id, personId, "out", { late: false, replaced: !!opts.replaced });
     if (opts.replaced) return postDm(game.group_id, personId, `Your spot was claimed, so your ${money(mine.hold_cents ?? 0)} hold is released. No charge.`);
     await postGroup(game.group_id, `${person?.name} is out. ${await rosterLine(game)}`);
@@ -558,7 +563,7 @@ export async function playerOut(game: Game, personId: string, opts: { replaced?:
 }
 
 /** A spot opened: tag the first person on the waitlist (first to approve the hold gets it). */
-async function tagWaitlist(game: Game) {
+export async function tagWaitlist(game: Game) {
   const next = await one<{ person_id: string; name: string }>(
     `select i.person_id, p.name from intents i join people p on p.id = i.person_id
      where i.game_id = $1 and i.kind = 'waitlist' order by i.said_at limit 1`,
@@ -633,7 +638,8 @@ export type TermsChange = {
 
 export async function updateTerms(game: Game, change: TermsChange) {
   const entries = await roster(game.id);
-  const playersHolding = entries.some((e) => e.hold_status === "held");
+  // Someone who saved their PayPal for a later hold agreed to these terms just the same.
+  const playersHolding = entries.some((e) => e.hold_status === "held" || e.hold_status === "saved");
   const draft = game.status === "draft";
   const oldStart = new Date(game.starts_at);
   const startsAt = change.startsAt ?? oldStart;
@@ -782,6 +788,7 @@ async function settleClaimed(game: Game, choice: GapChoice) {
     await releaseHold(e.authorization_id!);
     await q("update spots set late_cancel = 'covered', hold_status = 'voided' where id = $1", [e.id]);
   }
+  await dropSavedMethods(game.id);
   const collected = await collectedCents(game.id, game.organizer_id);
 
   await q("update games set status = 'settled', close_choice = $2 where id = $1", [game.id, gap ? (choice === "cover" ? "covered" : "split") : null]);
@@ -852,6 +859,10 @@ export async function cancelGame(game: Game, opts: { charge?: boolean } = {}) {
       if (e.person_id !== game.organizer_id) {
         await postDm(game.group_id, e.person_id, `${whenLabel(game.starts_at)} is cancelled. Your hold is released.`);
       }
+    }
+    // Players whose hold was still to come: nothing to release, just forget the saved PayPal.
+    for (const personId of await dropSavedMethods(game.id)) {
+      await postDm(game.group_id, personId, `${whenLabel(game.starts_at)} is cancelled. No hold had been placed, and your saved PayPal has been removed.`, undefined, { always: true });
     }
   } catch (err) {
     // Whatever was captured or released is recorded per player; a retry continues with the rest.

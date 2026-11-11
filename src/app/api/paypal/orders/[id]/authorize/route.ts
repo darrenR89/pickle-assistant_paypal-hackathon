@@ -11,7 +11,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const pending = await one<{ order_id: string; game_id: string; person_id: string; hold_cents: number }>(
-      "select * from pending_orders where order_id = $1",
+      "select * from pending_orders where order_id = $1 and kind = 'order'",
       [id],
     );
     if (!pending) return NextResponse.json({ error: "Unknown order" }, { status: 404 });
@@ -26,7 +26,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     // The game can fill up or close while the player is in PayPal. Stop before the hold exists:
     // an approved order that is never authorized takes nothing from the player.
     const offered = !!(await spotOfferFor(game.id, pending.person_id));
-    const blocked = holdBlocked(game, inPlayers(entries).length, offered);
+    // Someone approving again after a refused later hold already has their spot.
+    const retrying = entries.some((e) => e.person_id === pending.person_id && e.status === "in" && e.hold_status === "failed");
+    const blocked = holdBlocked(game, inPlayers(entries).length, offered || retrying);
     if (blocked) {
       await q("delete from pending_orders where order_id = $1", [id]);
       return NextResponse.json({ error: blocked }, { status: 409 });

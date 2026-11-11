@@ -9,7 +9,9 @@ import { one, q } from "@/lib/db";
 import { type Game, type Spot, gameDayLine, logEvent } from "@/lib/games";
 import { isTerminalPayPalError, reauthorize } from "@/lib/paypal";
 import { cancelGame, nudgeUnfinished, postGroup, settleGame } from "@/bot/assistant";
+import { freeFailedSpot, placeSavedHold } from "@/bot/delayed";
 import { payOrganizer } from "@/bot/payout";
+import { FIX_WINDOW, HOLD_LEAD } from "@/lib/limits";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -109,6 +111,22 @@ export const payOrganizerTask = task(
   },
 );
 
+/** Delayed holds: two days before the game, place the real hold from the player's saved PayPal. */
+export const placeSavedHoldTask = task(
+  { name: "placeSavedHold", retry, timeoutSeconds: 60 },
+  async function placeSavedHoldRun(_ctx: TaskContext, spotId: string) {
+    return { spotId, result: await placeSavedHold(spotId) };
+  },
+);
+
+/** Delayed holds: the player didn't approve again in time after a refused hold, so the spot opens up. */
+export const freeFailedSpotTask = task(
+  { name: "freeFailedSpot", retry, timeoutSeconds: 60 },
+  async function freeFailedSpotRun(_ctx: TaskContext, spotId: string) {
+    return { spotId, result: await freeFailedSpot(spotId) };
+  },
+);
+
 /**
  * A game left in `settling` or `cancelling` by a restart. Reopen it and finish with the choice it
  * started with. Safe to repeat: each player's capture or release is recorded as it happens.
@@ -146,7 +164,7 @@ export const tick = task(
       [at(-STUCK_AFTER)],
     );
 
-    const [reminders, gameDay, toSettle, toRenew, toPay, stuck] = await Promise.all([
+    const [reminders, gameDay, toSettle, toRenew, toPay, stuck, toHold, toFree] = await Promise.all([
       q<{ id: string }>(
         "select id from games where status = 'open' and not cancel_reminder_sent and cancel_by > $1 and cancel_by <= $2",
         [at(0), at(CANCEL_REMINDER_WINDOW)],
@@ -167,6 +185,17 @@ export const tick = task(
         "select id from games where status in ('settling', 'cancelling') and (status_changed_at is null or status_changed_at < $1)",
         [at(-STUCK_AFTER)],
       ),
+      q<{ id: string }>(
+        `select s.id from spots s join games g on g.id = s.game_id
+         where s.status = 'in' and s.hold_status = 'saved' and g.status = 'open' and g.starts_at > $1 and g.starts_at <= $2`,
+        [at(0), at(HOLD_LEAD)],
+      ),
+      q<{ id: string }>(
+        `select s.id from spots s join games g on g.id = s.game_id
+         where s.status = 'in' and s.hold_status = 'failed' and g.status = 'open'
+           and least(s.hold_failed_at + $1 * interval '1 millisecond', g.starts_at - interval '3 hours') <= $2`,
+        [FIX_WINDOW, at(0)],
+      ),
     ]);
 
     const results = await Promise.allSettled([
@@ -176,6 +205,8 @@ export const tick = task(
       ...toRenew.map((s) => ctx.run(reauthorizeHold, s.id)),
       ...toPay.map((g) => ctx.run(payOrganizerTask, g.id)),
       ...stuck.map((g) => ctx.run(recoverGame, g.id)),
+      ...toHold.map((s) => ctx.run(placeSavedHoldTask, s.id)),
+      ...toFree.map((s) => ctx.run(freeFailedSpotTask, s.id)),
     ]);
 
     const summary = {
@@ -185,6 +216,8 @@ export const tick = task(
       holdsRenewed: toRenew.length,
       payoutsRetried: toPay.length,
       recovered: stuck.length,
+      savedHoldsPlaced: toHold.length,
+      failedHoldsFreed: toFree.length,
       failed: results.filter((r) => r.status === "rejected").length,
     };
     console.log(`tick ${JSON.stringify(summary)}`);

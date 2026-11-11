@@ -9,6 +9,37 @@ export const MAX_TOTAL_CENTS = 1_000_000;
 export const MAX_CAP_CENTS = 10_000;
 
 const WEEK = 7 * 86400_000;
+const HOUR = 3600_000;
+
+// ---------- Delayed holds: approve now, hold later ----------
+
+/** Games further out than this save the payment method instead of holding right away. */
+export const DELAY_IF_FURTHER_THAN = 3 * 24 * HOUR;
+/** The hold is placed this long before the start: inside PayPal's 3-day honor period even at settle time, and a day before free cancel ends. */
+export const HOLD_LEAD = 2 * 24 * HOUR;
+/** How long a player has to approve again after a delayed hold fails. */
+export const FIX_WINDOW = 24 * HOUR;
+
+/** Off unless DELAYED_HOLDS=on, so the feature can ship dark and be switched off without a deploy of code. */
+export function delayedHoldsOn() {
+  return process.env.DELAYED_HOLDS === "on";
+}
+
+/** Should joining this game save the payment method now and place the hold later? */
+export function delaysHold(startsAt: Date, now: Date, enabled: boolean) {
+  return enabled && new Date(startsAt).getTime() - now.getTime() > DELAY_IF_FURTHER_THAN;
+}
+
+/** When a saved payment method's hold is placed. */
+export function holdDate(startsAt: Date) {
+  return new Date(new Date(startsAt).getTime() - HOLD_LEAD);
+}
+
+/** When a spot whose delayed hold failed is given up: a day to fix it, but never later than 3 hours before the game. */
+export function fixDeadline(failedAt: Date, startsAt: Date) {
+  return new Date(Math.min(new Date(failedAt).getTime() + FIX_WINDOW, new Date(startsAt).getTime() - 3 * HOUR));
+}
+
 /** A PayPal hold lasts 29 days, so a game further out than this couldn't be charged from a hold placed today. */
 export const MAX_DAYS_AHEAD = 28;
 

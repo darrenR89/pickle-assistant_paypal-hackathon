@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { holdBlocked, sanePriceCents, saneSpots, saneStart, termsProblem } from "@/lib/limits";
+import { delaysHold, fixDeadline, holdBlocked, holdDate, sanePriceCents, saneSpots, saneStart, termsProblem } from "@/lib/limits";
 
 describe("saneSpots", () => {
   it("keeps a normal game size", () => {
@@ -68,5 +68,30 @@ describe("holdBlocked", () => {
     for (const status of ["settling", "settled", "cancelling", "cancelled", "draft"]) {
       assert.match(holdBlocked({ status, spots: 8 }, 3, true) ?? "", /closed/, status);
     }
+  });
+});
+
+describe("delayed holds", () => {
+  const now = new Date("2026-11-10T18:00:00Z");
+  const inDays = (d: number, h = 0) => new Date(now.getTime() + d * 86400_000 + h * 3600_000);
+  it("holds right away for a game within 3 days, which is most games", () => {
+    assert.equal(delaysHold(inDays(1), now, true), false);
+    assert.equal(delaysHold(inDays(3), now, true), false);
+  });
+  it("saves the payment method instead when the game is further out", () => {
+    assert.equal(delaysHold(inDays(3, 1), now, true), true);
+    assert.equal(delaysHold(inDays(20), now, true), true);
+  });
+  it("never delays while the feature is switched off", () => assert.equal(delaysHold(inDays(20), now, false), false));
+  it("places the hold two days before the start, so charging 3 hours after start is inside PayPal's 3 days", () => {
+    const start = inDays(10);
+    assert.equal(holdDate(start).getTime(), inDays(8).getTime());
+    assert.ok(start.getTime() + 3 * 3600_000 - holdDate(start).getTime() < 3 * 86400_000);
+  });
+  it("gives a day to fix a refused hold", () => {
+    assert.equal(fixDeadline(inDays(0), inDays(2)).getTime(), inDays(1).getTime());
+  });
+  it("but never lets the fix window run into the last 3 hours before the game", () => {
+    assert.equal(fixDeadline(inDays(0), inDays(0, 10)).getTime(), inDays(0, 7).getTime());
   });
 });

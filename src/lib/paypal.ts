@@ -199,6 +199,97 @@ export function reauthorize(authorizationId: string, amountCents: number) {
   );
 }
 
+// ---------- Vault: approve now, hold later ----------
+// For a game more than a few days out, the player saves their PayPal with us (a payment token)
+// and the hold is placed from that token shortly before the game, with the player not present.
+// Docs: https://developer.paypal.com/docs/checkout/save-payment-methods/purchase-later/payment-tokens-api/paypal/
+
+/** Step 1: a setup token the player approves in the PayPal window. Nothing is held or charged. */
+export function createSetupToken(opts: { description: string; returnUrl: string; requestId: string }) {
+  return call<{ id: string; status: string }>("/v3/vault/setup-tokens", {
+    method: "POST",
+    requestId: opts.requestId,
+    body: {
+      payment_source: {
+        paypal: {
+          description: opts.description.slice(0, 127),
+          usage_type: "MERCHANT",
+          customer_type: "CONSUMER",
+          experience_context: { shipping_preference: "NO_SHIPPING", return_url: opts.returnUrl, cancel_url: opts.returnUrl },
+        },
+      },
+    },
+  });
+}
+
+/** Step 2: after approval, swap the setup token for the long-lived payment token. It never goes to the browser. */
+export function createPaymentToken(setupTokenId: string) {
+  return call<{ id: string; customer?: { id: string } }>("/v3/vault/payment-tokens", {
+    method: "POST",
+    requestId: `payment-token-${setupTokenId}`,
+    body: { payment_source: { token: { id: setupTokenId, type: "SETUP_TOKEN" } } },
+  });
+}
+
+/** Forget a saved payment method, once its hold is placed or the player is out. */
+export async function deletePaymentToken(paymentTokenId: string) {
+  if (isSim(paymentTokenId)) return;
+  await call<Record<string, never>>(`/v3/vault/payment-tokens/${encodeURIComponent(paymentTokenId)}`, { method: "DELETE" });
+}
+
+export const newSimulatedPaymentToken = simId;
+
+/**
+ * Place a hold from a saved payment method. PayPal processes an order made with a vault id straight
+ * away; if it comes back approved but not yet authorized, authorize it the usual way.
+ */
+export async function placeVaultedHold(opts: { paymentTokenId: string; amountCents: number; description: string; referenceId: string; requestId: string }) {
+  if (isSim(opts.paymentTokenId)) return { authorizationId: simId(), orderId: `SIM-ORDER-${simId().slice(4)}` };
+  let order = await call<Order>("/v2/checkout/orders", {
+    method: "POST",
+    requestId: opts.requestId,
+    body: {
+      intent: "AUTHORIZE",
+      purchase_units: [
+        {
+          reference_id: opts.referenceId,
+          description: opts.description,
+          amount: { currency_code: "USD", value: (opts.amountCents / 100).toFixed(2) },
+        },
+      ],
+      payment_source: { paypal: { vault_id: opts.paymentTokenId } },
+    },
+  });
+  if (!firstAuthorization(order)) order = await authorizeOrder(order.id);
+  const auth = firstAuthorization(order);
+  if (!auth) throw new PayPalError("PayPal returned no authorization for the saved payment method", 502, order);
+  return { authorizationId: auth.id, orderId: order.id };
+}
+
+/**
+ * The PayPal buttons need this to offer "save" on the page. Best effort: without it the buttons
+ * still load, so a failure here must not break the game page.
+ */
+export async function userIdToken(): Promise<string | null> {
+  try {
+    const { id, secret } = credentials();
+    const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials&response_type=id_token",
+      cache: "no-store",
+    });
+    const body = (await res.json()) as { id_token?: string };
+    return res.ok && body.id_token ? body.id_token : null;
+  } catch {
+    return null;
+  }
+}
+
 export function firstAuthorization(order: Order) {
   return order.purchase_units?.[0]?.payments?.authorizations?.[0];
 }

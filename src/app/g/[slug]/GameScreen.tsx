@@ -13,8 +13,10 @@ type PayPalNamespace = {
     fundingSource?: string;
     style?: Record<string, unknown>;
     onClick?: (data: unknown, actions: { reject(): void; resolve(): void }) => void;
-    createOrder: () => Promise<string>;
-    onApprove: (data: { orderID: string }) => Promise<void>;
+    createOrder?: () => Promise<string>;
+    /** Save the payment method for a later hold instead of holding now. */
+    createVaultSetupToken?: () => Promise<string>;
+    onApprove: (data: { orderID?: string; vaultSetupToken?: string }) => Promise<void>;
     onCancel?: () => void;
     onError: (err: unknown) => void;
   }): PayPalButtons;
@@ -25,12 +27,18 @@ declare global {
     paypal?: PayPalNamespace;
   }
 }
-function loadSdk(clientId: string): Promise<PayPalNamespace> {
+function loadSdk(clientId: string, save?: { token: string | null }): Promise<PayPalNamespace> {
   if (window.paypal) return Promise.resolve(window.paypal);
   return new Promise((resolve, reject) => {
-    const params = new URLSearchParams({ "client-id": clientId, currency: "USD", intent: "authorize", components: "buttons", "enable-funding": "venmo" });
+    // Saving a payment method for later uses the same buttons without an order intent, and PayPal only.
+    const params = new URLSearchParams(
+      save
+        ? { "client-id": clientId, components: "buttons" }
+        : { "client-id": clientId, currency: "USD", intent: "authorize", components: "buttons", "enable-funding": "venmo" },
+    );
     const script = document.createElement("script");
     script.src = `https://www.paypal.com/sdk/js?${params}`;
+    if (save?.token) script.setAttribute("data-user-id-token", save.token);
     script.onload = () => (window.paypal ? resolve(window.paypal) : reject(new Error("PayPal didn't load")));
     script.onerror = () => reject(new Error("Couldn't load PayPal"));
     document.head.appendChild(script);
@@ -53,6 +61,9 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   const [formErr, setFormErr] = useState<string | null>(null);
   const [refundFor, setRefundFor] = useState<{ id: string; name: string; cents: number } | null>(null);
   const [fund, setFund] = useState<"paypal" | "venmo">("paypal");
+  // Joined a far-off game: PayPal is saved and the hold comes later.
+  const [savedLater, setSavedLater] = useState(false);
+  const saved = savedLater || v.myHold === "saved";
   // On a computer the bottom bar becomes the right-hand column.
   const [wide, setWide] = useState(false);
   useEffect(() => {
@@ -355,6 +366,19 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
     );
   if (v.me === "refunded") notices.push(<Notice key="rf" icon="check" title={`Refunded ${money(v.myRefundedCents)}`} body={`${v.hostName} refunded your charge. It goes back to your PayPal or Venmo.`} />);
   if (v.me === "covered") notices.push(<Notice key="co" icon="check" title={`${v.hostName} covered your spot`} body="Your hold was released in full. You weren’t charged." />);
+  if (v.myHold === "saved" && v.status === "open" && !org)
+    notices.push(<Notice key="sv" icon="check" title="You’re in. No hold yet" body={`Your PayPal is saved. We’ll place your ${money(v.holdCents)} hold on ${v.holdDateLabel} and tell you when we do. Drop out before then and your saved PayPal is removed.`} />);
+  if (v.myHold === "failed" && v.status === "open")
+    notices.push(
+      <Notice
+        key="hf"
+        tone="red"
+        icon="alert"
+        title="Your hold didn’t go through"
+        body={`PayPal turned down the ${money(v.holdCents)} hold. Approve it again${v.fixByLabel ? ` by ${v.fixByLabel}` : ""} to keep your spot. Nothing was charged.`}
+        action={{ label: "Approve again", onClick: () => setSheet("join") }}
+      />,
+    );
   if (v.me === "out" && v.status === "open") notices.push(<Notice key="o" icon="check" title="You’re out" body="Your hold was released. Changed your mind? Tap I’m in again while there’s space." />);
   if (v.inviteOnly && !v.canJoin && !org && v.p)
     notices.push(
@@ -396,7 +420,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
         <div className="bar">
           <div className="info">
             <span className="price">You’re in</span>
-            <span className="note">{money(v.myHoldCents)} held · charged after the game</span>
+            <span className="note">{saved ? `Hold on ${v.holdDateLabel} · nothing held yet` : v.myHold === "failed" ? "Hold didn’t go through" : `${money(v.myHoldCents)} held · charged after the game`}</span>
           </div>
           <button className="cta ghost" onClick={() => setSheet("manage")}>Manage</button>
         </div>
@@ -417,7 +441,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
             <span className="price">
               {money(v.shareCents)} <span>· {left} spot{left === 1 ? "" : "s"} left</span>
             </span>
-            <span className="note">Held now, charged after</span>
+            <span className="note">{v.savesFirst ? `Held ${v.holdDateLabel}, charged after` : "Held now, charged after"}</span>
           </div>
           <button className="cta" onClick={() => { setErr(null); setFormErr(null); setSheet("join"); }}>I’m in</button>
         </div>
@@ -467,7 +491,8 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
                 close={() => setSheet(null)}
                 onStart={(f) => setFund(f)}
                 onPlacing={() => setSheet("placing")}
-                onDone={(token) => {
+                onDone={(token, later) => {
+                  setSavedLater(later);
                   const url = new URL(window.location.href);
                   url.searchParams.set("p", token);
                   router.replace(url.pathname + url.search);
@@ -493,7 +518,11 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
                 <span className="grab" />
                 <div className="big-ok"><Icon name="check" size={38} stroke={3} /></div>
                 <h2 id="sheet-title" className="center" style={{ margin: 0, font: "800 34px/1 var(--cond)", textTransform: "uppercase" }}>You’re in</h2>
-                <p className="sh-p center">{money(v.holdCents)} is on hold with {fund === "venmo" ? "Venmo" : "PayPal"}. Your share is {money(v.shareCents)} and nothing is charged until after the game.</p>
+                <p className="sh-p center">
+                  {saved
+                    ? `Your PayPal is saved and nothing is held yet. We’ll place the ${money(v.holdCents)} hold on ${v.holdDateLabel} and tell you when we do. Your share is ${money(v.shareCents)}, charged after the game.`
+                    : `${money(v.holdCents)} is on hold with ${fund === "venmo" ? "Venmo" : "PayPal"}. Your share is ${money(v.shareCents)} and nothing is charged until after the game.`}
+                </p>
                 <div style={{ display: "grid", gap: 12, margin: "0 4px" }}>
                   <a className="cta wide" style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }} href={calendarUrl()} target="_blank" rel="noreferrer">Add to calendar</a>
                   <button className="cta ghost wide" onClick={() => setSheet(null)}>Done</button>
@@ -505,7 +534,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
                 <SheetHead title="Your spot" close={() => setSheet(null)} />
                 <div className="card" style={{ margin: "0 4px" }}>
                   <div className="ledger">
-                    <div><span>On hold</span><span className="em">{money(v.myHoldCents)}</span></div>
+                    <div><span>{saved ? `Hold placed ${v.holdDateLabel}` : v.myHold === "failed" ? "Hold (not placed)" : "On hold"}</span><span className="em">{money(v.myHoldCents)}</span></div>
                     <div><span>Your share</span><span>{money(v.shareCents)}</span></div>
                     <div><span>Charged now</span><span>$0</span></div>
                   </div>
@@ -515,7 +544,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
                   <button className="cta ghost wide" style={v.beforeCancelBy ? undefined : { color: "var(--danger)" }} onClick={() => setSheet("cancel")}>Can’t make it</button>
                 </div>
                 <p className="sh-p center" style={{ fontSize: 15 }}>
-                  {v.beforeCancelBy ? `Free cancel until ${v.cancelByLabel}. Dropping out releases your whole hold.` : `Free cancel ended ${v.cancelByLabel}. If you drop out, ${v.hostName} decides on your ${money(v.shareCents)}.`}
+                  {saved ? `Free cancel until ${v.cancelByLabel}. Dropping out before the hold removes your saved PayPal.` : v.beforeCancelBy ? `Free cancel until ${v.cancelByLabel}. Dropping out releases your whole hold.` : `Free cancel ended ${v.cancelByLabel}. If you drop out, ${v.hostName} decides on your ${money(v.shareCents)}.`}
                 </p>
               </>
             )}
@@ -523,13 +552,15 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
               <>
                 <SheetHead title={v.beforeCancelBy ? "Drop out?" : "Cancel late?"} />
                 <p className="sh-p">
-                  {v.beforeCancelBy
+                  {saved || v.myHold === "failed"
+                    ? `Nothing is held, so there’s nothing to release. ${saved ? "Your saved PayPal is removed and your" : "Your"} spot opens for someone else.`
+                    : v.beforeCancelBy
                     ? `You can drop out free until ${v.cancelByLabel}. Your ${money(v.myHoldCents)} hold is released right away and your spot opens for someone else.`
                     : `Free cancel ended ${v.cancelByLabel}. If you drop out now, your spot opens up and ${v.hostName} decides whether to charge your ${money(v.shareCents)} share or cover it.`}
                 </p>
                 <div style={{ display: "grid", gap: 12, margin: "0 4px" }}>
                   <button className="cta wide" disabled={busy} style={v.beforeCancelBy ? undefined : { background: "var(--danger)", boxShadow: "0 5px 0 #6E1909" }} onClick={dropOut}>
-                    {v.beforeCancelBy ? "Release my hold" : "Drop out"}
+                    {v.beforeCancelBy && !saved && v.myHold !== "failed" ? "Release my hold" : "Drop out"}
                   </button>
                   <button className="cta ghost wide" onClick={() => setSheet(null)}>Keep my spot</button>
                 </div>
@@ -539,7 +570,11 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
               <>
                 <SheetHead title="How the hold works" close={() => setSheet(null)} />
                 <div className="steps" style={{ gap: 14 }}>
-                  <div className="done"><i>1</i>Tapping I’m in holds {money(v.holdCents)} with PayPal or Venmo: your {money(v.shareCents)} share plus up to {money(v.capCents)} in case the game runs short.</div>
+                  <div className="done"><i>1</i>
+                    {v.savesFirst || saved
+                      ? `This game is more than 3 days away, so tapping I’m in saves your PayPal instead of holding today. On ${v.holdDateLabel} we hold ${money(v.holdCents)}: your ${money(v.shareCents)} share plus up to ${money(v.capCents)} in case the game runs short. Your saved PayPal is removed once the hold is placed.`
+                      : `Tapping I’m in holds ${money(v.holdCents)} with PayPal or Venmo: your ${money(v.shareCents)} share plus up to ${money(v.capCents)} in case the game runs short.`}
+                  </div>
                   <div className="done"><i>2</i>Nothing is charged before the game. Free cancel until {v.cancelByLabel} releases the whole hold.</div>
                   <div className="done"><i>3</i>After the game we charge your share and release the rest. If spots stayed empty, each player pays up to {money(v.capCents)} more; the host covers anything beyond that.</div>
                   <div className="done"><i>4</i>Cancel late and the host decides: charge your share or cover it.</div>
@@ -766,7 +801,7 @@ function JoinSheet({
   close: () => void;
   onStart: (f: "paypal" | "venmo") => void;
   onPlacing: () => void;
-  onDone: (token: string) => void;
+  onDone: (token: string, later: boolean) => void;
   onError: (kind: ErrKind, text?: string) => void;
 }) {
   const paypalRef = useRef<HTMLDivElement>(null);
@@ -787,7 +822,7 @@ function JoinSheet({
     let cancelled = false;
     const rendered: PayPalButtons[] = [];
     let token = v.p ?? undefined;
-    loadSdk(v.clientId)
+    loadSdk(v.clientId, v.savesFirst ? { token: v.saveToken } : undefined)
       .then((paypal) => {
         if (cancelled) return;
         const make = (source: string, el: HTMLDivElement | null, f: "paypal" | "venmo") => {
@@ -804,7 +839,7 @@ function JoinSheet({
               cb.current.onStart(f);
               return actions.resolve();
             },
-            createOrder: async () => {
+            [v.savesFirst ? "createVaultSetupToken" : "createOrder"]: async () => {
               const res = await fetch("/api/paypal/orders", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -819,15 +854,16 @@ function JoinSheet({
               token = body.p;
               return body.id as string;
             },
-            onApprove: async ({ orderID }) => {
+            onApprove: async ({ orderID, vaultSetupToken }) => {
               cb.current.onPlacing();
-              const res = await fetch(`/api/paypal/orders/${orderID}/authorize`, { method: "POST" });
+              const later = !!vaultSetupToken;
+              const res = await fetch(later ? `/api/paypal/vault/${vaultSetupToken}/confirm` : `/api/paypal/orders/${orderID}/authorize`, { method: "POST" });
               const body = await res.json().catch(() => ({}));
               if (!res.ok) {
                 cb.current.onError(/declin|instrument/i.test(JSON.stringify(body)) ? "declined" : "other", body.error);
                 return;
               }
-              cb.current.onDone(token!);
+              cb.current.onDone(token!, later);
             },
             onCancel: () => cb.current.onError("closed"),
             onError: (e) => setError(e instanceof Error ? e.message : "Payment error"),
@@ -838,14 +874,15 @@ function JoinSheet({
           return true;
         };
         make(paypal.FUNDING.PAYPAL, paypalRef.current, "paypal");
-        if (!make(paypal.FUNDING.VENMO, venmoRef.current, "venmo")) setVenmoShown(false);
+        // Saving for a later hold is PayPal only: Venmo saving isn't confirmed for this flow.
+        if (!v.savesFirst && !make(paypal.FUNDING.VENMO, venmoRef.current, "venmo")) setVenmoShown(false);
       })
       .catch((e: Error) => setError(e.message));
     return () => {
       cancelled = true;
       rendered.forEach((b) => b.close?.().catch(() => {}));
     };
-  }, [v.clientId, v.p, v.slug]);
+  }, [v.clientId, v.p, v.slug, v.savesFirst, v.saveToken]);
 
   return (
     <>
@@ -854,8 +891,17 @@ function JoinSheet({
         <div className="ledger">
           <div><span>Your share</span><span>{money(v.shareCents)}</span></div>
           <div><span>If the game runs short</span><span>up to {money(v.capCents)}</span></div>
-          <div><b>Held today</b><span className="em">{money(v.holdCents)}</span></div>
-          <div><span>Charged now</span><span>$0</span></div>
+          {v.savesFirst ? (
+            <>
+              <div><b>Held on {v.holdDateLabel}</b><span className="em">{money(v.holdCents)}</span></div>
+              <div><span>Held or charged today</span><span>$0</span></div>
+            </>
+          ) : (
+            <>
+              <div><b>Held today</b><span className="em">{money(v.holdCents)}</span></div>
+              <div><span>Charged now</span><span>$0</span></div>
+            </>
+          )}
         </div>
       </div>
       {!v.p && (
@@ -882,10 +928,15 @@ function JoinSheet({
       <div style={{ display: "grid", gap: 10, margin: "0 4px" }}>
         <div ref={paypalRef} />
         <div ref={venmoRef} />
-        {!venmoShown && <p className="sh-p" style={{ fontSize: 14, margin: 0 }}>Venmo isn’t offered on this device.</p>}
+        {!venmoShown && !v.savesFirst && <p className="sh-p" style={{ fontSize: 14, margin: 0 }}>Venmo isn’t offered on this device.</p>}
       </div>
+      {v.savesFirst && (
+        <p className="sh-p" style={{ fontSize: 15 }}>
+          This game is more than 3 days away, so approving saves your PayPal with Pickleball Assistant instead of holding money today. We use it once, to place your {money(v.holdCents)} hold on {v.holdDateLabel}, and tell you when we do. Then it’s removed, or sooner if you drop out. PayPal only for now.
+        </p>
+      )}
       <p className="sh-p" style={{ fontSize: 15 }}>
-        Approving the hold is how you say you’re in. Held, not charged, until after the game.{" "}
+        {v.savesFirst ? "Approving is how you say you’re in. Nothing is charged until after the game." : "Approving the hold is how you say you’re in. Held, not charged, until after the game."}{" "}
         {v.beforeCancelBy ? `Free cancel until ${v.cancelByLabel}.` : `Free cancel has ended, so if you drop out ${v.hostName} decides on your ${money(v.shareCents)}.`}
       </p>
     </>
@@ -1039,6 +1090,10 @@ function OrganizerCard({
                         ? `${p.lateCharged ? "Late cancel · paid" : "Paid"} ${money(p.capturedCents - p.refundedCents)}`
                       : p.holdStatus === "held"
                         ? `${money(p.holdCents)} held`
+                        : p.holdStatus === "saved"
+                          ? `Hold on ${v.holdDateLabel}`
+                          : p.holdStatus === "failed"
+                            ? "Hold didn’t go through"
                         : p.holdStatus === "voided"
                           ? "Hold released"
                           : "—"}
