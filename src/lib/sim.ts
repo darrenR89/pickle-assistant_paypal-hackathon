@@ -6,7 +6,9 @@ import { newToken, one, q } from "./db";
 import { type Game, gameDayLine, holdCents, inPlayers, isInvited, logEvent, roster } from "./games";
 import { newSimulatedAuthorization } from "./paypal";
 import { nudgeUnfinished, playerJoined, postGroup, settleGame, spotOfferFor } from "@/bot/assistant";
+import { freeFailedSpot, placeSavedHold } from "@/bot/delayed";
 import { toHalfHour } from "@/bot/parse";
+import { HOLD_LEAD } from "./limits";
 
 const HOUR = 3_600_000;
 
@@ -40,6 +42,13 @@ export async function runDue(game: Game) {
     await postGroup(game.group_id, gameDayLine(game), game.slug);
     ran.push("Game-day reminder");
   }
+  // Delayed holds: the same two steps the real scheduled job runs, for this game only.
+  if (start > now && start - now <= HOLD_LEAD) {
+    const saved = await q<{ id: string }>("select id from spots where game_id = $1 and status = 'in' and hold_status = 'saved'", [game.id]);
+    for (const s of saved) ran.push(`Saved PayPal hold: ${await placeSavedHold(s.id)}`);
+  }
+  const failed = await q<{ id: string }>("select id from spots where game_id = $1 and status = 'in' and hold_status = 'failed'", [game.id]);
+  for (const s of failed) if ((await freeFailedSpot(s.id)) === "freed") ran.push("Opened a spot whose hold was never fixed");
   if (start <= now - 3 * HOUR) {
     await settleGame(game);
     ran.push("Settled the game");
