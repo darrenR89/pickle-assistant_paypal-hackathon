@@ -33,16 +33,23 @@ export default function PhoneDemo({ id }: { id: string }) {
   // On a phone with no second screen, the same steps as the desktop page, in a sheet.
   async function act(action: string) {
     setCtlNote("Working…");
-    const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
-    const b = await r.json().catch(() => ({}));
-    setCtlNote(b.note ?? null);
+    try {
+      const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const b = await r.json().catch(() => ({}));
+      setCtlNote(b.note ?? (r.ok ? null : "That didn’t work. Try again."));
+    } catch {
+      setCtlNote("Couldn’t reach the server. Try again.");
+    }
     load();
   }
   const end = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
-    const s = await fetch(`/api/demo/${id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null));
-    if (!s) return setError("This demo has ended. Scan the code on the demo page again.");
+    // Only a 404 means the demo is gone. A dropped request or a server hiccup is retried on the next poll.
+    const res = await fetch(`/api/demo/${id}`, { cache: "no-store" }).catch(() => null);
+    if (res?.status === 404) return setError("This demo has ended. Scan the code on the demo page again.");
+    const s = res?.ok ? await res.json().catch(() => null) : null;
+    if (!s) return;
     setState(s);
     if (lastViewer.current && lastViewer.current !== s.viewer.id) {
       setBanner(s.viewer.role === "organizer" ? "You’re the organizer again." : `You’re now ${s.viewer.name}, a player in the group.`);
@@ -50,8 +57,10 @@ export default function PhoneDemo({ id }: { id: string }) {
     }
     lastViewer.current = s.viewer.id;
     if (!s.connected) return;
-    const c = await fetch(`/api/play/groups/${id}?viewer=${s.viewer.id}`, { cache: "no-store" }).then((r) => r.json());
-    setChat(c);
+    const c = await fetch(`/api/play/groups/${id}?viewer=${s.viewer.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+    if (c) setChat(c);
   }, [id]);
 
   useEffect(() => {
@@ -82,9 +91,14 @@ export default function PhoneDemo({ id }: { id: string }) {
     e.preventDefault();
     if (!name.trim()) return;
     setSending(true);
-    const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", name }) });
-    setSending(false);
-    if (!r.ok) return setError((await r.json()).note ?? "Couldn’t connect");
+    try {
+      const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", name }) });
+      if (!r.ok) return setError((await r.json().catch(() => ({}))).note ?? "Couldn’t connect");
+    } catch {
+      return setError("Couldn’t reach the server. Reload and try again.");
+    } finally {
+      setSending(false);
+    }
     load();
   }
 
@@ -92,12 +106,20 @@ export default function PhoneDemo({ id }: { id: string }) {
     if (!body.trim() || !state || sending) return;
     setSending(true);
     setText("");
-    await fetch(`/api/play/groups/${id}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId: state.viewer.id, text: body }),
-    });
-    setSending(false);
+    try {
+      const r = await fetch(`/api/play/groups/${id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId: state.viewer.id, text: body }),
+      });
+      if (!r.ok) throw new Error("not sent");
+    } catch {
+      // Put the words back so nothing typed is lost, and say why.
+      setText(body);
+      setBanner("That didn’t send. Try again.");
+    } finally {
+      setSending(false);
+    }
     load();
   }
 
