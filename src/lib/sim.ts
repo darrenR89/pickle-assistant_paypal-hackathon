@@ -3,7 +3,7 @@
 // Same rules as the real paths; only the PayPal authorization is pretend (SIM- ids).
 
 import { newToken, one, q } from "./db";
-import { type Game, holdCents, inPlayers, isInvited, logEvent, roster, whenLabel } from "./games";
+import { type Game, gameDayLine, holdCents, inPlayers, isInvited, logEvent, roster } from "./games";
 import { newSimulatedAuthorization } from "./paypal";
 import { nudgeUnfinished, playerJoined, postGroup, settleGame, spotOfferFor } from "@/bot/assistant";
 import { toHalfHour } from "@/bot/parse";
@@ -37,7 +37,7 @@ export async function runDue(game: Game) {
   }
   if (!game.gameday_reminder_sent && start > now && start - now <= 2 * HOUR) {
     await q("update games set gameday_reminder_sent = true where id = $1", [game.id]);
-    await postGroup(game.group_id, `Game in 2 hours: ${whenLabel(game.starts_at)} at ${game.place}. See you there!`, game.slug);
+    await postGroup(game.group_id, gameDayLine(game), game.slug);
     ran.push("Game-day reminder");
   }
   if (start <= now - 3 * HOUR) {

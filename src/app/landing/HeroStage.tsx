@@ -83,7 +83,7 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
         </span>
       )}
       {videoSrc && <video ref={videoRef} src={videoSrc} playsInline preload="metadata" hidden />}
-      <button ref={playRef} type="button" className="lp-play" aria-label="Play the demo" hidden={mode !== "gl"}>
+      <button ref={playRef} type="button" className="lp-play" hidden={mode !== "gl"}>
         <span className="lp-play-ring" />
         <span className="lp-play-disc">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5v17l14-8.5z" /></svg>
@@ -273,14 +273,21 @@ function start(T: typeof THREE_NS, env: Env): () => void {
   const seek = (t: number) => { if (video) video.currentTime = t; else S.sec = t; setPaused(false); };
   lis.forEach((li, i) => li.querySelector("button")!.addEventListener("click", () => seek(chapters[i].t)));
   pp.addEventListener("click", () => { if (now() >= dur() - 0.05) seek(0); else setPaused(!S.paused); });
+  // While the demo fills the screen, everything outside the hero (and the hidden play button) is taken out of
+  // the tab order and the screen reader's view, so focus stays with the player's controls.
+  const outside = (off: boolean) => {
+    play.inert = off;
+    for (let el: HTMLElement | null = hero; el && el !== document.body; el = el.parentElement)
+      for (const sib of Array.from(el.parentElement?.children ?? [])) if (sib !== el && sib instanceof HTMLElement) sib.inert = off;
+  };
   const open = (e?: Event) => {
     e?.preventDefault(); if (S.playing) return;
     window.scrollTo(0, 0);
-    S.playing = true; S.sec = 0; S.chi = -1; hero.classList.add("playing"); rail.inert = false; close.inert = false;
+    S.playing = true; S.sec = 0; S.chi = -1; hero.classList.add("playing"); rail.inert = false; close.inert = false; outside(true);
     if (video) { video.currentTime = 0; } setPaused(false);
     close.focus({ preventScroll: true });
   };
-  const shut = () => { if (!S.playing) return; S.playing = false; if (video) video.pause(); hero.classList.remove("playing"); rail.inert = true; close.inert = true; play.focus({ preventScroll: true }); };
+  const shut = () => { if (!S.playing) return; S.playing = false; if (video) video.pause(); hero.classList.remove("playing"); rail.inert = true; close.inert = true; outside(false); play.focus({ preventScroll: true }); };
   const triggers = [play, ...Array.from(document.querySelectorAll<HTMLElement>("[data-play-demo]"))];
   triggers.forEach((b) => b.addEventListener("click", open));
   close.addEventListener("click", shut);
@@ -357,7 +364,7 @@ function start(T: typeof THREE_NS, env: Env): () => void {
   return () => {
     cancelAnimationFrame(raf); ro.disconnect(); io.disconnect();
     triggers.forEach((b) => b.removeEventListener("click", open)); close.removeEventListener("click", shut);
-    hero.removeEventListener("keydown", onKey); motion.removeEventListener("click", onMotion); hero.removeEventListener("pointermove", onMove); hero.removeEventListener("pointerleave", onLeave);
+    outside(false); hero.removeEventListener("keydown", onKey); motion.removeEventListener("click", onMotion); hero.removeEventListener("pointermove", onMove); hero.removeEventListener("pointerleave", onLeave);
     hero.classList.remove("playing");
     scene.traverse((o) => { const m = o as THREE_NS.Mesh; if (m.geometry) m.geometry.dispose(); const mats = m.material ? ([] as THREE_NS.Material[]).concat(m.material) : []; mats.forEach((mt) => { const mm = mt as THREE_NS.MeshBasicMaterial; mm.map?.dispose(); mm.dispose(); }); });
     screenTex.dispose(); mask.dispose(); videoTex?.dispose(); r.dispose();

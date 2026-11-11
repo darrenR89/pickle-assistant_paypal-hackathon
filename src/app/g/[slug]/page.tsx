@@ -4,6 +4,7 @@ import { q } from "@/lib/db";
 import {
   type Game,
   TZ,
+  cancelRule,
   getGame,
   holdCents,
   inPlayers,
@@ -17,9 +18,12 @@ import {
   roster,
   whenLabel,
 } from "@/lib/games";
+import { delayedHoldsOn, delaysHold, fixDeadline, holdDate } from "@/lib/limits";
+import { userIdToken } from "@/lib/paypal";
 import { KIND_LABEL } from "@/bot/details";
-import { shortfall } from "@/bot/assistant";
+import { chargedLateCancels, shortfall } from "@/bot/assistant";
 import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
+import ModalFocus from "@/app/ModalFocus";
 import GameScreen from "./GameScreen";
 
 // Read env and the live roster at request time.
@@ -36,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const playing = inPlayers(await roster(game.id));
   const kind = game.kind ? `${KIND_LABEL[game.kind]} · ` : "";
   const title = `${kind}${whenLabel(game.starts_at)} · ${game.place}`;
-  const description = `${playing.length} of ${game.spots} in · ${money(game.share_cents)} each, free cancel until ${whenLabel(game.cancel_by)}`;
+  const description = `${playing.length} of ${game.spots} in · ${money(game.share_cents)} each, ${cancelRule(game)}`;
   // Open Graph tags drive the rich link preview in Messages and WhatsApp. No private money here.
   return { title, description, openGraph: { title, description } };
 }
@@ -65,7 +69,12 @@ export default async function GamePage({ params, searchParams }: Props) {
   const { p, o, demo } = await searchParams;
   const game = await getGame(slug);
   if (!game) notFound();
-  return <GameScreen view={await buildView(game, slug, p, o)} demo={demo && /^grp_[a-f0-9]+$/.test(demo) ? demo : null} />;
+  return (
+    <>
+      <GameScreen view={await buildView(game, slug, p, o)} demo={demo && /^grp_[a-f0-9]+$/.test(demo) ? demo : null} />
+      <ModalFocus />
+    </>
+  );
 }
 
 async function buildView(game: Game, slug: string, p?: string, o?: string) {
@@ -86,8 +95,17 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
   else if (mine?.status === "out") me = "out";
   if (mine?.hold_status === "captured" && (mine.captured_cents ?? 0) > 0 && mine.refunded_cents >= (mine.captured_cents ?? 0)) me = "refunded";
 
+  // Delayed holds: a far-off game saves the player's PayPal now and holds two days before.
+  const savesFirst = game.status === "open" && mine?.status !== "in" && delaysHold(start, new Date(), delayedHoldsOn());
+  const myHold = mine?.status === "in" && (mine.hold_status === "saved" || mine.hold_status === "failed") ? mine.hold_status : null;
+
   const view = {
     slug,
+    savesFirst,
+    saveToken: savesFirst ? await userIdToken() : null,
+    holdDateLabel: fmt(holdDate(start), { weekday: "short", month: "short", day: "numeric" }),
+    myHold,
+    fixByLabel: myHold === "failed" && mine?.hold_failed_at ? whenLabel(fixDeadline(mine.hold_failed_at, start)) : null,
     p: viewer?.token ?? null,
     o: isOrganizer ? o! : null,
     clientId: process.env.PAYPAL_CLIENT_ID ?? "",
@@ -137,7 +155,7 @@ async function organizerData(game: Game) {
   const collected = entries.filter((e) => e.hold_status === "captured").reduce((s, e) => s + (e.captured_cents ?? 0) - e.refunded_cents, 0);
   const host = await personById(game.organizer_id);
   const payTo = host ? organizerPayoutTo(host) : null;
-  const { gap, extraEach } = shortfall(game, playing.length);
+  const { gap, extraEach } = shortfall(game, playing.length, chargedLateCancels(entries));
   const waiting = await q<{ id: string; name: string; kind: string }>(
     "select p.id, p.name, i.kind from intents i join people p on p.id = i.person_id where i.game_id = $1 order by i.said_at",
     [game.id],

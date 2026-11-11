@@ -6,6 +6,7 @@ import { retryPayout } from "@/bot/payout";
 import { payoutReceiver } from "@/lib/paypal";
 import { one, q } from "@/lib/db";
 import { errorResponse } from "@/lib/http";
+import { tooFarAhead, termsProblem } from "@/lib/limits";
 
 type Body = {
   o?: string;
@@ -85,7 +86,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         return NextResponse.json({ ok: true });
       }
       case "late":
-        if (!body.spotId || !body.decision) return NextResponse.json({ error: "spotId and decision required" }, { status: 400 });
+        if (!body.spotId || (body.decision !== "charge" && body.decision !== "cover"))
+          return NextResponse.json({ error: "spotId and a decision of charge or cover are required" }, { status: 400 });
         await resolveLateCancel(game, body.spotId, body.decision);
         return NextResponse.json({ ok: true });
       case "invite":
@@ -111,15 +113,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
           if (!m) return NextResponse.json({ error: "Bad start time" }, { status: 400 });
           startsAt = toHalfHour(zonedTime(+m[1], +m[2], +m[3], +m[4], +m[5]));
           if (startsAt.getTime() < Date.now()) return NextResponse.json({ error: "That time has already passed" }, { status: 400 });
+          if (tooFarAhead(startsAt, new Date())) return NextResponse.json({ error: "Pick a time in the next 4 weeks. A PayPal hold doesn't last longer than that." }, { status: 400 });
           if (game.status !== "draft" && startsAt.getTime() === new Date(game.starts_at).getTime()) startsAt = undefined;
         }
+        const amounts = { capCents: num(body.capCents), totalCents: num(body.totalCents), spots: num(body.spots) };
+        const problem = termsProblem(amounts, game.status === "draft");
+        if (problem) return NextResponse.json({ error: problem }, { status: 400 });
         try {
           await updateTerms(game, {
             startsAt,
             cancelBy,
-            capCents: num(body.capCents),
-            totalCents: num(body.totalCents),
-            spots: num(body.spots),
+            ...amounts,
             address: typeof body.address === "string" ? body.address.slice(0, 200) : undefined,
             place: typeof body.place === "string" ? body.place.slice(0, 80) : undefined,
             courts: typeof body.courts === "string" ? body.courts.slice(0, 40) : undefined,

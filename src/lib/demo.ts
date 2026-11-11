@@ -8,7 +8,7 @@ import { DEMO_PLAYER, createPlaygroundGroup, groupPeople } from "./playground";
 import { addContact, sendblueNumber } from "./sendblue";
 import { normalizePhone } from "./phone";
 import { moveClock, runDue, simulatedJoin } from "./sim";
-import { handleGroupMessage } from "@/bot/assistant";
+import { handleGroupMessage, playerOut } from "@/bot/assistant";
 
 /** The friends who say they're in, and the one the judge can become to try paying. */
 const FRIENDS: Array<[string, string]> = [
@@ -161,6 +161,11 @@ export async function demoAct(groupId: string, a: DemoAction): Promise<{ ok: boo
       if (!quitter) return { ok: false, note: "Add the friends first, so someone can cancel." };
       await moveClock(game, "gameday");
       await handleGroupMessage(groupId, quitter.id, LATE_LINE);
+      // The model reads that line, and it can come back unsure and ask "are you out?" instead of
+      // acting. The demo's next step needs the late cancel, so make sure it happened.
+      const now = await openGameForGroup(groupId);
+      const stillIn = now && (await roster(now.id)).some((e) => e.person_id === quitter.id && e.status === "in");
+      if (now && stillIn) await playerOut(now, quitter.id);
       await setViewer(organizer.id);
       return { ok: true, note: `It's game day and ${quitter.name} dropped out after free cancel. Your phone is the organizer, deciding what happens to their share.` };
     }
