@@ -28,12 +28,6 @@ services:
         generateValue: true
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: BLOOIO_API_KEY
-        sync: false
-      - key: BLOOIO_WEBHOOK_SECRET
-        sync: false
-      - key: BLOOIO_FROM_NUMBER
-        sync: false
       - key: SENDBLUE_API_KEY
         sync: false
       - key: SENDBLUE_API_SECRET

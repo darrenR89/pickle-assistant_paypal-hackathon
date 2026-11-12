@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { demoLinks, joinCode, readSendblue } from "@/lib/sendblue";
+import { demoLinks, joinCode, outboundText, readSendblue } from "@/lib/sendblue";
 
 describe("readSendblue", () => {
   it("reads an inbound text and normalizes the number", () => {
@@ -38,5 +38,13 @@ describe("demoLinks", () => {
     );
     assert.equal(demoLinks("Yours: https://example.test/g/thu-6pm-ab12?o=org", "grp_1", "tok"), "Yours: https://example.test/g/thu-6pm-ab12?o=org&demo=grp_1");
     assert.equal(demoLinks("No link here", "grp_1", "tok"), "No link here");
+  });
+});
+
+describe("outboundText", () => {
+  it("puts the game link on its own line", () => {
+    process.env.APP_URL = "https://example.test";
+    assert.equal(outboundText("Tap to play:", "abc"), "Tap to play:\nhttps://example.test/g/abc");
+    assert.equal(outboundText("No link"), "No link");
   });
 });

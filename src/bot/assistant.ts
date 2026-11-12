@@ -1,5 +1,5 @@
 // The assistant's group-chat behavior. Channel-agnostic: the web playground calls
-// handleGroupMessage, and so does the Blooio iMessage adapter (src/bot/imessage.ts).
+// handleGroupMessage, and so does the Sendblue texting demo (src/bot/sendblue.ts).
 //
 // Rule: the AI only reads intent (a new game, or what a free-form message means).
 // Every money movement below is deterministic code.

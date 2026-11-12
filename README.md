@@ -71,7 +71,7 @@ To make this table from your own run: play a game with a PayPal sandbox buyer, t
 
 ## What's real in the demo
 
-The phone demo and `/play` simulator use a simulated group chat, so anyone can try it without a phone number. Real texting works through iMessage (Blooio) and SMS (Sendblue) when those keys are set; see below. **Real:** Claude reading every message, the game pages, and any hold you place through the PayPal sandbox, which is authorized, captured or voided against PayPal's API. **Simulated:** the other players and their holds (authorization ids starting with `SIM-`), so a game can fill in seconds.
+The phone demo and `/play` simulator use a simulated group chat, so anyone can try it without a phone number. Real texting works through Sendblue when its keys are set; see below. **Real:** Claude reading every message, the game pages, and any hold you place through the PayPal sandbox, which is authorized, captured or voided against PayPal's API. **Simulated:** the other players and their holds (authorization ids starting with `SIM-`), so a game can fill in seconds.
 
 ![The full simulator: one-tap game scenarios, a clock you can move, and the group chat beside the organizer's private messages.](docs/images/simulator.webp)
 ## Run it locally
@@ -104,17 +104,7 @@ cloudflared tunnel --url http://localhost:3000
 - The organizer page shows money progress, players (amounts visible only to the organizer), activity, terms editing, a nudge, and settle or cancel.
 - Money details are only sent privately (the playground's inbox), never to the group.
 
-`src/bot/assistant.ts` holds the chat behavior and doesn't depend on the chat channel, so real channels (iMessage through Blooio, via Chat SDK) call the same functions.
-
-### Real iMessage (Blooio)
-
-With `BLOOIO_API_KEY` set, the assistant also runs in real iMessage groups through [Blooio](https://blooio.com) and the Chat SDK adapter (`src/bot/imessage.ts`):
-
-1. In Blooio, add a webhook to `https://<your-app>/api/blooio/webhook` and put its signing secret in `BLOOIO_WEBHOOK_SECRET`.
-2. Add the Blooio number to an iMessage group. The first text in the group creates the group and each sender here; a sender's name comes from Blooio's contact name, otherwise their number.
-3. Group posts go to the group. Private messages go to each person's own 1:1 thread, and only to people who opted in. Texting the Blooio number directly opts you in.
-
-Blooio limits how many conversations the bot can start each day, so people opting in by texting first is the cheapest path.
+`src/bot/assistant.ts` holds the chat behavior and doesn't depend on the chat channel, so real channels (texting through Sendblue) call the same functions.
 
 ### The phone demo by real text (Sendblue free sandbox)
 

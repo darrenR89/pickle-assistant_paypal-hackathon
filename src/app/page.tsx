@@ -5,6 +5,7 @@ import IslandNav from "./landing/IslandNav";
 import Logo from "./Logo";
 import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
 import CaseStudy from "./landing/CaseStudy";
+import ProofCards, { type Proof } from "./landing/ProofCards";
 import FinalPhone from "./landing/FinalPhone";
 import StatusBar from "./landing/StatusBar";
 
@@ -39,21 +40,56 @@ const CHAPTERS: Chapter[] = [
   { t: 75, shot: "paid", title: "Settled after the game", body: "Each player is charged their real share and the rest of every hold is released." },
 ];
 
-// "The app" section: five steps, each with a phone screen, a slogan and two callouts taken from that screen.
+// "How it works": five steps, each with a phone screen, a slogan and two callouts taken from that screen.
 const SHOW: Array<ShowcaseStep & { src: string }> = [
-  { src: "chat", tab: "Chat", title: "Say it in the group.", body: "“yeah I’m down” is enough. The assistant reads the chat and replies with the game link.", chips: ["“in 🙌” counts as in", "Claude reads every reply"] },
-  { src: "game", tab: "Join", title: "One tap to hold a spot.", body: "Time, courts and your share up front. Tap I’m in and pay with PayPal or Venmo.", chips: ["$8 is your share", "No app, no account"] },
-  { src: "in", tab: "Hold", title: "Held, not charged.", body: "PayPal holds your share plus a small cap. Nothing leaves your account before the game.", chips: ["$10 on hold", "Charged after the game"] },
+  { src: "chat", tab: "Text the group", title: "Say it in the group.", body: "The organizer texts “@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude makes it a game: 8 spots, $8 each, free cancel until the day before. Friends reply like normal.", chips: ["“in 🙌” counts as in", "Claude reads every reply"] },
+  { src: "game", tab: "Join", title: "One tap to hold a spot.", body: "The link shows the time, courts and your share. Tap I’m in and pay with PayPal or Venmo. No app, no account.", chips: ["$8 is your share", "No app, no account"] },
+  { src: "in", tab: "Hold", title: "Held, not charged.", body: "PayPal authorizes your share plus a small cap. You’re counted in, and nothing leaves your account before the game.", chips: ["$10 on hold", "Charged after the game"] },
   { src: "late", tab: "Late cancel", title: "Late cancels, handled fairly.", body: "After free cancel ends, the organizer decides: charge the share or cover it.", chips: ["Organizer decides", "Charge $8 or cover it"] },
-  { src: "paid", tab: "Settle", title: "Charged the real share.", body: "After the game each player pays their share. The rest of the hold is released.", chips: ["Never more than the hold", "Receipts sent privately"] },
+  { src: "paid", tab: "Settle", title: "Charged the real share.", body: "After the game each player is charged their real share and the rest of the hold is released. The organizer sees exactly what was collected.", chips: ["Never more than the hold", "Receipts sent privately"] },
 ];
 
+
+// The problem band: the awkward part of collecting money for a game, in three beats.
+const PROBLEM: Array<[string, string]> = [
+  ["Someone has to ask.", "One person books the court, then has to ask friends for $8 in the group chat. Nobody wants to be that person."],
+  ["Not everyone is a friend.", "Friends bring friends. Sending a payment request to someone you’ve never met feels even worse."],
+  ["The host covers the rest.", "When someone drops out the night before, the organizer quietly pays their share."],
+];
+
+// "Built to be trusted": what a judge checks first. Every number is backed by the repo (see JUDGES.md):
+// 8 PayPal APIs in src/lib/paypal.ts, 100 tests from `pnpm test`.
+const PROOF: Proof[] = [
+  { n: 0, k: "amounts chosen by the AI", v: "Claude reads the chat. Plain code makes every hold, charge and refund, and a rules parser takes over if Claude is down." },
+  { n: 8, k: "PayPal APIs in a real game", v: "Create order, authorize, void, reauthorize, partial capture, refund, Payouts to the organizer and verified webhooks. Venmo uses the same SDK." },
+  { n: 1, k: "charge per payment, even on retry", v: "Every PayPal write sends a PayPal-Request-Id. A settle cut off by a restart is finished by the next scheduled run." },
+  { n: 100, k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
+];
+
+// Inside the judges' fold: what it's built with, grouped by job.
+const STACK: Array<[string, string[]]> = [
+  ["App", ["Next.js", "TypeScript", "Postgres", "Render web service", "Render Workflows and cron"]],
+  ["Payments", ["PayPal Orders v2", "Authorize, capture, void, refund", "Payouts", "Verified webhooks", "JS SDK with Venmo"]],
+  ["AI", ["Claude Haiku 5.5 reads the chat", "Claude Code helped write and review the code"]],
+  ["Messaging", ["Real texts through Sendblue"]],
+];
+
+// ...and how it came together, day by day (Pacific time), from Darren's hackathon chats and the git history.
+const BUILD_DAYS: Array<{ date: string; title: string; notes: string }> = [
+  { date: "Fri Nov 6", title: "Research and concept", notes: "Rules, judges and Render Workflows. Two concepts written up; the pickleball one wins." },
+  { date: "Sat Nov 7", title: "Rules for the money", notes: "Late cancels, no-shows and called-off games. That night the repo is created and v1 goes live on Render." },
+  { date: "Sun Nov 8", title: "First real hold", notes: "First PayPal sandbox hold approved. The group-chat flow is settled, and 5 design directions explored." },
+  { date: "Mon Nov 9", title: "The assistant works", notes: "Claude turns a setup text into a game. Simulator, phone demo, first landing page and JUDGES.md." },
+  { date: "Tue Nov 10", title: "Money end to end", notes: "Payouts, refunds and verified webhooks. Lint, unit tests and CI on every pull request." },
+  { date: "Wed Nov 11", title: "Hardened", notes: "Edge-case review: no overcharge, survives restarts. Accessibility pass, real SMS, Paddles In brand." },
+  { date: "Thu Nov 12", title: "Ready for judges", notes: "Late cancels can be charged, covered or wait for a replacement. 2-minute walkthrough and sandbox proof." },
+];
 
 // Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
 const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   {
     k: "Lives in",
-    v: "Your group chat (iMessage and WhatsApp planned)",
+    v: "Your group chat, by text. Link your own phone in the demo.",
     icon: <><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /><path d="M19 9h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-3" /></>,
   },
   {
@@ -64,7 +100,7 @@ const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   {
     k: "AI",
     v: "Claude (Haiku 5.5) reads every message",
-    icon: <><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" /></>,
+    icon: <g transform="translate(-1.75 0)"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" /></g>,
   },
   {
     k: "Players need",
@@ -110,31 +146,21 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="lp-section lp-al" aria-labelledby="how">
-        <h2 id="how" className="lp-h2">How it works</h2>
-        <ol className="lp-steps">
-          <li>
-            <span className="lp-n">1</span>
-            <h3>The organizer texts the group</h3>
-            <p>“@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude turns that into a game: 8 spots, $8 each, free cancel until the day before.</p>
-          </li>
-          <li>
-            <span className="lp-n">2</span>
-            <h3>Players hold their spot</h3>
-            <p>Tapping the link and I’m in places a PayPal authorization for the share plus a small cap. It counts you in without charging you.</p>
-          </li>
-          <li>
-            <span className="lp-n">3</span>
-            <h3>It settles after the game</h3>
-            <p>Each player is captured for their real share and the rest of each hold is released. The organizer sees exactly what was collected.</p>
-          </li>
-        </ol>
+      <section className="lp-section lp-al lp-prob" aria-labelledby="problem-h">
+        <p className="lp-eyebrow">The problem</p>
+        <h2 id="problem-h" className="lp-h2">Asking friends to pay you back is awkward. <span className="lp-prob-hi">Asking strangers is <em>worse.</em></span></h2>
+        <ul className="lp-beats">
+          {PROBLEM.map(([k, v]) => (
+            <li key={k}><strong>{k}</strong> {v}</li>
+          ))}
+        </ul>
+        <p className="lp-prob-fix">With <Logo variant="wordmark" tone="light" className="lp-prob-logo" />, everyone’s share is held with PayPal the moment they’re in. <strong>Nobody has to ask.</strong></p>
       </section>
 
-      <section className="lp-section lp-al" id="screens" aria-labelledby="screens-h">
+      <section className="lp-section lp-al" id="screens" aria-labelledby="how">
         <AppShowcase
-          title="The app"
-          lead="Players never download anything. Every screen is a web page that opens from a text."
+          title="How it works"
+          lead="The organizer texts the group, friends hold their spot with PayPal, and it settles after the game. Nobody downloads anything: every screen opens from a text."
           steps={SHOW.map(({ src: _src, ...step }) => step)}
           phones={SHOW.map((s) => <Phone key={s.src} src={s.src} alt={s.title} eager />)}
         />
@@ -153,81 +179,53 @@ export default function Home() {
       </section>
 
       <section className="lp-built" id="built" aria-labelledby="built-h">
-        <CaseStudy summary="Five short chapters: the problem, how Claude reads the chat, the PayPal money flow, the design and how it was tested.">
-
-          <article className="lp-ch">
-            <span className="lp-chn">01</span>
-            <div>
-              <h3>The problem</h3>
-              <p>
-                Rec pickleball runs on group chats. One person books the court and pays up front, then chases everyone for their share. People
-                say “maybe”, drop out the night before, or never pay. The organizer ends up out of pocket, and asking for money in the group feels
-                awkward.
-              </p>
+        <CaseStudy
+          eyebrow="For judges"
+          title="Built to be trusted"
+          summary="Four numbers that show how the money stays safe, what it’s built with, and how it came together in seven days."
+          thumb={["04", "proofs"]}
+          cta="See the proof"
+        >
+          <ProofCards items={PROOF} />
+          <div className="lp-build">
+            <div className="lp-build-stack">
+              <h3>Built with</h3>
+              <dl>
+                {STACK.map(([k, items]) => (
+                  <div key={k}>
+                    <dt>{k}</dt>
+                    <dd>{items.map((it) => <span key={it}>{it}</span>)}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">02</span>
-            <div>
-              <h3>The AI: reads the chat, never moves money</h3>
-              <p>
-                Claude reads every message with forced tool calls. One turns a setup message into game details. Another decides what a reply
-                means: in, out, maybe, waitlist, give my spot to Lee, or a question for the host. If the request is vague, it starts a draft and
-                asks the organizer privately. Questions like “is there parking?” go to the host, not the whole group.
-              </p>
-              <p>
-                The rule throughout: the AI only works out what people mean. Every hold, charge and release is plain, deterministic code. If
-                Claude is unavailable, a rules-based parser keeps things working.
-              </p>
+            <div className="lp-build-time">
+              <ol aria-label="How it was built, day by day">
+                {BUILD_DAYS.map((d) => (
+                  <li key={d.date}>
+                    <span className="lp-build-day">{d.date}</span>
+                    <div>
+                      <strong>{d.title}</strong>
+                      <p>{d.notes}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">03</span>
-            <div>
-              <h3>The money: authorize now, capture later</h3>
-              <ul className="lp-flow" aria-label="PayPal payment flow">
-                <li><strong>Hold</strong><span>Orders v2 with intent AUTHORIZE. Share plus a small cap.</span></li>
-                <li><strong>Release</strong><span>Void the authorization when someone cancels in time.</span></li>
-                <li><strong>Renew</strong><span>Reauthorize holds past PayPal’s 3-day honor period, so they’re good on game day.</span></li>
-                <li><strong>Charge</strong><span>Capture only the real share after the game. The rest is released.</span></li>
-              </ul>
-              <p>
-                Every payment call carries a PayPal-Request-Id so retries never double charge. Venmo appears through the same PayPal JS SDK. A player can
-                never pay more than the hold they approved.
-              </p>
-            </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">04</span>
-            <div>
-              <h3>The design</h3>
-              <p>
-                Pickleball skews older, so the floor was set first: body text 17px or larger, 7:1 contrast, 56px buttons, and nothing that
-                relies on color alone. The game page went through many rounds, with the time as the hero and money explained in plain words. Its layout
-                borrows from event invites like Partiful and Eventbrite, redrawn from scratch.
-              </p>
-            </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">05</span>
-            <div>
-              <h3>Testing it without a real group</h3>
-              <p>
-                A simulator plays a full group chat, with controls to add people, fill the game and move the clock. The phone demo builds on it so
-                anyone can run a game from their own phone. What’s real: Claude reading every message, and your own PayPal sandbox hold and
-                capture. What’s simulated: the other players and their holds, which are clearly marked.
-              </p>
-            </div>
-          </article>
-
-          <p className="lp-stack">
-            Built with Next.js, TypeScript and Postgres on Render · PayPal Orders v2 and the PayPal JS SDK · Claude Haiku 5.5 by Anthropic ·{" "}
-            <a href={REPO}>Source on GitHub</a> (MIT)
-          </p>
+          </div>
+          <div className="lp-trust-foot">
+            <p>
+              <strong>Real:</strong> Claude reading every message, your own PayPal sandbox hold and capture, and the organizer’s payout.{" "}
+              <strong>Simulated:</strong> the other players and their holds, marked SIM-.
+            </p>
+            <p className="lp-trust-links">
+              <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a>
+              <a href={`${REPO}/blob/main/docs/PAYPAL.md`}>Every PayPal call</a>
+              <a href={`${REPO}/blob/main/docs/EDGE-CASES.md`}>Every edge case, and how it’s handled</a>
+              <a href={`${REPO}#proof-from-a-real-sandbox-run`}>Sandbox proof</a>
+              <a href={REPO}>Source on GitHub (MIT)</a>
+            </p>
+          </div>
         </CaseStudy>
       </section>
 
