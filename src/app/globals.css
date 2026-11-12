@@ -668,7 +668,7 @@ a{color:var(--link)}
 .lp-beats li{padding-top:16px;border-top:3px solid var(--btn);font:500 18px/1.5 var(--sans);color:var(--muted)}
 .lp-beats strong{display:block;margin-bottom:4px;font:700 21px/1.25 var(--sans);color:var(--ink)}
 .lp-prob-hi{display:block;color:var(--link)}
-.lp-prob-hi em{font-style:normal;background:linear-gradient(transparent 62%,var(--ball) 62%,var(--ball) 92%,transparent 92%);padding:0 .06em}
+.lp-prob-hi em{font-style:italic;color:#C93C0A;background:linear-gradient(100deg,#F2711C 0%,#D9480F 55%,#B8330A 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:.08em}
 .lp-prob-fix{margin:32px 0 0;font:600 21px/1.4 var(--sans);color:var(--ink)}
 .lp-prob-fix strong{color:var(--btn);font-weight:800}
 /* For judges: one light card that unfolds (the portfolio's "Open the build" pattern) */
