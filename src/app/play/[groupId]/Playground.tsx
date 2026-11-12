@@ -465,9 +465,7 @@ export default function Playground({ groupId }: { groupId: string }) {
         <h2 id="sim-game-h" className="sim-label">
           Game scenarios{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · game ${data.game.when}`) : ""}
         </h2>
-        <span className="sim-now">
-          Simulated time <strong>{dayTime.format(simNow).replace(/ (AM|PM)$/, (m) => m.toLowerCase().trim())}</strong>
-        </span>
+
         {data.game && (
           <span className="sim-links">
             <a href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">Game page ↗</a>
@@ -608,7 +606,14 @@ export default function Playground({ groupId }: { groupId: string }) {
         {note}
       </p>
       <div className="sim-grid">
-        {peopleBlock}
+        <div className="sim-side">
+          <section className="sim-clock" aria-labelledby="sim-clock-h" aria-live="polite">
+            <h2 id="sim-clock-h" className="sim-label">Simulated time</h2>
+            <p className="sim-clock-time">{dayTime.format(simNow).replace(/ (AM|PM)$/, (m) => m.toLowerCase().trim())}</p>
+            <p className="sim-hint">{data.game ? `Game ${data.game.when} · move it with the clock above` : "Real time. Start a game to move the clock."}</p>
+          </section>
+          {peopleBlock}
+        </div>
         <section className="phone lp-phone" aria-label={`Group chat: ${data.group.name}`}>
           <div className="lp-screen light sim-screen">
             <StatusBar time={statusTime} />

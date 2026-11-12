@@ -1058,7 +1058,7 @@ function OrganizerCard({
                 <span className="sub">
                   {p.lateWait
                     ? `If someone takes it, ${p.name} owes nothing and their hold is released. If nobody does, their ${money(v.shareCents)} share is charged after the game.`
-                    : `Charge their ${money(v.shareCents)} share, cover it, or wait: if someone takes the spot, ${p.name} owes nothing.`}
+                    : `Choose how you want to handle their ${money(v.shareCents)} share.`}
                 </span>
               </div>
             </div>
