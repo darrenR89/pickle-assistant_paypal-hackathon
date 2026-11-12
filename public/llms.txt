@@ -5,9 +5,13 @@
 - [Live demo on your phone](https://pickle-assistant.onrender.com/demo): you organize a game from your phone while the page plays the rest of the group.
 - [Source code](https://github.com/darrenR89/pickle-assistant_paypal-hackathon) (MIT)
 - [For judges](https://github.com/darrenR89/pickle-assistant_paypal-hackathon/blob/main/JUDGES.md): judging criteria mapped to code.
+- [Every PayPal call](https://github.com/darrenR89/pickle-assistant_paypal-hackathon/blob/main/docs/PAYPAL.md): each API, the moment that triggers it, its idempotency key and file.
+- [Playground](https://pickle-assistant.onrender.com/play): a private simulated group chat with one-tap game scenarios, no keys needed.
 
 ## PayPal
-- Orders v2, intent AUTHORIZE; authorize, partial capture, void, reauthorize; PayPal-Request-Id on every write.
+- Orders v2, intent AUTHORIZE; authorize, partial capture, void, reauthorize; refunds; PayPal-Request-Id on every write.
+- Payouts v1: the organizer is paid back to their Venmo (phone or @handle) or PayPal email in one payout.
+- Webhooks verified with PayPal and applied once: voided holds, captures, declines, refunds, payout status.
 - PayPal JS SDK buttons with PayPal and Venmo funding sources.
 
 ## AI
@@ -16,4 +20,7 @@
 
 ## Real vs simulated in the demo
 - Real: Claude, the game pages, and holds placed with a PayPal sandbox account.
-- Simulated: the group chat and the other players' holds.
+- Simulated: the group chat in the demo and the other players' holds (SIM- ids). Real iMessage and SMS work when their keys are set.
+
+## Scheduling
+- Render Workflows: reminders, auto-settle, hold renewal, payout retries and recovery after a restart.

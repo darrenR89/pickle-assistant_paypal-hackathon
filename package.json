@@ -17,7 +17,8 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "workflow": "tsx src/workflows/main.ts",
     "trigger": "tsx src/workflows/trigger.ts",
-    "tick:local": "tsx scripts/run-tick-locally.ts"
+    "tick:local": "tsx scripts/run-tick-locally.ts",
+    "proof": "tsx scripts/proof.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

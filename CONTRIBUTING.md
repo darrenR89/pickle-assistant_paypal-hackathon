@@ -17,6 +17,7 @@ Node 22+ and pnpm (`corepack enable`). Copy `.env.example` to `.env` and fill in
 | Unit tests | `pnpm test` (Node's built-in test runner via tsx) |
 | Production build | `pnpm build` |
 | Run the scheduled tick once | `pnpm tick:local` |
+| Print real sandbox ids from a game (for the README) | `pnpm proof [slug]` |
 
 `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass before you open or update a PR. CI runs all four on every PR. Don't add new lint warnings, and never silence a rule with an `eslint-disable` comment without a reason next to it.
 

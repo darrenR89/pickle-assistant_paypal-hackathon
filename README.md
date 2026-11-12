@@ -1,16 +1,48 @@
 # Paddles In
 
-**An AI assistant in your pickleball group chat. Friends say they're in and hold their spot with PayPal or Venmo; after the game each player is charged their real share.**
+**An AI assistant that lives in your pickleball group chat. Friends say they're in and hold their spot with PayPal or Venmo. After the game each player is charged their real share, and the organizer is paid back. Nobody chases anyone.**
 
-Entry for the PayPal AI Hackathon 2026. Runs in the PayPal sandbox.
+Entry for the PayPal AI Hackathon 2026. Runs in the PayPal sandbox. MIT licence.
 
-- **Live site:** https://pickle-assistant.onrender.com
-- **Try it on your phone:** https://pickle-assistant.onrender.com/demo (scan the code; you're the organizer, the page plays your friends)
-- **For judges:** [JUDGES.md](JUDGES.md) maps each judging criterion to the code that backs it.
+<!-- Before submission: replace VIDEO_URL with the public YouTube link. -->
+**[▶ Demo video (under 3 min)](VIDEO_URL)** · **[Try it on your phone](https://pickle-assistant.onrender.com/demo)** · **[Live site](https://pickle-assistant.onrender.com)** · **[For judges](JUDGES.md)** · **[Every PayPal call](docs/PAYPAL.md)** · **[Proof from a real run](#proof-from-a-real-sandbox-run)**
+
+![Paddles In: pickleball games that settle themselves. A phone shows the game page with 4 spots left and an I'm in button.](docs/images/hero.webp)
+
+## In 30 seconds
+
+| | |
+|---|---|
+| **Who it's for** | The person in every rec pickleball group who books the court, pays for it, and then chases eight friends for $8 each |
+| **What changes** | Players commit with a PayPal or Venmo **hold**, not a promise. No-shows and late drops are settled by rules everyone saw up front |
+| **PayPal** | Orders v2 `AUTHORIZE`, partial capture, void, reauthorize, refund, Payouts to Venmo, verified webhooks, `PayPal-Request-Id` on every write |
+| **AI** | Claude Haiku 5.5 reads every group message with forced tool calls: sets up the game, understands "yeah I'm down", "can Lee take my spot?", "is there parking?" |
+| **The line it never crosses** | Claude decides what people *mean*. Deterministic code decides every amount and every PayPal call |
+| **Try it with no keys** | [`/play`](https://pickle-assistant.onrender.com/play): a private group chat with seven friends and one-tap game scenarios |
+
+![Five phone screens: the group chat, the game page with an I'm in button, the organizer deciding a late cancel, the settled game with payout to Venmo, and the private message with a receipt.](docs/images/screens.webp)
+
+## For judges and AI reviewers
+
+Everything a reviewer needs is one link away:
+
+- [JUDGES.md](JUDGES.md): each judging criterion mapped to the code that backs it, plus known limits.
+- [docs/PAYPAL.md](docs/PAYPAL.md): every PayPal call, the moment that triggers it, its idempotency key and the file it lives in.
+- [Proof from a real sandbox run](#proof-from-a-real-sandbox-run): real PayPal ids from one complete game.
+- Where to read the code: money rules in `src/bot/assistant.ts`, PayPal client in `src/lib/paypal.ts`, Claude in `src/bot/agent.ts` and `src/bot/parse.ts`, scheduled jobs in `src/workflows/tasks.ts`.
+- Checks: `pnpm typecheck`, `pnpm lint`, `pnpm test` (unit tests for money maths, the rule fallback, limits and retries) and `pnpm build` run in CI on every PR.
 
 ## The problem
 
 Rec pickleball is organized in group chats. One person books the court and pays for it, then chases everyone for their share. People say "maybe", drop out late or never pay, and asking for money in the group is awkward.
+
+## Why it's different
+
+- **It lives where the group already talks.** Players need no app and no account with us. The assistant stays quiet during small talk, answers game questions, and sends anything about money privately.
+- **A hold as a commitment device.** "I'm in" means a PayPal or Venmo authorization, so a spot is real. Free cancel releases it; a late drop is the organizer's call.
+- **Charged for what the game really cost.** Each hold is the share plus a small agreed cap. After the game PayPal captures only the real share (a partial capture) and releases the rest.
+- **The organizer gets paid back, not just the app.** One PayPal Payout sends what was collected to the organizer's Venmo or PayPal.
+- **It recovers by itself.** Holds are renewed before they expire, and a settle cut off by a restart is finished by the next scheduled run on Render Workflows.
 
 ## What it does
 
@@ -25,14 +57,23 @@ Rec pickleball is organized in group chats. One person books the court and pays 
 
 | | What | Where |
 |---|---|---|
-| PayPal | Orders v2 intent AUTHORIZE, authorize, capture (partial), void, reauthorize, refund; Payouts to Venmo or PayPal; verified webhooks; idempotent PayPal-Request-Id on every write; PayPal JS SDK buttons with PayPal and Venmo funding | `src/lib/paypal.ts`, `src/bot/payout.ts`, `src/lib/webhooks.ts`, `src/app/api/paypal/`, `src/bot/assistant.ts` |
+| PayPal | Orders v2 intent AUTHORIZE, authorize, capture (partial), void, reauthorize, refund; Payouts to Venmo or PayPal; verified webhooks; idempotent PayPal-Request-Id on every write; PayPal JS SDK buttons with PayPal and Venmo funding | `src/lib/paypal.ts`, `src/bot/payout.ts`, `src/lib/webhooks.ts`, `src/app/api/paypal/`, `src/bot/assistant.ts`. Full map: [docs/PAYPAL.md](docs/PAYPAL.md) |
 | AI | Claude Haiku 5.5 (Anthropic) with forced tool calls: `create_game` parses a setup message; `decide` interprets every other group message. A rules-based fallback runs if Claude is unavailable | `src/bot/parse.ts`, `src/bot/agent.ts` |
 | Boundary | The model only decides what people mean. Every money movement is deterministic code with fixed rules | `src/bot/assistant.ts` |
+| Scheduling | Render Workflows: reminders, auto-settle, hold renewal, payout retries, recovery after a restart | `src/workflows/tasks.ts`, `render.workflows.yaml` |
+
+## Proof from a real sandbox run
+
+<!-- Before submission: paste the output of `pnpm proof` here, replacing this comment and the line below. -->
+_The table of real sandbox ids from the final run goes here._
+
+To make this table from your own run: play a game with a PayPal sandbox buyer, then run `pnpm proof` (or `pnpm proof <game-slug>`) with `DATABASE_URL` set. It reads the database only and lists real sandbox ids, never simulated ones.
 
 ## What's real in the demo
 
-The phone demo and `/play` simulator use a simulated group chat (real iMessage/WhatsApp delivery is the next step). **Real:** Claude reading every message, the game pages, and any hold you place through the PayPal sandbox, which is authorized, captured or voided against PayPal's API. **Simulated:** the other players and their holds (authorization ids starting with `SIM-`), so a game can fill in seconds.
+The phone demo and `/play` simulator use a simulated group chat, so anyone can try it without a phone number. Real texting works through iMessage (Blooio) and SMS (Sendblue) when those keys are set; see below. **Real:** Claude reading every message, the game pages, and any hold you place through the PayPal sandbox, which is authorized, captured or voided against PayPal's API. **Simulated:** the other players and their holds (authorization ids starting with `SIM-`), so a game can fill in seconds.
 
+![The full simulator: one-tap game scenarios, a clock you can move, and the group chat beside the organizer's private messages.](docs/images/simulator.webp)
 ## Run it locally
 
 Requires Node 22+ and pnpm (`corepack enable`).
@@ -116,10 +157,6 @@ curl -X POST localhost:3000/api/paypal/authorizations/<id>/capture -H "x-admin-t
 
 `render.yaml` is a Render Blueprint. Set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `ANTHROPIC_API_KEY` in the Render dashboard; never commit them.
 
-## Credits
-
-Credits for code, templates and design references will be listed here as the project structure settles.
-
 ## License
 
 MIT
@@ -128,4 +165,4 @@ MIT
 
 - Design patterns studied on [Mobbin](https://mobbin.com) (event invite pages, app landing pages), then redrawn from scratch.
 - Fonts: Figtree and Barlow Condensed (SIL Open Font License), self-hosted via Fontsource.
-- Built with Claude (Anthropic), PayPal developer sandbox, Next.js and Render.
+- Built with Claude (Anthropic), PayPal developer sandbox, Next.js and Render. Claude Code helped write the code.
