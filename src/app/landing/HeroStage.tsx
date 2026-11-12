@@ -16,7 +16,8 @@ type Props = { chapters: Chapter[]; duration: number; videoSrc?: string; youtube
 
 const SW = 780, SH = 1760, SR = 104; // screen canvas, in px (status bar band + 780 x 1688 screenshot)
 const LIGHT_TOP = new Set(["chat", "dm"]);
-const NARROW = 760;
+// Matches the stacked hero in globals.css: phones and tablets in portrait. Tablets get a taller phone.
+const NARROW_MQ = "(max-width: 900px)", TABLET_MQ = "(min-width: 641px)";
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 
 const CHAT: Array<[string, string, 0 | 1 | 2 | 3]> = [
@@ -251,9 +252,9 @@ function start(T: typeof THREE_NS, env: Env): () => void {
   const layout = () => {
     const W = hero.clientWidth, H = hero.clientHeight; if (!W || !H) return;
     r.setSize(W, H, false); cam.aspect = W / H; cam.updateProjectionMatrix();
-    const vh = 2 * cam.position.z * Math.tan((cam.fov * Math.PI) / 360), vw = (vh * W) / H, wpp = vh / H, narrow = W < NARROW;
+    const vh = 2 * cam.position.z * Math.tan((cam.fov * Math.PI) / 360), vw = (vh * W) / H, wpp = vh / H, narrow = matchMedia(NARROW_MQ).matches;
     Object.assign(L, { W, H, vh, vw, narrow });
-    if (narrow) { L.s = (380 * wpp) / 5.6; L.base.set(0, (H / 2 - (H - 250)) * wpp, 0); L.vertS = Math.min(L.s * 1.3, ((H - 330) * wpp) / 5.7); L.vertP.set(0, (H / 2 - (300 + (H - 300) / 2)) * wpp, 0); }
+    if (narrow) { const ph = matchMedia(TABLET_MQ).matches ? 460 : 380; L.s = (ph * wpp) / 5.6; L.base.set(0, (H / 2 - (H - ph / 2 - 60)) * wpp, 0); L.vertS = Math.min(L.s * 1.3, ((H - 330) * wpp) / 5.7); L.vertP.set(0, (H / 2 - (300 + (H - 300) / 2)) * wpp, 0); }
     else { L.s = Math.min(1, (vh * 0.74) / 5.6); L.base.set(Math.min(vw * 0.24, vw / 2 - 2.4), -0.1, 0); L.vertS = Math.min(1.08, (vh * 0.86) / 5.6); L.vertP.set(Math.max(-vw * 0.2, -vw / 2 + 2.2), 0, 0); }
     const hb = hero.getBoundingClientRect(); L.copyR = 0; L.copyB = 0;
     hero.querySelectorAll(".lp-hero-copy > *").forEach((el) => { const b = el.getBoundingClientRect(); L.copyR = Math.max(L.copyR, b.right - hb.left); L.copyB = Math.max(L.copyB, b.bottom - hb.top); });

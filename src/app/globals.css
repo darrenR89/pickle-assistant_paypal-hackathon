@@ -712,6 +712,13 @@ a{color:var(--link)}
 @keyframes lpChipIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
 @media (max-width:900px){
   .lp-al{--sp:20px;padding-left:20px;padding-right:20px}
+  /* tablet portrait: keep the steps beside the phone, with a narrower phone column */
+  .lp-show{grid-template-columns:minmax(0,1fr) minmax(0,260px);gap:32px;padding:56px 32px;border-radius:28px}
+  .lp-chip{font-size:14px;padding:8px 12px}
+  .lp-chip.a{left:-14px}
+  .lp-chip.b{right:-14px}
+}
+@media (max-width:760px){
   .lp-show{grid-template-columns:1fr;gap:8px;padding:44px var(--sp,20px) 40px;border-radius:28px}
   .lp-show::before{right:50%;top:auto;bottom:18%;width:110%;transform:translateX(50%)}
   .lp-show-copy{display:contents}
@@ -720,7 +727,6 @@ a{color:var(--link)}
   .lp-show-device{order:1;padding:28px 0 8px}
   .lp-show-slogan{order:2;margin-top:0;padding-top:18px}
   .lp-show-phones{width:min(250px,72%)}
-  .lp-chip{font-size:14px;padding:8px 12px}
   .lp-chip.a{left:0;top:22%}
   .lp-chip.b{right:0;bottom:16%}
 }
@@ -797,6 +803,18 @@ a{color:var(--link)}
   .lp-final{border-radius:28px 28px 0 0;padding-top:72px;padding-bottom:56px;margin-top:130px}
   .lp-final-low{grid-template-columns:1fr;margin-top:32px}
   .lp-final-gl{top:-72px;right:-52px;width:210px;height:330px}
+}
+/* tablets: two facts per row, and a larger final phone beside the headline */
+@media (min-width:641px) and (max-width:900px){
+  .lp-info{grid-template-columns:repeat(2,minmax(0,1fr));gap:48px 32px}
+  .lp-info-ic{width:96px;height:96px;border-radius:28px}
+  .lp-info-ic svg{width:54px;height:54px}
+  .lp-info dt{padding-top:10px}
+  .lp-final-gl{top:-120px;right:-36px;width:300px;height:470px}
+}
+/* the final phone takes the right side up to here, so the buttons sit under the text instead of beside it */
+@media (min-width:901px) and (max-width:1240px){
+  .lp-final-low{grid-template-columns:1fr;gap:28px}
 }
 .dp-top{position:sticky}
 .dp-ctl{position:absolute;right:12px;top:calc(56px + env(safe-area-inset-top));border:none;background:var(--lav);color:var(--btn);font:700 12px/1 var(--sans);padding:6px 10px;border-radius:999px}
@@ -942,7 +960,7 @@ html:has(.lp-hero.playing){overflow:hidden}
 .lp-rail-yt{font:600 15px var(--sans);color:var(--ball)!important;padding-left:14px}
 .lp-rail :focus-visible{outline:2px solid var(--ball);outline-offset:2px}
 
-@media (max-width:760px){
+@media (max-width:900px){
   .lp-hero{display:block;min-height:0;padding:100px 20px 500px;border-radius:0 0 28px 28px;clip-path:inset(0 round 0 0 28px 28px)}
   .lp-still{top:auto;bottom:40px;right:50%;translate:50% 0;width:190px;rotate:4deg}
   .lp-close{top:84px;right:16px}
@@ -952,6 +970,12 @@ html:has(.lp-hero.playing){overflow:hidden}
   .lp-rail-head .lp-rail-title{font-size:26px}
   .lp-rail-seg{display:flex}
   .lp-rail-ch li:not(.on){display:none}
+}
+/* tablet portrait: same stacked hero, with a taller phone (HeroStage sizes it to match) */
+@media (min-width:641px) and (max-width:900px){
+  .lp-hero{padding-bottom:580px}
+  .lp-still{width:230px}
+  .lp-rail{left:max(16px,calc((100% - 560px)/2));right:max(16px,calc((100% - 560px)/2))}
 }
 @media (prefers-reduced-motion:reduce){
   .lp-mesh i,.lp-play-ring{animation:none}
