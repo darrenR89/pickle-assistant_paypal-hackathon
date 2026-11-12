@@ -697,6 +697,8 @@ a{color:var(--link)}
 .lp-tl-ctrl:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
 .lp-tl-ctrl svg{width:18px;height:18px;fill:currentColor}
 .lp-show-slogan{margin-top:auto;padding-top:40px;max-width:460px}
+/* the Pause/Play control sits under the slogan */
+.lp-tl-ctrl{order:1}
 .lp-show-slogan h3{margin:0;font:700 clamp(28px,3vw,38px)/1.1 var(--sans);color:#fff;letter-spacing:-.01em;text-wrap:balance;animation:lpShowIn .45s ease both}
 .lp-show-device{position:relative;display:grid;place-items:center;padding:8px 0}
 .lp-show-phones{display:grid;width:min(300px,100%)}
@@ -729,6 +731,20 @@ a{color:var(--link)}
   .lp-show-phones{width:min(250px,72%)}
   .lp-chip.a{left:0;top:22%}
   .lp-chip.b{right:0;bottom:16%}
+}
+/* stacked (phones): the timeline turns sideways and shows only the current step, centered; instead of a line
+   filling down to the next step, the ring around its number fills over the step's time */
+@media (max-width:760px){
+  .lp-tl{flex-direction:row;justify-content:center;margin:28px auto 0;max-width:440px}
+  .lp-tl-item:not(.on){display:none}
+  .lp-tl-item.on{grid-template-columns:1fr;justify-items:center;text-align:center;padding:0}
+  .lp-tl-line{display:none}
+  .lp-tl-node{width:56px;height:56px;font-size:26px}
+  .lp-tl-item.on .lp-tl-node{background:rgba(255,201,168,.12);border-color:rgba(255,255,255,.22);color:var(--ball);box-shadow:none}
+  .lp-tl-ring{inset:-6px;opacity:1;--p:1}
+  .lp-tl-item.on.playing .lp-tl-ring{--p:0;animation:lpTlRing var(--dur,8s) linear forwards}
+  .lp-tl-text{padding-top:16px}
+  .lp-tl-ctrl{justify-self:center;order:3}
 }
 @media (prefers-reduced-motion:reduce){.lp-show-phone,.lp-tl-body{transition:none}.lp-show-slogan h3,.lp-chip,.lp-tl-line::after,.lp-tl-ring{animation:none}.lp-tl-ctrl{display:none}}
 /* Narrower than the sections around it, so its edges sit inside theirs; the text column is sized so every fact wraps to two lines */
@@ -812,12 +828,12 @@ a{color:var(--link)}
 }
 /* with the phone beside the steps, the title and lead span the full width above both columns */
 @media (min-width:761px) and (max-width:1240px){
-  .lp-show{grid-template-areas:"head head" "lead lead" "tl dev" "ctrl dev" "slogan dev";grid-template-rows:auto auto auto auto 1fr;row-gap:0}
+  .lp-show{grid-template-areas:"head head" "lead lead" "tl dev" "slogan dev" "ctrl dev";grid-template-rows:auto auto auto 1fr auto;row-gap:0}
   .lp-show-copy{display:contents}
   .lp-show .lp-h2{grid-area:head}
   .lp-show-lead{grid-area:lead;max-width:560px;margin-bottom:36px}
   .lp-tl{grid-area:tl;margin-top:0}
-  .lp-tl-ctrl{grid-area:ctrl}
+  .lp-tl-ctrl{grid-area:ctrl;justify-self:center}
   .lp-show-slogan{grid-area:slogan;align-self:end;max-width:none}
   .lp-show-device{grid-area:dev}
 }
