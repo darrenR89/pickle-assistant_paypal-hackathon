@@ -170,7 +170,7 @@ export function captureAuthorization(authorizationId: string, amountCents?: numb
   );
 }
 
-/** Give money back on a capture ("I did show up"). Full refund unless amountCents is given. */
+/** Give money back on a capture (a charged late cancel whose spot was filled). Full refund unless amountCents is given. */
 export function refundCapture(captureId: string, amountCents?: number, note?: string) {
   if (isSim(captureId)) return Promise.resolve({ id: simId(), status: "COMPLETED", simulated: true });
   return call<{ id: string; status: string }>(`/v2/payments/captures/${encodeURIComponent(captureId)}/refund`, {

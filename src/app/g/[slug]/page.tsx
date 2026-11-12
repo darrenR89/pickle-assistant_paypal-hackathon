@@ -203,9 +203,10 @@ async function organizerData(game: Game) {
         refundedCents: e.refunded_cents,
         lateCharged: e.late_cancel === "charged",
         refundAsked: waiting.some((w) => w.id === e.person_id && w.kind === "refund"),
+        lateWait: waiting.some((w) => w.id === e.person_id && w.kind === "late_wait"),
         personId: e.person_id,
       })),
-    waiting: waiting.filter((w) => w.kind !== "refund").map((w) => ({ id: w.id, name: w.name, kind: w.kind })),
+    waiting: waiting.filter((w) => w.kind !== "refund" && w.kind !== "late_wait").map((w) => ({ id: w.id, name: w.name, kind: w.kind })),
   };
 }
 

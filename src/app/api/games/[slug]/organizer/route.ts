@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getGame } from "@/lib/games";
 import { toHalfHour, zonedTime } from "@/bot/parse";
-import { cancelGame, declineInvite, declineRefund, grantInvite, nudgeUnfinished, refundSpot, resolveLateCancel, settleGame, updateTerms } from "@/bot/assistant";
+import { cancelGame, declineInvite, declineRefund, grantInvite, nudgeUnfinished, refundSpot, resolveLateCancel, settleGame, updateTerms, waitForReplacement } from "@/bot/assistant";
 import { retryPayout } from "@/bot/payout";
 import { payoutReceiver } from "@/lib/paypal";
 import { one, q } from "@/lib/db";
@@ -17,7 +17,7 @@ type Body = {
   wallet?: "VENMO" | "PAYPAL";
   personId?: string;
   spotId?: string;
-  decision?: "charge" | "cover";
+  decision?: "charge" | "cover" | "wait";
   cancelBy?: string; // "YYYY-MM-DDTHH:mm" in the game's time zone
   startsAt?: string; // same format
   capCents?: number;
@@ -86,9 +86,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         return NextResponse.json({ ok: true });
       }
       case "late":
-        if (!body.spotId || (body.decision !== "charge" && body.decision !== "cover"))
-          return NextResponse.json({ error: "spotId and a decision of charge or cover are required" }, { status: 400 });
-        await resolveLateCancel(game, body.spotId, body.decision);
+        if (!body.spotId || (body.decision !== "charge" && body.decision !== "cover" && body.decision !== "wait"))
+          return NextResponse.json({ error: "spotId and a decision of charge, cover or wait are required" }, { status: 400 });
+        if (body.decision === "wait") await waitForReplacement(game, body.spotId);
+        else await resolveLateCancel(game, body.spotId, body.decision);
         return NextResponse.json({ ok: true });
       case "invite":
       case "decline": {

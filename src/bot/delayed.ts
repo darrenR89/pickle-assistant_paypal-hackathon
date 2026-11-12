@@ -12,7 +12,7 @@ import { newId, one, q } from "@/lib/db";
 import { type Game, type Spot, cancelRule, holdCents, logEvent, money, whenLabel } from "@/lib/games";
 import { fixDeadline, holdDate } from "@/lib/limits";
 import { deletePaymentToken, isTerminalPayPalError, placeVaultedHold } from "@/lib/paypal";
-import { playerOut, postDm, postGroup, postJoinedLine, rosterLine, spotOfferFor, tagWaitlist } from "./assistant";
+import { playerOut, postDm, postGroup, postJoinedLine, rosterLine, spotsRefilled, spotOfferFor, tagWaitlist } from "./assistant";
 
 const dayLabel = (d: Date) => new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Los_Angeles" }).format(d);
 
@@ -42,6 +42,7 @@ export async function playerSaved(game: Game, personId: string, paymentTokenId: 
   }
 
   await postJoinedLine(game);
+  await spotsRefilled(game, personId);
   await postDm(
     game.group_id,
     personId,

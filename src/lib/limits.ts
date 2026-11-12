@@ -102,3 +102,8 @@ export function holdBlocked(game: { status: string; spots: number }, inCount: nu
 export function repostsLink(inCount: number, spots: number) {
   return inCount > 0 && inCount % 4 === 0 && inCount < spots;
 }
+
+/** How many late cancels a join has replaced: dropped spots that are filled again (late cancels minus spots still open). */
+export function refilledCount(lateCancels: number, spotsOpen: number) {
+  return Math.max(0, Math.min(lateCancels, lateCancels - Math.max(0, spotsOpen)));
+}

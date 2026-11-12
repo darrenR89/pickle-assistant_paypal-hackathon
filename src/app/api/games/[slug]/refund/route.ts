@@ -3,7 +3,8 @@ import { getGame, personByToken } from "@/lib/games";
 import { requestRefund } from "@/bot/assistant";
 import { errorResponse } from "@/lib/http";
 
-// "I did show up": a charged player asks the organizer, privately, for their money back.
+// A charged late canceller asks the organizer, privately, for their money back. The game page no longer offers it
+// (a filled spot now prompts the organizer directly); kept so older links still get a clear answer.
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;

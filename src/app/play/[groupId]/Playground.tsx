@@ -305,11 +305,16 @@ export default function Playground({ groupId }: { groupId: string }) {
     {
       id: "late",
       title: "Late cancel",
-      body: "On game day a player drops out. The host decides privately: charge the share or cover it.",
+      body: "The game is full with one on the waitlist. On game day a player drops out; the host charges, covers, or waits for a replacement.",
       run: async (step) => {
         const d = await openGame(step);
         step("Filling the game");
         await post({ action: "fill" });
+        const last = await notPlaying(d, ["Dana", "Robin", "Taylor"]);
+        await post({ action: "join", personId: last.id });
+        const next = await notPlaying((await fresh()) ?? d, ["Kai", "Morgan", "Jamie"]);
+        step(`${next.name} joins the waitlist`);
+        await sendAs(next.id, "waitlist me");
         step("Moving to game day");
         await clockTo("gameday");
         const f = (await fresh()) ?? d;
@@ -317,7 +322,7 @@ export default function Playground({ groupId }: { groupId: string }) {
         const name = people.get(who)?.name ?? f.people.find((p) => p.id === who)?.name ?? "A player";
         step(`${name} drops out`);
         await sendAs(who, "ugh I can't make it thursday, sorry all");
-        return `${name} cancelled after free cancel ended. ${actAsHost(d)}, whose private texts show the choice: charge the share or cover it.`;
+        return `${name} cancelled after free cancel ended. ${actAsHost(d)}: charge, cover, or wait on the organizer page. Then act as ${next.name} and join: ${name} is let off.`;
       },
     },
     {
