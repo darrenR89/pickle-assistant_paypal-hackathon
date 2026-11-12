@@ -232,11 +232,10 @@ a{color:var(--link)}
 .sim-pill-x{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;color:var(--muted)}
 .sim-say{display:flex;flex-direction:column;gap:6px;margin-top:12px}
 /* game scenarios: the players row, then the clock as four stages on a line */
-.sim-scn{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:8px}
+.sim-scn{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;margin-top:8px}
 .sim-scn-k{font:700 13px/1.2 var(--sans);color:#fff}
 .sim-scn-acts{grid-column:2/-1;display:flex;gap:6px}
 .sp .sim-scn-acts .dr-btn{flex:1;width:auto}
-.sp .dr-btn.sim-tick{width:auto}
 .sim-track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 .sim-track li{position:relative}
 .sim-track li+li::before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:rgba(255,255,255,.28)}
@@ -298,7 +297,6 @@ a{color:var(--link)}
   .sp-bar-top{column-gap:10px}
   .sim-scn{grid-template-columns:1fr;gap:8px}
   .sim-scn-acts{grid-column:1}
-  .sp .dr-btn.sim-tick{width:100%}
   .sim-track button>span:last-child{display:none}
   .sim-say .sim-row{flex-direction:column}
   .sim-say .sim-row>.sim-select{flex:none}

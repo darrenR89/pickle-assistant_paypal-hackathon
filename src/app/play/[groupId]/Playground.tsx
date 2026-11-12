@@ -209,6 +209,18 @@ export default function Playground({ groupId }: { groupId: string }) {
     return r;
   }
 
+  // Moving the clock also runs what the scheduled job would do at that time (reminders, settle-up), so there is no
+  // separate step: on the live app that job runs every 10 minutes on its own.
+  async function moveTo(mode: string) {
+    const t = await control({ action: "time", mode }, (r) => `The game is now ${r.label}.`);
+    if (!t.label) return;
+    setClock(mode);
+    await control({ action: "tick" }, (r) => {
+      const ran = (r.ran as string[] | undefined) ?? [];
+      return `The game is now ${t.label}.${ran.length ? ` ${ran.join(", ")}.` : ""}`;
+    });
+  }
+
   function linkFor(slugWithQuery: string) {
     // ?o= is the organizer's private link; otherwise open the game as the person viewing.
     return slugWithQuery.includes("?o=") ? `/g/${slugWithQuery}` : `/g/${slugWithQuery}?p=${viewer.token}`;
@@ -363,10 +375,7 @@ export default function Playground({ groupId }: { groupId: string }) {
                     <button
                       type="button"
                       aria-pressed={clock === mode}
-                      onClick={async () => {
-                        const r = await control({ action: "time", mode }, (r) => `The game is now ${r.label}.`);
-                        if (r.label) setClock(mode);
-                      }}
+                      onClick={() => moveTo(mode)}
                     >
                       <span className="sim-dot" aria-hidden="true" />
                       <strong>{label}</strong>
@@ -375,15 +384,8 @@ export default function Playground({ groupId }: { groupId: string }) {
                   </li>
                 ))}
               </ol>
-              <button
-                type="button"
-                className="dr-btn sim-tick"
-                onClick={() => control({ action: "tick" }, (r) => ((r.ran as string[])?.length ? `Ran: ${(r.ran as string[]).join(", ")}.` : "Nothing was due."))}
-              >
-                Run scheduled jobs
-              </button>
             </div>
-            <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal. After moving the clock, run the jobs to send reminders or settle up.</p>
+            <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal. Each clock stop also does what's due then: the game-day reminder at 90 min to go, settling up after the game.</p>
           </>
         ) : (
           <p className="sim-hint">No game yet. Send “Game with full details” as the host to start one, then join, fill and move the clock here.</p>
