@@ -101,12 +101,12 @@ export default function Home() {
             each one is charged their real share. Nobody chases payment requests.
           </p>
           <div className="lp-ctas">
-            <Link href="/demo" className="lp-btn">Try it live on your phone</Link>
+            <Link href="/demo" className="lp-btn">Try the 2-minute walkthrough</Link>
             <a href={VIDEO_ID ? `https://www.youtube.com/watch?v=${VIDEO_ID}` : "#how"} className="lp-btn ghost" data-play-demo="">
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" /></svg>Watch the demo
             </a>
           </div>
-          <p className="lp-fine">The live demo runs on your own phone: you organize, the page plays your friends, and you pay with a PayPal sandbox account.</p>
+          <p className="lp-fine">The 2-minute walkthrough runs on your own phone: you organize, the page plays your friends, and you pay with a PayPal sandbox account.</p>
         </div>
       </section>
 
@@ -239,7 +239,7 @@ export default function Home() {
         <div className="lp-final-low">
           <p>Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
           <div className="lp-final-act">
-            <Link href="/demo" className="lp-btn">Open the live demo</Link>
+            <Link href="/demo" className="lp-btn">Start the 2-minute walkthrough</Link>
             <a href={`${REPO}/blob/main/JUDGES.md`} className="lp-btn ghost">For judges</a>
           </div>
         </div>
