@@ -13,6 +13,7 @@ import StatusBar from "./landing/StatusBar";
 // plain semantic HTML so an AI reading it (or the README / JUDGES.md) gets the facts directly.
 
 // Link preview for the landing page when it is shared (chat apps, the hackathon gallery, social posts).
+// Chat apps cache the image by URL, so give a new image a new file name rather than overwriting it.
 const SHARE_TITLE = "Pickleball games that settle themselves";
 const SHARE_TEXT = "An AI assistant in your group chat. Friends hold their spot with PayPal or Venmo and are charged their real share after the game.";
 export const metadata: Metadata = {
@@ -21,9 +22,9 @@ export const metadata: Metadata = {
     siteName: "Paddles In",
     title: SHARE_TITLE,
     description: SHARE_TEXT,
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Pickleball games that settle themselves. An AI assistant for your group chat. The game page on a phone shows Thursday 6:00 pm, 4 spots left." }],
+    images: [{ url: "/og-paddlesin.jpg", width: 1200, height: 630, alt: "Paddles In. Pickleball games that settle themselves. An AI assistant for your group chat. The game page on a phone shows Thursday 6:00 pm, 4 spots left, hosted by Alex." }],
   },
-  twitter: { card: "summary_large_image", title: SHARE_TITLE, description: SHARE_TEXT, images: ["/og.jpg"] },
+  twitter: { card: "summary_large_image", title: SHARE_TITLE, description: SHARE_TEXT, images: ["/og-paddlesin.jpg"] },
 };
 
 const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
