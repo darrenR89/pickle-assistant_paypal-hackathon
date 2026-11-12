@@ -212,6 +212,14 @@ a{color:var(--link)}
 .sim-panel{display:flex;flex-direction:column;gap:10px}
 .sim-sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
 .sim-panel h2,.sim-people h2{margin:0}
+.sim-start{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
+.sim-start .sim-quote{flex:1 1 360px;margin:0}
+.sp .sim-start .dr-btn{width:auto;flex:0 0 auto;padding:0 22px}
+.sim-more{border-top:1px solid rgba(255,255,255,.14);padding-top:10px}
+.sim-more summary{cursor:pointer;width:fit-content;font:600 14px/1.3 var(--sans);color:#fff;text-decoration:underline;text-underline-offset:3px}
+.sim-more summary:focus-visible{outline:3px solid var(--ball);outline-offset:2px;border-radius:4px}
+.sim-more[open] summary{margin-bottom:10px}
+.sim-warn{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,201,168,.16);border:1px solid rgba(255,201,168,.5);color:#FFE6D6;font:500 13px/1.4 var(--sans)}
 .sim-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .sim-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);transition:border-color .2s,background .2s}
 .sim-card h3{margin:0;font:700 15px/1.2 var(--sans);color:#fff}
@@ -219,7 +227,7 @@ a{color:var(--link)}
 .sim-card.on{border-color:var(--ball);background:rgba(255,201,168,.1)}
 .sim-card-step{font-weight:700;color:var(--ball)}
 .sp .sim-card .dr-btn{height:32px;margin-top:2px}
-.sim-manual{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.7fr);align-items:center;gap:16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
+.sim-manual{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr);align-items:center;gap:16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
 .sim-links{display:flex;gap:16px}
 .sim-links a{color:#fff;font:600 14px/1 var(--sans);text-underline-offset:3px;transition:opacity .2s}
 @media (hover:hover){.sim-links a:hover{opacity:.7}}

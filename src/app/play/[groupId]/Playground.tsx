@@ -459,13 +459,20 @@ export default function Playground({ groupId }: { groupId: string }) {
   const statusTime = phoneTime.format(simNow).replace(/\s?[AP]M$/, "");
 
   // Top bar: the game scenarios, then manual steps for the current game.
+  const hostName0 = people.get(organizerId)?.name ?? "the host";
+  async function startGame() {
+    setNote(null);
+    setViewerId(organizerId);
+    if (await sendAs(organizerId, START[0].text)) setNote(`${hostName0} posted the game. Now act as anyone, or fill it and move the clock.`);
+  }
+
+  // Top bar: step through a game by hand. The ready-made scenarios are tucked away below, since they change what's set up.
   const scenarios = (
     <section className="sim-panel" aria-labelledby="sim-game-h">
       <div className="sim-sec-head">
         <h2 id="sim-game-h" className="sim-label">
-          Game scenarios{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · game ${data.game.when}`) : ""}
+          Step through a game{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · ${data.game.when}`) : ""}
         </h2>
-
         {data.game && (
           <span className="sim-links">
             <a href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">Game page ↗</a>
@@ -473,52 +480,60 @@ export default function Playground({ groupId }: { groupId: string }) {
           </span>
         )}
       </div>
-      <ul className="sim-cards">
-        {GAME_SCENARIOS.map((sc) => {
-          const on = running?.id === sc.id;
-          return (
-            <li key={sc.id} className={on ? "sim-card on" : "sim-card"}>
-              <h3>{sc.title}</h3>
-              <p>{on ? <span className="sim-card-step" aria-live="polite">{running.step}…</span> : sc.body}</p>
-              <button type="button" className="dr-btn" disabled={busy} onClick={() => runGameScenario(sc)} aria-label={`Run: ${sc.title}`}>
-                {on ? "Running…" : "Run"}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
 
-      <div className="sim-manual">
-        <span className="sim-label">Or step through it</span>
-        {data.game ? (
-          <>
-            <div className="sim-scn-acts">
-              <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
-                Join as {viewer.name}
-              </button>
-              <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
-                Fill, leave 1 spot
-              </button>
-            </div>
-            <ol className="sim-track" aria-label="Move the clock">
-              {CLOCK.map(([mode, label, what]) => (
-                <li key={mode}>
-                  <button type="button" aria-pressed={clock === mode} disabled={busy} onClick={() => moveTo(mode)}>
-                    <span className="sim-dot" aria-hidden="true" />
-                    <strong>{label}</strong>
-                    <span>{what}</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </>
-        ) : (
-          <p className="sim-hint">No game yet. Run a scenario, or send “Game with full details” as the host.</p>
-        )}
-      </div>
-      <p className="sim-hint">
-        Scenarios use the real assistant and simulated holds. Each clock stop also does what&apos;s due then. For real sandbox money, open the game page and pay with PayPal.
-      </p>
+      {data.game?.status === "open" ? (
+        <div className="sim-manual">
+          <div className="sim-scn-acts">
+            <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
+              Join as {viewer.name}
+            </button>
+            <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
+              Fill, leave 1 spot
+            </button>
+          </div>
+          <ol className="sim-track" aria-label="Move the clock">
+            {CLOCK.map(([mode, label, what]) => (
+              <li key={mode}>
+                <button type="button" aria-pressed={clock === mode} disabled={busy} onClick={() => moveTo(mode)}>
+                  <span className="sim-dot" aria-hidden="true" />
+                  <strong>{label}</strong>
+                  <span>{what}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : (
+        <div className="sim-start">
+          <p className="sim-quote">
+            <span>{hostName0}:</span> “{START[0].text}”
+          </p>
+          <button type="button" className="dr-btn p" disabled={busy} onClick={startGame}>
+            {sending ? "Sending…" : `Send ${hostName0}’s text to start the game`}
+          </button>
+        </div>
+      )}
+
+      <details className="sim-more">
+        <summary>Want to test specific real-world examples?</summary>
+        <p className="sim-warn" role="note">
+          Running an example changes the chat to match it: it can post a new game, add people, fill spots, move the clock and switch who you’re acting as, replacing what you’ve set up by hand.
+        </p>
+        <ul className="sim-cards">
+          {GAME_SCENARIOS.map((sc) => {
+            const on = running?.id === sc.id;
+            return (
+              <li key={sc.id} className={on ? "sim-card on" : "sim-card"}>
+                <h3>{sc.title}</h3>
+                <p>{on ? <span className="sim-card-step" aria-live="polite">{running.step}…</span> : sc.body}</p>
+                <button type="button" className="dr-btn" disabled={busy} onClick={() => runGameScenario(sc)} aria-label={`Run: ${sc.title}`}>
+                  {on ? "Running…" : "Run"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </details>
     </section>
   );
 
