@@ -821,6 +821,16 @@ a{color:var(--link)}
   .lp-show-slogan{grid-area:slogan;align-self:end;max-width:none}
   .lp-show-device{grid-area:dev}
 }
+/* phones and iPad: "How it works" and the facts list sit narrower than the app section, with more room at the sides */
+@media (max-width:640px){
+  .lp-steps,.lp-info{margin-left:12px;margin-right:12px}
+}
+@media (min-width:641px) and (max-width:900px){
+  .lp-steps,.lp-info{max-width:640px;margin-left:auto;margin-right:auto}
+}
+@media (min-width:901px) and (max-width:1240px){
+  .lp-steps,.lp-info{max-width:860px;margin-left:auto;margin-right:auto}
+}
 /* tablets: two facts per row, and a larger final phone beside the headline */
 @media (min-width:641px) and (max-width:900px){
   .lp-info{grid-template-columns:repeat(2,minmax(0,1fr));gap:48px 32px}
