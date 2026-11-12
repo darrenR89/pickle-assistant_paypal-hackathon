@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { demoLinks, joinCode, outboundText, readSendblue } from "@/lib/sendblue";
+import { demoLinks, joinCode, readSendblue, shortPath } from "@/lib/sendblue";
 
 describe("readSendblue", () => {
   it("reads an inbound text and normalizes the number", () => {
@@ -34,17 +34,21 @@ describe("demoLinks", () => {
     process.env.APP_URL = "https://example.test";
     assert.equal(
       demoLinks("Tap to play:\nhttps://example.test/g/thu-6pm-ab12", "grp_1", "tok"),
-      "Tap to play:\nhttps://example.test/g/thu-6pm-ab12?p=tok&demo=grp_1",
+      "Tap to play:\nhttps://example.test/g/thu-6pm-ab12?p=tok&demo=grp_1&via=sms",
     );
-    assert.equal(demoLinks("Yours: https://example.test/g/thu-6pm-ab12?o=org", "grp_1", "tok"), "Yours: https://example.test/g/thu-6pm-ab12?o=org&demo=grp_1");
+    assert.equal(
+      demoLinks("Yours: https://example.test/g/thu-6pm-ab12?o=org", "grp_1", "tok"),
+      "Yours: https://example.test/g/thu-6pm-ab12?o=org&demo=grp_1&via=sms",
+    );
     assert.equal(demoLinks("No link here", "grp_1", "tok"), "No link here");
   });
 });
 
-describe("outboundText", () => {
-  it("puts the game link on its own line", () => {
+describe("shortPath", () => {
+  it("keeps only our own game links, as a path", () => {
     process.env.APP_URL = "https://example.test";
-    assert.equal(outboundText("Tap to play:", "abc"), "Tap to play:\nhttps://example.test/g/abc");
-    assert.equal(outboundText("No link"), "No link");
+    assert.equal(shortPath("https://example.test/g/abc?p=tok&demo=grp_1&via=sms"), "/g/abc?p=tok&demo=grp_1&via=sms");
+    assert.equal(shortPath("https://evil.test/g/abc"), null);
+    assert.equal(shortPath("https://example.test/demo"), null);
   });
 });

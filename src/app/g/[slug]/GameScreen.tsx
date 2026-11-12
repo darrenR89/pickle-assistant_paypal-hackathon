@@ -52,7 +52,16 @@ type ErrKind = "closed" | "declined" | "full" | "invite" | "other";
 
 const OFFLINE = "Couldn’t reach the server. Check your connection and try again.";
 
-export default function GameScreen({ view: v, demo = null }: { view: ViewData; demo?: string | null }) {
+export default function GameScreen({
+  view: v,
+  demo = null,
+  backTo = null,
+}: {
+  view: ViewData;
+  demo?: string | null;
+  /** Where "back" goes when the page was opened from a real text (the Messages app). */
+  backTo?: string | null;
+}) {
   const router = useRouter();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [err, setErr] = useState<{ kind: ErrKind; text?: string } | null>(null);
@@ -76,6 +85,33 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   }, [demo]);
   const org = v.organizer;
   const [asked, setAsked] = useState(v.asked);
+  // In the phone demo the desktop moves the story on. Follow it: a late cancel goes back to the chat,
+  // where the organizer's link is waiting, and the settle lands on the organizer's page, which opens
+  // with the game-complete recap and then shows each player's payment.
+  useEffect(() => {
+    if (!demo) return;
+    const seen = (k: string) => {
+      try {
+        return !!sessionStorage.getItem(k);
+      } catch {
+        return true;
+      }
+    };
+    const t = setInterval(async () => {
+      const s = await fetch(`/api/demo/${demo}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      const g = s?.game;
+      if (!g || g.slug !== v.slug) return;
+      if (g.status === "settled" && v.status !== "settled" && !seen(`settled:${g.slug}`)) {
+        try {
+          sessionStorage.setItem(`settled:${g.slug}`, "1");
+        } catch {}
+        router.push(`/g/${g.slug}?o=${s.organizerToken}&demo=${demo}${backTo ? "&via=sms" : ""}`);
+      } else if (!backTo && !org && g.lateCancel === "pending" && !seen(`late:${g.slug}`)) {
+        router.push(`/demo/${demo}/phone`);
+      }
+    }, 2500);
+    return () => clearInterval(t);
+  }, [demo, backTo, org, router, v.slug, v.status]);
   // Every action below goes through this, so a request that never gets an answer (no signal, the
   // server waking up) unlocks the buttons and says so instead of leaving them disabled until a reload.
   async function post(path: string, body: Record<string, unknown>) {
@@ -458,8 +494,8 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
   return (
     <div className={demo ? "app has-demo" : "app"}>
       {demo && (
-        <a className="demo-back" href={`/demo/${demo}/phone`}>
-          ‹ Chat
+        <a className="demo-back" href={backTo ?? `/demo/${demo}/phone`}>
+          ‹ {backTo ? "Messages" : "Chat"}
         </a>
       )}
       {header}
@@ -818,6 +854,9 @@ function JoinSheet({
   const textsRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(v.clientId ? null : "PayPal isn’t set up on this server yet.");
   const [venmoShown, setVenmoShown] = useState(true);
+  // PayPal's sandbox checkout doesn't finish on phones, so say so before someone tries.
+  // The sheet only renders in the browser (after a tap), so reading the screen here is safe.
+  const [onPhone] = useState(() => v.sandbox && window.matchMedia("(pointer: coarse) and (max-width: 820px)").matches);
   const cb = useRef({ onStart, onPlacing, onDone, onError });
   // Keep the latest callbacks for the PayPal buttons, which are created once.
   useEffect(() => {
@@ -894,6 +933,14 @@ function JoinSheet({
   return (
     <>
       <SheetHead title={`I’m in · ${money(v.shareCents)}`} close={close} />
+      {onPhone && (
+        <Notice
+          icon="alert"
+          tone="lav"
+          title="Use a computer for this step"
+          body="This demo uses PayPal’s sandbox, which only works on desktop. Open this link on a computer to approve the hold."
+        />
+      )}
       <div className="card" style={{ margin: "0 4px" }}>
         <div className="ledger">
           <div><span>Your share</span><span>{money(v.shareCents)}</span></div>

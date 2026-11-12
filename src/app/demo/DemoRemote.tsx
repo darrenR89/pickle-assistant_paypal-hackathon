@@ -2,16 +2,30 @@
 
 import Link from "next/link";
 import QRCode from "qrcode";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import ChatLog, { type Chat } from "./ChatLog";
 
 type Hold = { status: string; real: boolean; cents: number; captured: number } | null;
 type State = {
   groupId: string;
   connected: boolean;
   name: string | null;
-  organizer: { name: string };
+  organizer: { id: string; name: string };
+  organizerToken: string | null;
   viewer: { name: string; role: "organizer" | "player" };
-  game: { slug: string; status: string; spots: number; inCount: number; over: boolean; lateWaiting: boolean; playerHold: Hold } | null;
+  game: {
+    slug: string;
+    status: string;
+    spots: number;
+    inCount: number;
+    over: boolean;
+    lateWaiting: boolean;
+    lateCancel: "pending" | "charged" | "covered" | null;
+    lateName: string | null;
+    friendsIn: boolean;
+    collectedCents: number;
+    playerHold: Hold;
+  } | null;
   buyer: { email: string; password: string } | null;
   texting: { number: string; code: string | null; linked: boolean } | null;
 };
@@ -30,7 +44,8 @@ export default function DemoRemote() {
   const [busy, setBusy] = useState<Action | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [startErr, setStartErr] = useState<string | null>(null);
-  const [done, setDone] = useState<Set<Action>>(new Set());
+  const [chat, setChat] = useState<Chat | null>(null);
+  const chatEnd = useRef<HTMLDivElement>(null);
   const [textName, setTextName] = useState("");
   const [textPhone, setTextPhone] = useState("");
 
@@ -42,7 +57,7 @@ export default function DemoRemote() {
     try {
       localStorage.setItem("phoneDemo", r.groupId);
     } catch {}
-    setDone(new Set());
+    setChat(null);
     setNote(null);
     setState(null);
     setId(r.groupId);
@@ -66,7 +81,16 @@ export default function DemoRemote() {
     if (!id) return;
     const r = await fetch(`/api/demo/${id}`, { cache: "no-store" });
     if (r.status === 404) return fresh();
-    if (r.ok) setState(await r.json());
+    if (!r.ok) return;
+    const s: State = await r.json();
+    setState(s);
+    // Once a phone is connected, this page shows the group chat as the organizer sees it.
+    if (s.connected) {
+      const c = await fetch(`/api/play/groups/${id}?viewer=${s.organizer.id}`, { cache: "no-store" })
+        .then((x) => (x.ok ? x.json() : null))
+        .catch(() => null);
+      if (c) setChat(c);
+    }
   }, [id]);
   useEffect(() => {
     load();
@@ -82,7 +106,6 @@ export default function DemoRemote() {
       const r = await fetch(`/api/demo/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...extra }) });
       const body = await r.json().catch(() => ({}));
       setNote(body.note ?? (r.ok ? "Done." : "That didn’t work."));
-      if (r.ok) setDone((d) => new Set(d).add(action));
     } catch {
       setNote("Couldn’t reach the server. Try again.");
     } finally {
@@ -98,27 +121,38 @@ export default function DemoRemote() {
     return () => clearTimeout(t);
   }, [note]);
 
+  const groupMsgs = chat?.messages.filter((m) => !m.dm_to) ?? [];
+  useEffect(() => {
+    const box = chatEnd.current?.parentElement;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [groupMsgs.length]);
+
   const g = state?.game;
+  const open = !!g && g.status === "open";
+  const orgLink = g && state?.organizerToken && id ? `/g/${g.slug}?o=${state.organizerToken}&demo=${id}` : null;
   const hold = g?.playerHold;
   const connected = !!state?.connected;
   const texting = state?.texting ?? null;
   const byText = !!texting?.linked;
+  const paid = hold?.status === "held" || hold?.status === "captured";
+  const late = g?.lateCancel ?? null;
+  // Each button is off once its step has happened, read from the game itself so a reload agrees.
   const steps: Array<{ n: number; title: string; body: React.ReactNode; done: boolean; buttons?: Array<{ a: Action; label: string; primary?: boolean; disabled?: boolean }> }> = [
     {
       n: 1,
       title: "Set up the game from your phone",
       body: byText
-        ? "Text the assistant from your Messages app, like the example it sent you, or type it your own way. Claude reads it and posts the game to the group here. Its replies, with real links, come back to your phone."
-        : "Tap the suggested message, or type it your own way. Claude reads it and posts the game to the group. Leave out the time or price and it asks you privately instead.",
+        ? "Text PaddlesIn from your Messages app, like the example it sent you, or type it your own way. Claude reads it and posts the game to the group, shown here. Replies with real links come back to your phone."
+        : "Tap the suggested message, or type it your own way. Claude reads it and posts the game to the group. Leave out the time or price and PaddlesIn asks you privately instead.",
       done: !!g,
       buttons: [{ a: "start", label: "Send it for me", disabled: !connected || !!g }],
     },
     {
       n: 2,
       title: "Friends reply the way friends do",
-      body: "“yeah I’m down”, “count me in!”. The assistant works out who’s in, and each one places a PayPal hold. Watch the spots fill on your organizer page.",
-      done: done.has("friends"),
-      buttons: [{ a: "friends", label: "3 friends say they’re in", disabled: !g || g.status !== "open" }],
+      body: "“yeah I’m down”, “count me in!”. PaddlesIn works out who’s in, and each one places a PayPal hold. Seven of the eight spots fill, with one left for you.",
+      done: !!g?.friendsIn,
+      buttons: [{ a: "friends", label: "6 friends say they’re in", disabled: !open || !!g?.friendsIn }],
     },
     {
       n: 3,
@@ -126,12 +160,8 @@ export default function DemoRemote() {
       body: (
         <>
           Your phone switches to Jo. Tap the game link, then I’m in. PayPal <strong>authorizes</strong> your share plus a small cap. Nothing is
-          charged yet.
-          {state?.buyer && (
-            <span className="dr-creds">
-              Sandbox buyer: <code>{state.buyer.email}</code> · <code>{state.buyer.password}</code>
-            </span>
-          )}
+          charged yet. Use the sandbox login above; PayPal’s sandbox checkout only works on a computer, so open the phone view in a window
+          to pay.
           {hold && hold.status === "held" && (
             <span className="dr-ok">
               {money(hold.cents)} on hold{hold.real ? " in the PayPal sandbox" : " (simulated)"}.
@@ -139,34 +169,56 @@ export default function DemoRemote() {
           )}
         </>
       ),
-      done: hold?.status === "held" || hold?.status === "captured",
+      done: paid,
       buttons: [
-        { a: "player", label: "Switch my phone to a player", primary: true, disabled: !g || g.status !== "open" || state?.viewer.role === "player" },
+        { a: "player", label: "Switch my phone to a player", primary: true, disabled: !open || state?.viewer.role === "player" || paid },
         { a: "organizer", label: "Back to organizer", disabled: state?.viewer.role !== "player" },
       ],
     },
     {
       n: 4,
       title: "Someone cancels on game day",
-      body: "Free cancel has ended, so their share isn’t released automatically. You decide on your phone: charge it or cover it.",
-      done: done.has("late"),
-      buttons: [{ a: "late", label: "Someone cancels late", disabled: !g || g.status !== "open" || g.over }],
+      body: (
+        <>
+          The game fills, then a friend drops out after free cancel, leaving 7 players. Their share isn’t released automatically: the organizer
+          gets a private link to charge it or cover it.
+          {late === "pending" && orgLink && (
+            <span className="dr-ok">
+              {g?.lateName} cancelled late. Open your organizer link on your phone, or{" "}
+              <a href={orgLink} target="_blank" rel="noreferrer">open it here</a>, to decide.
+            </span>
+          )}
+          {(late === "charged" || late === "covered") && (
+            <span className="dr-ok">{late === "charged" ? `You charged ${g?.lateName}’s share.` : `You covered ${g?.lateName}’s share.`}</span>
+          )}
+        </>
+      ),
+      done: late === "charged" || late === "covered",
+      buttons: [{ a: "late", label: "Someone cancels late", disabled: !open || !!g?.over || !!late }],
     },
     {
       n: 5,
       title: "The game ends and it settles itself",
       body: (
         <>
-          Each player is <strong>captured</strong> for their real share. The rest of every hold is released. Receipts go out privately.
-          {hold && hold.status === "captured" && (
+          Each player is <strong>captured</strong> for their real share. The rest of every hold is released. Receipts go out privately, and the
+          organizer sees what was collected.
+          {g?.status === "settled" && (
             <span className="dr-ok">
-              You were charged {money(hold.captured)} of your {money(hold.cents)} hold{hold.real ? ", captured in the PayPal sandbox" : ""}.
+              Settled: {money(g.collectedCents)} collected
+              {hold?.status === "captured" ? `, including your ${money(hold.captured)}${hold.real ? " captured in the PayPal sandbox" : ""}` : ""}.
+              {orgLink && (
+                <>
+                  {" "}
+                  <a href={orgLink} target="_blank" rel="noreferrer">See the organizer’s summary</a>
+                </>
+              )}
             </span>
           )}
         </>
       ),
       done: g?.status === "settled",
-      buttons: [{ a: "after", label: "Skip to after the game", disabled: !g || g.status !== "open" }],
+      buttons: [{ a: "after", label: "Skip to after the game", disabled: !open }],
     },
   ];
 
@@ -177,7 +229,7 @@ export default function DemoRemote() {
         <p className="dr-kicker">The 2-minute walkthrough</p>
         <h1>Run a game from your phone</h1>
         <p>
-          Your phone is the organizer’s group chat. This page plays everyone else. The assistant (Claude) and your PayPal sandbox hold are
+          Your phone is the organizer’s group chat. This page plays everyone else. PaddlesIn (Claude) and your PayPal sandbox hold are
           real; the other players and their holds are simulated.
         </p>
         <p className="dr-alt">
@@ -185,14 +237,47 @@ export default function DemoRemote() {
         </p>
       </header>
 
+      <section className="dr-sandbox" aria-label="PayPal sandbox login">
+        <h2>PayPal sandbox login</h2>
+        {state?.buyer ? (
+          <p>
+            Approve your hold with this test buyer. It’s PayPal’s sandbox, so no real money moves.
+            <span className="dr-creds">
+              Email <code>{state.buyer.email}</code> · Password <code>{state.buyer.password}</code>
+            </span>
+          </p>
+        ) : (
+          <p>
+            Approve your hold with any PayPal sandbox personal account (developer.paypal.com → Sandbox accounts). No real money moves.
+          </p>
+        )}
+      </section>
+
       {phoneUrl && (
         <a className="dr-onphone" href={phoneUrl}>
-          <strong>On your phone already?</strong> Open the demo right here. A Demo steps button inside plays the rest of the group. →
+          <strong>On your phone already?</strong> Open the demo right here. A Demo steps button inside plays the rest of the group. PayPal’s sandbox checkout only works on a computer, so pay from one. →
         </a>
       )}
       <div className="dr-grid">
         <section className="dr-pair" aria-label="Connect your phone">
-          <div className="dr-qr">{qr ? <img src={qr} alt="QR code that opens the demo on your phone" width={240} height={240} /> : <span className="dr-qr-blank" />}</div>
+          {connected && state ? (
+            <div className="dr-chat sim" role="log" aria-label="The group chat">
+              <p className="dr-chat-top">Thursday crew</p>
+              <div className="dr-chat-body">
+                <ChatLog
+                  chat={chat}
+                  list={groupMsgs}
+                  viewerId={state.organizer.id}
+                  inGroup
+                  newTab
+                  linkFor={(s) => (s.includes("?o=") ? `/g/${s}&demo=${id}` : `/g/${s}?demo=${id}`)}
+                />
+                <div ref={chatEnd} />
+              </div>
+            </div>
+          ) : (
+            <div className="dr-qr">{qr ? <img src={qr} alt="QR code that opens the demo on your phone" width={240} height={240} /> : <span className="dr-qr-blank" />}</div>
+          )}
           {connected ? (
             <p className="dr-status on">
               <span className="dr-pulse" aria-hidden="true" /> {state?.name}’s phone is connected{byText ? " by text" : ""}
@@ -221,7 +306,7 @@ export default function DemoRemote() {
                   }}
                 >
                   <p>
-                    <strong>Or use your own Messages app.</strong> Text the assistant for real; replies with real links come back to your phone.
+                    <strong>Or use your own Messages app.</strong> Text PaddlesIn for real; replies with real links come back to your phone.
                   </p>
                   <label>
                     First name
