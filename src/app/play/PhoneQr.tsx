@@ -5,8 +5,8 @@ import QRCode from "qrcode";
 
 // "Your phone" in the simulator's messaging panel. The QR code opens this group on a phone as the person you're
 // acting as, with their own group chat and private texts, the same remote style as the 2-minute walkthrough. Where
-// texting is set up (Sendblue), you can instead pair your real number: add it, text the code, and you're the
-// organizer in your own Messages app.
+// texting is set up (Sendblue), you can instead pair your real number: add it, text the code, and your own Messages
+// app acts as whoever is picked in the simulator.
 
 type Texting = { number: string; code: string | null; linked: boolean } | null;
 const prettyPhone = (n: string) => n.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, "($1) $2-$3");
@@ -48,6 +48,18 @@ export default function PhoneQr({ groupId, personId, personName }: { groupId: st
     };
   }, [groupId]);
 
+  // A phone paired by text acts as the person picked here, so texts from it speak as them and their group chat and
+  // private texts come back to it. Pairing makes the phone the organizer, so this runs again once it's linked.
+  const linked = !!texting?.linked;
+  useEffect(() => {
+    if (!linked) return;
+    fetch(`/api/play/groups/${groupId}/control`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "phoneAs", personId }),
+    }).catch(() => null);
+  }, [groupId, personId, linked]);
+
   async function textMe(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -80,7 +92,7 @@ export default function PhoneQr({ groupId, personId, personName }: { groupId: st
         <div className="sp-pair-card sp-phone-text">
           {texting.linked ? (
             <p>
-              <strong>{linkedName ?? "Your"} phone is connected by text.</strong> You’re the organizer in your own Messages app; replies and game links come back as texts.
+              <strong>{linkedName ? `${linkedName}’s` : "Your"} phone is connected by text.</strong> Texts from it now speak as {personName}, and {personName}’s group chat, private texts and game links come back to it. Tap someone else above to switch.
             </p>
           ) : texting.code ? (
             <>
@@ -93,7 +105,7 @@ export default function PhoneQr({ groupId, personId, personName }: { groupId: st
           ) : (
             <form onSubmit={textMe}>
               <p>
-                <strong>Or use your own Messages app.</strong> Text the assistant for real as the organizer; replies with real links come back to your phone.
+                <strong>Or use your own Messages app.</strong> Text the assistant for real as {personName}; replies with real links come back to your phone.
               </p>
               <label>
                 First name
