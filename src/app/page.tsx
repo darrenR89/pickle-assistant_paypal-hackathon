@@ -71,7 +71,7 @@ const STACK: Array<[string, string[]]> = [
   ["App", ["Next.js", "TypeScript", "Postgres", "Render web service", "Render Workflows and cron"]],
   ["Payments", ["PayPal Orders v2", "Authorize, capture, void, refund", "Payouts", "Verified webhooks", "JS SDK with Venmo"]],
   ["AI", ["Claude Haiku 5.5 reads the chat", "Claude Code helped write and review the code"]],
-  ["Messaging", ["SMS through Sendblue"]],
+  ["Messaging", ["Real texts through Sendblue"]],
 ];
 
 // ...and how it came together, day by day (Pacific time), from Darren's hackathon chats and the git history.
@@ -89,7 +89,7 @@ const BUILD_DAYS: Array<{ date: string; title: string; notes: string }> = [
 const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   {
     k: "Lives in",
-    v: "Your group chat (iMessage and WhatsApp planned)",
+    v: "Your group chat, by text. Link your own phone in the demo.",
     icon: <><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /><path d="M19 9h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-3" /></>,
   },
   {
