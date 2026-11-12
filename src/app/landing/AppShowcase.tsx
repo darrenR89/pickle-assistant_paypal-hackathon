@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type TouchEvent } from "react";
 
 export type ShowcaseStep = {
   tab: string; // step label in the timeline
@@ -13,8 +13,9 @@ const DUR = 8000; // ms per step
 
 // "How it works": a dark stage with the title top left, a vertical numbered timeline, one large phone that swaps
 // screens with two callout chips beside it, and the active step's slogan bottom left. While it plays, the line under
-// the active number fills over DUR and then the next step starts. Stacked on phones the phone is hidden and the
-// steps read as a plain list with every body open, so nothing auto-plays there.
+// the active number fills over DUR and then the next step starts. Stacked on phones, only the current step shows,
+// centered between previous/next arrows, and the ring around its number fills instead; tapping it, the arrows or a
+// sideways swipe over the section moves between steps.
 // Accessibility (WCAG 2.2.2): a Pause/Play button; it also holds while the mouse is over the phone, while keyboard
 // focus is on the steps, and while the section is off screen. Picking a step stops it. Reduced motion never auto-plays.
 // Phones are rendered by the server and passed in, so every screen is in the HTML and crossfades.
@@ -32,11 +33,9 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   const since = useRef(0);
   const shown = useRef(0);
   const held = paused || hover || focus || !visible;
-  // Stacked (phones): the phone is hidden and every step is listed, so there is nothing to play.
-  const stacked = () => window.matchMedia("(max-width: 760px)").matches;
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || stacked()) setAuto(false);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setAuto(false);
     const io = new IntersectionObserver(([e]) => { setVisible(e.isIntersecting); if (e.isIntersecting) setSeen(true); }, { threshold: 0.35 });
     if (stage.current) io.observe(stage.current);
     return () => io.disconnect();
@@ -57,11 +56,29 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
     };
   }, [i, auto, held, steps.length]);
 
+  // When stacked, only the current step shows, so tapping it moves on to the next one.
+  const stacked = () => window.matchMedia("(max-width: 760px)").matches;
+
   function pick(n: number, moveFocus = false) {
     setAuto(false);
     setPaused(false);
     setI(n);
     if (moveFocus) tabs.current[n]?.focus();
+  }
+
+  const go = (d: number) => pick((i + d + steps.length) % steps.length);
+
+  // Phones: a sideways swipe anywhere on the section moves a step. Vertical drags are left to page scrolling.
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  function onTouchStart(e: TouchEvent) {
+    touch.current = stacked() ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  }
+  function onTouchEnd(e: TouchEvent) {
+    const t0 = touch.current;
+    touch.current = null;
+    if (!t0) return;
+    const dx = e.changedTouches[0].clientX - t0.x, dy = e.changedTouches[0].clientY - t0.y;
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
   }
 
   function toggle() {
@@ -86,10 +103,14 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   const running = auto && !paused;
   const s = steps[i];
   return (
-    <div className={`lp-show${held ? " held" : ""}${seen ? " seen" : ""}`} ref={stage}>
+    <div className={`lp-show${held ? " held" : ""}${seen ? " seen" : ""}`} ref={stage} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="lp-show-copy">
         <h2 id="how" className="lp-h2 light">{title}</h2>
         <p className="lp-show-lead">{lead}</p>
+        <div className="lp-tl-wrap">
+        <button type="button" className="lp-tl-arrow prev" aria-label="Previous step" onClick={() => go(-1)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
         <div
           className="lp-tl"
           role="tablist"
@@ -111,7 +132,7 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
               aria-controls="show-panel"
               tabIndex={n === i ? 0 : -1}
               className={`lp-tl-item${n === i ? " on" : ""}${n < i ? " done" : ""}${n === i && auto ? " playing" : ""}`}
-              onClick={() => pick(n)}
+              onClick={() => pick(n === i && stacked() ? (n + 1) % steps.length : n)}
             >
               <span className="lp-tl-node" aria-hidden="true">{n + 1}<span className="lp-tl-ring" /></span>
               <span className="lp-tl-line" aria-hidden="true" />
@@ -121,6 +142,10 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
               </span>
             </button>
           ))}
+        </div>
+        <button type="button" className="lp-tl-arrow next" aria-label="Next step" onClick={() => go(1)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
         </div>
         <div className="lp-show-slogan" id="show-panel" role="tabpanel" aria-labelledby={`show-tab-${i}`} aria-live={auto ? "off" : "polite"}>
           <h3 key={s.title}>{s.title}</h3>
