@@ -58,12 +58,12 @@ const PROBLEM: Array<[string, string]> = [
 ];
 
 // "Built to be trusted": what a judge checks first. Every number is backed by the repo (see JUDGES.md):
-// 8 PayPal APIs in src/lib/paypal.ts, 104 tests from `pnpm test`.
+// 8 PayPal APIs in src/lib/paypal.ts, 100 tests from `pnpm test`.
 const PROOF: Proof[] = [
   { n: 0, k: "amounts chosen by the AI", v: "Claude reads the chat. Plain code makes every hold, charge and refund, and a rules parser takes over if Claude is down." },
   { n: 8, k: "PayPal APIs in a real game", v: "Create order, authorize, void, reauthorize, partial capture, refund, Payouts to the organizer and verified webhooks. Venmo uses the same SDK." },
   { n: 1, k: "charge per payment, even on retry", v: "Every PayPal write sends a PayPal-Request-Id. A settle cut off by a restart is finished by the next scheduled run." },
-  { n: 104, k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
+  { n: 100, k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
 ];
 
 // Inside the judges' fold: what it's built with, grouped by job.

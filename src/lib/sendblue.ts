@@ -5,9 +5,14 @@
 // Off unless the three SENDBLUE_* variables are set.
 
 import { one } from "@/lib/db";
-import { outboundText } from "@/lib/blooio";
+import { gameUrl } from "@/lib/games";
 import { DEMO_PLAYER } from "@/lib/playground";
 import { normalizePhone } from "@/lib/phone";
+
+/** The text as sent: Messages shows a game link as a rich preview, so put it on its own line. */
+export function outboundText(text: string, gameSlug?: string) {
+  return gameSlug ? `${text}\n${gameUrl(gameSlug)}` : text;
+}
 
 // SENDBLUE_BASE_URL is only for pointing tests at a stand-in server.
 const API = process.env.SENDBLUE_BASE_URL || "https://api.sendblue.com";

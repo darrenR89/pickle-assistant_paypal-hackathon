@@ -48,7 +48,7 @@ A short map from each judging criterion to what you can try and the code behind 
 ## What's real vs simulated
 
 - **Real:** Claude interpreting messages; the game pages; any hold you place with a PayPal sandbox account (authorize, capture, void, refund against PayPal's sandbox API); the organizer's payout; verified webhooks. `pnpm proof` lists the real sandbox ids from a game.
-- **Simulated:** the group chat in `/play` and `/demo` (real iMessage through Blooio and SMS through Sendblue work when their keys are set) and the other players' holds (ids start with `SIM-`, see `src/lib/sim.ts`).
+- **Simulated:** the group chat in `/play` and `/demo` (real texts through Sendblue work when its keys are set) and the other players' holds (ids start with `SIM-`, see `src/lib/sim.ts`).
 
 ## Known limits
 

@@ -20,7 +20,7 @@
 
 ## Real vs simulated in the demo
 - Real: Claude, the game pages, and holds placed with a PayPal sandbox account.
-- Simulated: the group chat in the demo and the other players' holds (SIM- ids). Real iMessage and SMS work when their keys are set.
+- Simulated: the group chat in the demo and the other players' holds (SIM- ids). Real texts through Sendblue work when its keys are set.
 
 ## Scheduling
 - Render Workflows: reminders, auto-settle, hold renewal, payout retries and recovery after a restart.
