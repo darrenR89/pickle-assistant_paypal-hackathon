@@ -221,6 +221,7 @@ export default function Home() {
             <p className="lp-trust-links">
               <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a>
               <a href={`${REPO}/blob/main/docs/PAYPAL.md`}>Every PayPal call</a>
+              <a href={`${REPO}/blob/main/docs/EDGE-CASES.md`}>Every edge case, and how it’s handled</a>
               <a href={`${REPO}#proof-from-a-real-sandbox-run`}>Sandbox proof</a>
               <a href={REPO}>Source on GitHub (MIT)</a>
             </p>
