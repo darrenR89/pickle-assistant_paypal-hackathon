@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import SimShell from "../SimShell";
+import StatusBar from "../../landing/StatusBar";
 
 // A demo simulator of the group chat. It runs full screen on the landing page's mesh (SimShell) with the controls in a
 // bar across the top; the two phones keep an iMessage look, because in real use the assistant lives in a group chat.
@@ -74,6 +75,7 @@ export default function Playground({ groupId }: { groupId: string }) {
   const [pick, setPick] = useState("0:0");
   const [clock, setClock] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [running, setRunning] = useState<{ id: string; step: string } | null>(null);
   const groupBody = useRef<HTMLDivElement>(null);
   const dmBody = useRef<HTMLDivElement>(null);
   const counts = useRef({ group: 0, dm: 0 });
@@ -221,6 +223,182 @@ export default function Playground({ groupId }: { groupId: string }) {
     });
   }
 
+  // ---- Game scenarios: each one chains the same messages and testing shortcuts you could do by hand ----
+
+  // Re-reads the group so a scenario's next step sees what the last one changed.
+  async function fresh(): Promise<Data | null> {
+    const res = await fetch(`/api/play/groups/${groupId}?viewer=${viewerId ?? ""}`, { cache: "no-store" }).catch(() => null);
+    if (!res?.ok) return null;
+    const body = (await res.json().catch(() => null)) as Data | null;
+    if (body) setData(body);
+    return body;
+  }
+  async function post(body: Record<string, unknown>) {
+    const res = await fetch(`/api/play/groups/${groupId}/control`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => null);
+    return ((await res?.json().catch(() => ({}))) ?? {}) as Record<string, unknown>;
+  }
+  const hostOf = (d: Data) => d.game?.organizerId ?? d.people[0].id;
+  const named = (d: Data, name: string, fallback: number) => d.people.find((p) => p.name === name)?.id ?? d.people[fallback]?.id ?? d.people[0].id;
+  async function personNamed(d: Data, name: string) {
+    const have = d.people.find((p) => p.name === name);
+    if (have) return have.id;
+    const r = await post({ action: "addPerson", name });
+    return (r.personId as string) ?? d.people[0].id;
+  }
+  // Someone who is playing (not the host), preferring the named person, so a scenario still works after earlier ones.
+  function playing(d: Data, prefer: string) {
+    const host = hostOf(d);
+    const ins = d.people.filter((p) => p.id !== host && d.game?.inIds.includes(p.id));
+    return (ins.find((p) => p.name === prefer) ?? ins[0] ?? d.people[1] ?? d.people[0]).id;
+  }
+  // Someone in the chat who isn't playing yet, added to the chat if needed.
+  async function notPlaying(d: Data, names: string[]) {
+    for (const n of names) {
+      const p = d.people.find((x) => x.name === n);
+      if (!p) return { id: await personNamed(d, n), name: n };
+      if (!d.game?.inIds.includes(p.id)) return { id: p.id, name: n };
+    }
+    const n = `${names[0]} ${d.people.length}`;
+    return { id: await personNamed(d, n), name: n };
+  }
+  // Every scenario needs an open game: if there isn't one, the host posts the full-details setup first.
+  async function openGame(step: (s: string) => void) {
+    let d = await fresh();
+    if (!d) throw new Error("Couldn't load the chat");
+    if (d.game?.status !== "open") {
+      step("The host posts a new game");
+      await sendAs(hostOf(d), SCENARIOS[0][1][0].text);
+      d = await fresh();
+      if (!d || d.game?.status !== "open") throw new Error("The game didn't open. Try “Start a new demo group”.");
+    }
+    return d;
+  }
+  async function clockTo(mode: string) {
+    await post({ action: "time", mode });
+    await post({ action: "tick" });
+    setClock(mode);
+  }
+
+  type GameScenario = { id: string; title: string; body: string; run: (step: (s: string) => void) => Promise<string> };
+  const GAME_SCENARIOS: GameScenario[] = [
+    {
+      id: "race",
+      title: "Last spot and a waitlist",
+      body: "The game fills, a newcomer grabs the last spot and the next one joins the waitlist.",
+      run: async (step) => {
+        const d = await openGame(step);
+        step("Filling the game");
+        await post({ action: "fill" });
+        const first = await notPlaying(d, ["Dana", "Robin", "Taylor"]);
+        step(`${first.name} takes the last spot`);
+        await post({ action: "join", personId: first.id });
+        const late = await notPlaying((await fresh()) ?? d, ["Kai", "Morgan", "Jamie"]);
+        step(`${late.name} asks for the waitlist`);
+        await sendAs(late.id, "waitlist me");
+        return `The game is full and ${late.name} is on the waitlist, first in line if a spot opens.`;
+      },
+    },
+    {
+      id: "late",
+      title: "Late cancel",
+      body: "On game day a player drops out. The host decides privately: charge the share or cover it.",
+      run: async (step) => {
+        const d = await openGame(step);
+        step("Filling the game");
+        await post({ action: "fill" });
+        step("Moving to game day");
+        await clockTo("gameday");
+        const f = (await fresh()) ?? d;
+        const who = playing(f, "Sam");
+        const name = people.get(who)?.name ?? f.people.find((p) => p.id === who)?.name ?? "A player";
+        step(`${name} drops out`);
+        await sendAs(who, "ugh I can't make it thursday, sorry all");
+        setViewerId(hostOf(d));
+        return `${name} cancelled after free cancel ended. The host's choice is in their private texts.`;
+      },
+    },
+    {
+      id: "handoff",
+      title: "Hand a spot to a friend",
+      body: "A player can't come and offers their spot to a friend who isn't playing yet.",
+      run: async (step) => {
+        const d = await openGame(step);
+        step("Filling the game");
+        await post({ action: "fill" });
+        const friend = await notPlaying(d, ["Dana", "Robin", "Taylor"]);
+        const f = (await fresh()) ?? d;
+        const who = playing(f, "Sam");
+        const name = f.people.find((p) => p.id === who)?.name ?? "A player";
+        step(`${name} offers the spot to ${friend.name}`);
+        await sendAs(who, `can ${friend.name} take my spot?`);
+        return `${name} offered the spot to ${friend.name}. The claim link is in the group chat.`;
+      },
+    },
+    {
+      id: "host",
+      title: "Questions for the host",
+      body: "Priya asks about parking and Jo about rain. Both go to the host, not the whole group.",
+      run: async (step) => {
+        const d = await openGame(step);
+        step("Priya asks about parking");
+        await sendAs(named(d, "Priya", 2), "is there parking near the courts?");
+        step("Jo asks about rain");
+        await sendAs(named(d, "Jo", 3), "rain forecast thursday, are we still on?");
+        setViewerId(hostOf(d));
+        return "Both questions went to the host privately.";
+      },
+    },
+    {
+      id: "rain",
+      title: "Rained out",
+      body: "The game fills, then the host calls it off. Once they confirm, every hold is released.",
+      run: async (step) => {
+        const d = await openGame(step);
+        step("Filling the game");
+        await post({ action: "fill" });
+        step("The host calls it off");
+        await sendAs(hostOf(d), "rained out, cancel the game");
+        setViewerId(hostOf(d));
+        return "The host is asked to confirm on the organizer page, which releases every hold.";
+      },
+    },
+    {
+      id: "settle",
+      title: "Play it and settle up",
+      body: "The game fills, the game-day reminder goes out, and after the game everyone pays their share.",
+      run: async (step) => {
+        const d = await openGame(step);
+        step("Filling the game");
+        await post({ action: "fill" });
+        step("90 minutes to go: reminder");
+        await clockTo("soon");
+        step("After the game: settling up");
+        await clockTo("over");
+        setViewerId(hostOf(d));
+        return "Played and settled. Each player's receipt is in their private texts.";
+      },
+    },
+  ];
+
+  async function runGameScenario(sc: GameScenario) {
+    if (running) return;
+    setNote(null);
+    setRunning({ id: sc.id, step: "Starting" });
+    try {
+      const done = await sc.run((s) => setRunning({ id: sc.id, step: s }));
+      setNote(done);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "That didn't work");
+    } finally {
+      setRunning(null);
+      load();
+    }
+  }
+
   function linkFor(slugWithQuery: string) {
     // ?o= is the organizer's private link; otherwise open the game as the person viewing.
     return slugWithQuery.includes("?o=") ? `/g/${slugWithQuery}` : `/g/${slugWithQuery}?p=${viewer.token}`;
@@ -266,137 +444,142 @@ export default function Playground({ groupId }: { groupId: string }) {
   const [gi, si] = pick.split(":").map(Number);
   const picked = SCENARIOS[gi]?.[1][si] ?? SCENARIOS[0][1][0];
   const pickedAs = picked.as === "organizer" ? (people.get(organizerId)?.name ?? "the organizer") : viewer.name;
+  const busy = sending || !!running;
 
-  const controls = (
-    <div className="sim-panel">
-      <section className="sim-sec" aria-labelledby="sim-people-h">
-        <h2 id="sim-people-h" className="sim-label">People · tap to act as them</h2>
-        <div className="sim-pills">
-          {data.people.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="sim-pill"
-              aria-pressed={p.id === viewerId}
-              onClick={() => setViewerId(p.id)}
-            >
-              {p.name}
-              {p.id === organizerId && <small> · host</small>}
-            </button>
-          ))}
-          {adding ? (
-            <form
-              className="sim-pill-add"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const name = newName.trim();
-                if (!name) return;
-                const r = await control({ action: "addPerson", name }, () => `${name} joined the chat. They weren't here when the game was made.`);
-                if (r.personId) {
-                  setViewerId(r.personId as string);
-                  setAdding(false);
-                }
-              }}
-            >
-              <label className="sr-only" htmlFor="sim-new">Name</label>
-              <input id="sim-new" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={20} autoFocus />
-              <button className="sim-pill-ok">Add</button>
-              <button type="button" className="sim-pill-x" aria-label="Cancel" onClick={() => setAdding(false)}>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+  // Top bar: the game scenarios, then manual steps for the current game.
+  const scenarios = (
+    <section className="sim-panel" aria-labelledby="sim-game-h">
+      <div className="sim-sec-head">
+        <h2 id="sim-game-h" className="sim-label">
+          Game scenarios{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · ${data.game.when}`) : ""}
+        </h2>
+        {data.game && (
+          <span className="sim-links">
+            <a href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">Game page ↗</a>
+            <a href={`/g/${data.game.slug}?o=${data.game.organizerToken}`} target="_blank" rel="noreferrer">Organizer ↗</a>
+          </span>
+        )}
+      </div>
+      <ul className="sim-cards">
+        {GAME_SCENARIOS.map((sc) => {
+          const on = running?.id === sc.id;
+          return (
+            <li key={sc.id} className={on ? "sim-card on" : "sim-card"}>
+              <h3>{sc.title}</h3>
+              <p>{on ? <span className="sim-card-step" aria-live="polite">{running.step}…</span> : sc.body}</p>
+              <button type="button" className="dr-btn" disabled={busy} onClick={() => runGameScenario(sc)} aria-label={`Run: ${sc.title}`}>
+                {on ? "Running…" : "Run"}
               </button>
-            </form>
-          ) : (
-            <button type="button" className="sim-pill sim-plus" aria-label="Add someone to the chat" onClick={() => setAdding(true)}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-            </button>
-          )}
-        </div>
+            </li>
+          );
+        })}
+      </ul>
 
-        <form
-          className="sim-say"
-          onSubmit={(e) => {
-            e.preventDefault();
-            runScenario(picked);
-          }}
-        >
-          <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
-          <div className="sim-row">
-            <select id="sim-say" className="sim-select" value={pick} onChange={(e) => setPick(e.target.value)}>
-              {SCENARIOS.map(([title, list], g) => (
-                <optgroup key={title} label={title}>
-                  {list.map((sc, i) => (
-                    <option key={sc.label} value={`${g}:${i}`}>
-                      {sc.label.replace("the newest person", newest)}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            <button className="dr-btn p" disabled={sending}>
-              {sending ? "Sending…" : `Send as ${pickedAs}`}
-            </button>
-          </div>
-          <p className="sim-quote">
-            <span>{pickedAs}:</span> “{picked.text.replace("{newest}", newest)}”
-          </p>
-        </form>
-      </section>
-
-      <section className="sim-sec sim-game" aria-labelledby="sim-game-h">
-        <div className="sim-sec-head">
-          <h2 id="sim-game-h" className="sim-label">
-            Game scenarios{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · ${data.game.when}`) : ""}
-          </h2>
-          {data.game && (
-            <span className="sim-links">
-              <a href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">Game page ↗</a>
-              <a href={`/g/${data.game.slug}?o=${data.game.organizerToken}`} target="_blank" rel="noreferrer">Organizer ↗</a>
-            </span>
-          )}
-        </div>
+      <div className="sim-manual">
+        <span className="sim-label">Or step through it</span>
         {data.game ? (
           <>
-            <div className="sim-scn">
-              <span className="sim-scn-k">Players</span>
-              <div className="sim-scn-acts">
-                <button type="button" className="dr-btn" onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
-                  Join as {viewer.name}
-                </button>
-                <button type="button" className="dr-btn" onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
-                  Fill, leave 1 spot
-                </button>
-              </div>
+            <div className="sim-scn-acts">
+              <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
+                Join as {viewer.name}
+              </button>
+              <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
+                Fill, leave 1 spot
+              </button>
             </div>
-            <div className="sim-scn">
-              <span className="sim-scn-k">Clock</span>
-              <ol className="sim-track">
-                {CLOCK.map(([mode, label, what]) => (
-                  <li key={mode}>
-                    <button
-                      type="button"
-                      aria-pressed={clock === mode}
-                      onClick={() => moveTo(mode)}
-                    >
-                      <span className="sim-dot" aria-hidden="true" />
-                      <strong>{label}</strong>
-                      <span>{what}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal. Each clock stop also does what&apos;s due then: the game-day reminder at 90 min to go, settling up after the game.</p>
+            <ol className="sim-track" aria-label="Move the clock">
+              {CLOCK.map(([mode, label, what]) => (
+                <li key={mode}>
+                  <button type="button" aria-pressed={clock === mode} disabled={busy} onClick={() => moveTo(mode)}>
+                    <span className="sim-dot" aria-hidden="true" />
+                    <strong>{label}</strong>
+                    <span>{what}</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
           </>
         ) : (
-          <p className="sim-hint">No game yet. Send “Game with full details” as the host to start one, then join, fill and move the clock here.</p>
+          <p className="sim-hint">No game yet. Run a scenario, or send “Game with full details” as the host.</p>
         )}
-      </section>
-    </div>
+      </div>
+      <p className="sim-hint">
+        Scenarios use the real assistant and simulated holds. Each clock stop also does what&apos;s due then. For real sandbox money, open the game page and pay with PayPal.
+      </p>
+    </section>
+  );
+
+  // Beside the phones: who you are, and a sample message to send as them.
+  const peopleBlock = (
+    <section className="sim-people" aria-labelledby="sim-people-h">
+      <h2 id="sim-people-h" className="sim-label">People · tap to act as them</h2>
+      <div className="sim-pills">
+        {data.people.map((p) => (
+          <button key={p.id} type="button" className="sim-pill" aria-pressed={p.id === viewerId} onClick={() => setViewerId(p.id)}>
+            {p.name}
+            {p.id === organizerId && <small> · host</small>}
+          </button>
+        ))}
+        {adding ? (
+          <form
+            className="sim-pill-add"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const name = newName.trim();
+              if (!name) return;
+              const r = await control({ action: "addPerson", name }, () => `${name} joined the chat. They weren't here when the game was made.`);
+              if (r.personId) {
+                setViewerId(r.personId as string);
+                setAdding(false);
+              }
+            }}
+          >
+            <label className="sr-only" htmlFor="sim-new">Name</label>
+            <input id="sim-new" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={20} autoFocus />
+            <button className="sim-pill-ok">Add</button>
+            <button type="button" className="sim-pill-x" aria-label="Cancel" onClick={() => setAdding(false)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </form>
+        ) : (
+          <button type="button" className="sim-pill sim-plus" aria-label="Add someone to the chat" onClick={() => setAdding(true)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+        )}
+      </div>
+
+      <form
+        className="sim-say"
+        onSubmit={(e) => {
+          e.preventDefault();
+          runScenario(picked);
+        }}
+      >
+        <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
+        <select id="sim-say" className="sim-select" value={pick} onChange={(e) => setPick(e.target.value)}>
+          {SCENARIOS.map(([title, list], g) => (
+            <optgroup key={title} label={title}>
+              {list.map((sc, i) => (
+                <option key={sc.label} value={`${g}:${i}`}>
+                  {sc.label.replace("the newest person", newest)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <p className="sim-quote">
+          <span>{pickedAs}:</span> “{picked.text.replace("{newest}", newest)}”
+        </p>
+        <button className="dr-btn p" disabled={busy}>
+          {sending ? "Sending…" : `Send as ${pickedAs}`}
+        </button>
+      </form>
+    </section>
   );
 
   return (
     <SimShell
-      controls={controls}
+      controls={scenarios}
       actions={
         <button type="button" className="sp-link" onClick={newGroup}>
           New<span className="sp-wide"> demo</span> group
@@ -407,40 +590,47 @@ export default function Playground({ groupId }: { groupId: string }) {
         {note}
       </p>
       <div className="sim-grid">
-        <section className="phone" aria-label={`Group chat: ${data.group.name}`}>
-          <div className="phone-top">
-            <span className="phone-title">{data.group.name}</span>
-            <span className="phone-sub">{data.people.length} people + Assistant</span>
+        {peopleBlock}
+        <section className="phone lp-phone" aria-label={`Group chat: ${data.group.name}`}>
+          <div className="lp-screen light sim-screen">
+            <StatusBar />
+            <div className="phone-top">
+              <span className="phone-title">{data.group.name}</span>
+              <span className="phone-sub">{data.people.length} people + Assistant</span>
+            </div>
+            <div className="phone-body" role="log" aria-label="Group messages" ref={groupBody}>
+              {groupMsgs.map((m) => bubble(m))}
+            </div>
+            <form className="phone-compose" onSubmit={send}>
+              <label className="sr-only" htmlFor="compose">
+                Message as {viewer.name}
+              </label>
+              <input
+                id="compose"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={`iMessage as ${viewer.name}`}
+                maxLength={500}
+              />
+              <button type="submit" disabled={sending || !text.trim()} aria-label="Send">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </form>
           </div>
-          <div className="phone-body" role="log" aria-label="Group messages" ref={groupBody}>
-            {groupMsgs.map((m) => bubble(m))}
-          </div>
-          <form className="phone-compose" onSubmit={send}>
-            <label className="sr-only" htmlFor="compose">
-              Message as {viewer.name}
-            </label>
-            <input
-              id="compose"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={`iMessage as ${viewer.name}`}
-              maxLength={500}
-            />
-            <button type="submit" disabled={sending || !text.trim()} aria-label="Send">
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </form>
         </section>
 
-        <section className="phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
-          <div className="phone-top">
-            <span className="phone-title">Assistant</span>
-            <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
-          </div>
-          <div className="phone-body" role="log" aria-label="Private messages" ref={dmBody}>
-            {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="phone-empty">No private texts yet.</p>}
+        <section className="phone lp-phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
+          <div className="lp-screen light sim-screen">
+            <StatusBar />
+            <div className="phone-top">
+              <span className="phone-title">Assistant</span>
+              <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
+            </div>
+            <div className="phone-body" role="log" aria-label="Private messages" ref={dmBody}>
+              {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="phone-empty">No private texts yet.</p>}
+            </div>
           </div>
         </section>
       </div>
