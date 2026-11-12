@@ -5,7 +5,7 @@
 <!-- Before submission: replace VIDEO_URL with the public YouTube link. -->
 **[getpaddlesin.com](https://getpaddlesin.com)** · **[▶ Watch the demo (under 3 min)](VIDEO_URL)** · **[Try it on your phone](https://getpaddlesin.com/demo)** · **[For judges](JUDGES.md)** · **[For AI reviewers](docs/AI-REVIEWERS.md)**
 
-![Pickleball games that settle themselves. Friends hold their spot with PayPal or Venmo, right from the group chat. After the game, everyone pays only their real share. A phone shows the game page with 4 spots left and an I'm in button.](docs/images/hero.webp)
+![Pickleball games that settle themselves. Friends hold their spot with PayPal or Venmo, right from the group chat. After the game, everyone pays only their real share. A tilted phone shows the game page: Thursday 6:00 pm, 4 spots left.](docs/images/hero.webp)
 
 One friend books the court and pays for it, then spends the week asking everyone for $8. Paddles In does that job for them. A hold makes "I'm in" mean something, a late drop is the organizer's call, and the money comes back without anyone having to ask.
 
