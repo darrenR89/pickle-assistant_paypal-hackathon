@@ -56,7 +56,7 @@ export type GroupContext = {
 
 // ---------- should the assistant even look at this message? ----------
 
-const MENTION = /@(assistant|pickle\w*|bot)\b/i;
+const MENTION = /@(paddlesin|assistant|pickle\w*|bot)\b/i;
 const GAME_WORDS =
   /\b(in|out|play(ing)?|spot|spots|court|courts|game|tonight|tomorrow|mon|tue|wed|thu|fri|sat|sun\w*|time|when|where|cancel|sub|swap|take my|waitlist|wait list|late|running|eta|who'?s|how many|price|cost|pay|paid|charge|refund|venmo|paypal|hold|partner|doubles|singles|level|park|parking|address|rain|weather|can'?t|cannot|make it|maybe|count me|\+1|bring|friend|guest|down|bail|sick|injured|hurt|tweaked|move|moving|push|reschedule|change|switch|later|earlier|\d{1,2}\s?(am|pm)|help|rain|rained|off|lights?|nets?|balls?|paddles?|bathrooms?|restrooms?|weather|forecast|smoke|still on|invite|add)\b/i;
 
@@ -113,7 +113,7 @@ async function withClaude(ctx: GroupContext, text: string): Promise<Decision> {
     model: CLAUDE_MODEL,
     max_tokens: 300,
     system: [
-      "You are the assistant in a friends' pickleball group chat. You keep track of who's playing.",
+      "You are PaddlesIn, the assistant in a friends' pickleball group chat. You keep track of who's playing.",
       "Decide what the newest message means for the game by calling the decide tool once.",
       "Most messages are small talk: choose ignore. Only reply when it helps the group.",
       "Never invent facts. If the facts below don't answer a question about the game, use ask_organizer: it is passed to the organizer privately, so leave reply empty.",
@@ -207,7 +207,7 @@ export async function buildContext(groupId: string, senderId: string, game: Game
     )
   )
     .reverse()
-    .map((m) => ({ from: m.from ?? "Assistant", text: m.text }));
+    .map((m) => ({ from: m.from ?? "PaddlesIn", text: m.text }));
   let inNames: string[] = [];
   let waitlist: string[] = [];
   let invited: string[] = [];

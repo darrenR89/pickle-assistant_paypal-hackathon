@@ -17,7 +17,7 @@ type Chat = {
   game: { organizerId: string; status: string } | null;
 };
 
-const SETUP = "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64";
+const SETUP = "@PaddlesIn Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64";
 
 export default function PlayPhone({ groupId, as }: { groupId: string; as: string | null }) {
   const [chat, setChat] = useState<Chat | null>(null);
@@ -105,7 +105,7 @@ export default function PlayPhone({ groupId, as }: { groupId: string; as: string
             {chat.group.name}
           </button>
           <button role="tab" aria-selected={thread === "dm"} className={thread === "dm" ? "on" : ""} onClick={() => setThread("dm")}>
-            Assistant{unread > 0 && <span className="dp-dot">{unread}<span className="sr-only"> new</span></span>}
+            PaddlesIn{unread > 0 && <span className="dp-dot">{unread}<span className="sr-only"> new</span></span>}
           </button>
         </div>
         <label className="sr-only" htmlFor="pp-as">Who you are</label>
@@ -145,7 +145,7 @@ export default function PlayPhone({ groupId, as }: { groupId: string; as: string
           const org = m.game_slug?.includes("?o=");
           return (
             <div key={m.id} className={`im-msg ${mine ? "mine" : ""} ${bot ? "bot" : ""}`}>
-              {!mine && thread === "group" && <span className="im-sender">{m.sender_id ? people.get(m.sender_id)?.name : "Assistant"}</span>}
+              {!mine && thread === "group" && <span className="im-sender">{m.sender_id ? people.get(m.sender_id)?.name : "PaddlesIn"}</span>}
               <div className="im-bubble">
                 {m.text}
                 {card && m.game_slug && (

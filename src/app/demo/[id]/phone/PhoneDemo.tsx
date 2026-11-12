@@ -13,7 +13,7 @@ type State = {
   game: { slug: string; status: string } | null;
 };
 
-const SETUP = "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
+const SETUP = "@PaddlesIn Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
 
 export default function PhoneDemo({ id }: { id: string }) {
   const [state, setState] = useState<State | null>(null);
@@ -167,7 +167,7 @@ export default function PhoneDemo({ id }: { id: string }) {
             Thursday crew
           </button>
           <button role="tab" aria-selected={thread === "dm"} className={thread === "dm" ? "on" : ""} onClick={() => setThread("dm")}>
-            Assistant{unread > 0 && <span className="dp-dot">{unread}<span className="sr-only"> new</span></span>}
+            PaddlesIn{unread > 0 && <span className="dp-dot">{unread}<span className="sr-only"> new</span></span>}
           </button>
         </div>
         <button className="dp-ctl" onClick={() => { setCtlNote(null); setControls(true); }}>Demo steps</button>
@@ -189,7 +189,7 @@ export default function PhoneDemo({ id }: { id: string }) {
           const org = m.game_slug?.includes("?o=");
           return (
             <div key={m.id} className={`im-msg ${mine ? "mine" : ""} ${bot ? "bot" : ""}`}>
-              {!mine && thread === "group" && <span className="im-sender">{m.sender_id ? people.get(m.sender_id)?.name : "Assistant"}</span>}
+              {!mine && thread === "group" && <span className="im-sender">{m.sender_id ? people.get(m.sender_id)?.name : "PaddlesIn"}</span>}
               <div className="im-bubble">
                 {m.text}
                 {card && m.game_slug && (
