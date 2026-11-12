@@ -159,7 +159,7 @@ export default function DemoRemote() {
       title: "Be a player and hold a spot with PayPal",
       body: (
         <>
-          Your phone switches to Jo. Tap the game link, then I’m in. PayPal <strong>authorizes</strong> your share plus a small cap. Nothing is
+          Your phone switches to Jo, who says “I’m in” in the group. Tap the link PaddlesIn sends back, then I’m in. PayPal <strong>authorizes</strong> your share plus a small cap. Nothing is
           charged yet. Use the sandbox login above; PayPal’s sandbox checkout only works on a computer, so open the phone view in a window
           to pay.
           {hold && hold.status === "held" && (
