@@ -278,26 +278,34 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
     </section>
   );
 
+  // What the money card says. The organizer paid the court and holds nothing; a far-off game saves
+  // PayPal first and holds later; a failed hold holds nothing. Never show "$0 on hold" beside a share.
+  const [moneyTitle, moneySub] = org
+    ? [`Each share is ${money(v.shareCents)}`, `Players hold ${money(v.holdCents)}: the share plus up to ${money(v.capCents)} if the game runs short.`]
+    : iAmIn && v.viewerIsHost
+      ? ["Nothing on hold for you", `You paid for the court. Each player pays ${money(v.shareCents)} after the game.`]
+      : iAmIn && saved
+        ? [`Hold on ${v.holdDateLabel}`, `Nothing held yet. We hold ${money(v.holdCents)} then and charge your ${money(v.shareCents)} share after the game.`]
+        : iAmIn && v.myHold === "failed"
+          ? ["Hold didn’t go through", `Nothing is held or charged. Approve again${v.fixByLabel ? ` by ${v.fixByLabel}` : ""} to keep your spot.`]
+          : iAmIn
+            ? [`${money(v.myHoldCents)} on hold`, `Your share is ${money(v.shareCents)}. Charged after the game, never before.`]
+            : [`${money(v.shareCents)} is your share`, `We hold ${money(v.holdCents)} ${v.savesFirst ? `on ${v.holdDateLabel}` : "now"} and charge after the game`];
+
   const moneyCard = (
     <section className="card half" aria-label="Money">
       <button className="row" onClick={() => setSheet("explain")} style={{ width: "100%", background: "none", border: "none", textAlign: "left" }}>
         <Icon name="card" />
         <div className="tx">
-          <span className="ttl">{org ? `Each share is ${money(v.shareCents)}` : iAmIn ? `${money(v.myHoldCents)} on hold` : `${money(v.shareCents)} is your share`}</span>
-          <span className="sub">
-            {org
-              ? `Players hold ${money(v.holdCents)}: the share plus up to ${money(v.capCents)} if the game runs short.`
-              : iAmIn
-                ? `Your share is ${money(v.shareCents)}. Charged after the game, never before.`
-                : `We hold ${money(v.holdCents)} now and charge after the game`}
-          </span>
+          <span className="ttl">{moneyTitle}</span>
+          <span className="sub">{moneySub}</span>
         </div>
       </button>
       <button className="row" onClick={() => setSheet("explain")} style={{ width: "100%", background: "none", border: "none", borderTop: "1px solid var(--line)", textAlign: "left" }}>
         <Icon name="undo" />
         <div className="tx">
           <span className="ttl">{v.beforeCancelBy ? `Free cancel until ${v.cancelByLabel}` : `Free cancel ended ${v.cancelByLabel}`}</span>
-          <span className="sub">{v.beforeCancelBy ? "Your hold is released in full" : `Cancelling now: ${v.hostName} decides whether your ${money(v.shareCents)} is charged`}</span>
+          <span className="sub">{v.viewerIsHost ? (v.beforeCancelBy ? "Players can drop out free until then" : "If a player drops out now, you decide whether they pay") : v.beforeCancelBy ? "Your hold is released in full" : `Cancelling now: ${v.hostName} decides whether your ${money(v.shareCents)} is charged`}</span>
         </div>
       </button>
     </section>
