@@ -5,6 +5,7 @@ import {
   type Game,
   TZ,
   cancelRule,
+  gameNow,
   getGame,
   holdCents,
   inPlayers,
@@ -96,7 +97,7 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
   if (mine?.hold_status === "captured" && (mine.captured_cents ?? 0) > 0 && mine.refunded_cents >= (mine.captured_cents ?? 0)) me = "refunded";
 
   // Delayed holds: a far-off game saves the player's PayPal now and holds two days before.
-  const savesFirst = game.status === "open" && mine?.status !== "in" && delaysHold(start, new Date(), delayedHoldsOn());
+  const savesFirst = game.status === "open" && mine?.status !== "in" && delaysHold(start, gameNow(game), delayedHoldsOn());
   const myHold = mine?.status === "in" && (mine.hold_status === "saved" || mine.hold_status === "failed") ? mine.hold_status : null;
 
   const view = {
@@ -110,7 +111,7 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
     o: isOrganizer ? o! : null,
     clientId: process.env.PAYPAL_CLIENT_ID ?? "",
     status: game.status,
-    over: Date.now() > start.getTime(),
+    over: gameNow(game).getTime() > start.getTime(),
     clock,
     meridiem,
     dateLabel: fmt(start, { weekday: "short", month: "short", day: "numeric" }),

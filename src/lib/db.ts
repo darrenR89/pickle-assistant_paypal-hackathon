@@ -157,6 +157,8 @@ alter table games add column if not exists close_choice text;
 alter table games add column if not exists status_changed_at timestamptz;
 alter table games add column if not exists closing_choice text;
 alter table games add column if not exists payout_started_at timestamptz;
+-- Demo games only: how far the simulator's clock is ahead of (or behind) the real one, in ms. Real games stay at 0.
+alter table games add column if not exists clock_offset_ms bigint not null default 0;
 -- Delayed holds (DELAYED_HOLDS=on): for a game more than 3 days out the player saves their PayPal
 -- (hold_status 'saved', vault_token set) and the hold is placed 2 days before the game. If that
 -- fails the spot is 'failed' until they approve again or the fix window runs out.

@@ -241,6 +241,8 @@ a{color:var(--link)}
 .sim-people{position:sticky;top:20px;align-self:start;min-width:0;padding:16px;border-radius:20px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);color:#fff}
 .sim-scn-acts{display:flex;gap:6px}
 .sp .sim-scn-acts .dr-btn{flex:1;width:auto}
+.sim-now{font:500 13px/1.2 var(--sans);color:#C9BFE3;margin-right:auto}
+.sim-now strong{color:var(--ball);font-weight:700}
 .sim-track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 .sim-track li{position:relative}
 .sim-track li+li::before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:rgba(255,255,255,.28)}

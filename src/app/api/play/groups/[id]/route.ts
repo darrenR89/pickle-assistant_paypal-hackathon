@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { one, q } from "@/lib/db";
-import { type Game, inPlayers, money, openGameForGroup, roster, shortWhen, whenLabel } from "@/lib/games";
+import { type Game, gameNow, inPlayers, money, openGameForGroup, roster, shortWhen, whenLabel } from "@/lib/games";
 import { groupPeople } from "@/lib/playground";
 import { errorResponse } from "@/lib/http";
 
@@ -62,6 +62,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           inviteOnly: g.invite_only,
           spots: g.spots,
           inIds: inPlayers(entries).map((e) => e.person_id),
+          // The simulator's clock for this game, as an offset from the real one, so the phones can show its time.
+          clockOffsetMs: gameNow(g).getTime() - Date.now(),
         };
       }
     }

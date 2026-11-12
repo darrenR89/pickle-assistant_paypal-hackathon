@@ -27,6 +27,8 @@ export type Game = {
   cancel_by: Date;
   organizer_pays: boolean;
   organizer_token: string;
+  /** Demo games only: the simulator's clock offset in ms (bigint, so it can arrive as a string). Real games: 0. */
+  clock_offset_ms?: number | string | null;
   status: "draft" | "open" | "settling" | "cancelling" | "cancelled" | "settled";
   cancel_reminder_sent: boolean;
   gameday_reminder_sent: boolean;
@@ -130,12 +132,17 @@ export function gameHeadline(game: Game) {
   return `${whenLabel(game.starts_at)} · ${game.place}`;
 }
 
-export function isBeforeCancelBy(game: Game, now = new Date()) {
+/** "Now" for this game: the real time, or the simulator's time for a demo game whose clock was moved. */
+export function gameNow(game: { clock_offset_ms?: number | string | null }) {
+  return new Date(Date.now() + Number(game.clock_offset_ms ?? 0));
+}
+
+export function isBeforeCancelBy(game: Game, now = gameNow(game)) {
   return now.getTime() < new Date(game.cancel_by).getTime();
 }
 
 /** The free-cancel rule as it stands now. A game set up inside its last 24 hours has none left. */
-export function cancelRule(game: Pick<Game, "cancel_by">, now = new Date()) {
+export function cancelRule(game: Pick<Game, "cancel_by" | "clock_offset_ms">, now = gameNow(game)) {
   return now.getTime() < new Date(game.cancel_by).getTime() ? `free cancel until ${whenLabel(new Date(game.cancel_by))}` : "free cancel has ended";
 }
 
@@ -145,7 +152,7 @@ export function payoutUnderway(status: Game["payout_status"]) {
 }
 
 /** The game-day reminder, worded for how far off the game really is (a game can be set up an hour before). */
-export function gameDayLine(game: Pick<Game, "starts_at" | "place">, now = new Date()) {
+export function gameDayLine(game: Pick<Game, "starts_at" | "place" | "clock_offset_ms">, now = gameNow(game)) {
   const mins = (new Date(game.starts_at).getTime() - now.getTime()) / 60_000;
   const lead = mins >= 100 ? "Game in 2 hours" : mins >= 45 ? "Game in about an hour" : "Game starting soon";
   return `${lead}: ${whenLabel(new Date(game.starts_at))} at ${game.place}. See you there!`;

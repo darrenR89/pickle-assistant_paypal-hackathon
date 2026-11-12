@@ -149,7 +149,8 @@ export const recoverGame = task(
   },
 );
 
-/** Entry point for the cron job: find what's due now and run each item as its own task. */
+/** Entry point for the cron job: find what's due now and run each item as its own task. Demo games whose clock the
+ * simulator moved (clock_offset_ms) are skipped: the simulator runs what's due for them when its clock moves. */
 export const tick = task(
   { name: "tick", timeoutSeconds: 600 },
   async function tickRun(ctx: TaskContext) {
@@ -166,14 +167,14 @@ export const tick = task(
 
     const [reminders, gameDay, toSettle, toRenew, toPay, stuck, toHold, toFree] = await Promise.all([
       q<{ id: string }>(
-        "select id from games where status = 'open' and not cancel_reminder_sent and cancel_by > $1 and cancel_by <= $2",
+        "select id from games where status = 'open' and clock_offset_ms = 0 and not cancel_reminder_sent and cancel_by > $1 and cancel_by <= $2",
         [at(0), at(CANCEL_REMINDER_WINDOW)],
       ),
       q<{ id: string }>(
-        "select id from games where status = 'open' and not gameday_reminder_sent and starts_at > $1 and starts_at <= $2",
+        "select id from games where status = 'open' and clock_offset_ms = 0 and not gameday_reminder_sent and starts_at > $1 and starts_at <= $2",
         [at(0), at(GAMEDAY_REMINDER_LEAD)],
       ),
-      q<{ id: string }>("select id from games where status = 'open' and starts_at <= $1", [at(-SETTLE_AFTER)]),
+      q<{ id: string }>("select id from games where status = 'open' and clock_offset_ms = 0 and starts_at <= $1", [at(-SETTLE_AFTER)]),
       q<{ id: string }>(
         `select s.id from spots s join games g on g.id = s.game_id
          where s.hold_status = 'held' and not s.reauthorized and g.status = 'open' and g.starts_at > $1 and s.authorized_at <= $2`,
@@ -187,12 +188,12 @@ export const tick = task(
       ),
       q<{ id: string }>(
         `select s.id from spots s join games g on g.id = s.game_id
-         where s.status = 'in' and s.hold_status = 'saved' and g.status = 'open' and g.starts_at > $1 and g.starts_at <= $2`,
+         where s.status = 'in' and s.hold_status = 'saved' and g.status = 'open' and g.clock_offset_ms = 0 and g.starts_at > $1 and g.starts_at <= $2`,
         [at(0), at(HOLD_LEAD)],
       ),
       q<{ id: string }>(
         `select s.id from spots s join games g on g.id = s.game_id
-         where s.status = 'in' and s.hold_status = 'failed' and g.status = 'open'
+         where s.status = 'in' and s.hold_status = 'failed' and g.status = 'open' and g.clock_offset_ms = 0
            and least(s.hold_failed_at + $1 * interval '1 millisecond', g.starts_at - interval '3 hours') <= $2`,
         [FIX_WINDOW, at(0)],
       ),

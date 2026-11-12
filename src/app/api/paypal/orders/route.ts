@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { newId, newToken, one, q } from "@/lib/db";
-import { type Person, getGame, holdCents, inPlayers, isInvited, personByToken, roster, whenLabel } from "@/lib/games";
+import { type Person, gameNow, getGame, holdCents, inPlayers, isInvited, personByToken, roster, whenLabel } from "@/lib/games";
 import { delayedHoldsOn, delaysHold } from "@/lib/limits";
 import { createHoldOrder, createSetupToken } from "@/lib/paypal";
 import { errorResponse } from "@/lib/http";
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
     // Far-off game: a hold placed today would lapse before the game, so the player saves their
     // PayPal now and the hold is placed two days before the start (see bot/delayed.ts).
-    if (!retrying && delaysHold(game.starts_at, new Date(), delayedHoldsOn())) {
+    if (!retrying && delaysHold(game.starts_at, gameNow(game), delayedHoldsOn())) {
       const base = (process.env.APP_URL || new URL(req.url).origin).replace(/\/$/, "");
       const setup = await createSetupToken({ description, returnUrl: `${base}/g/${game.slug}`, requestId: crypto.randomUUID() });
       await q("insert into pending_orders (order_id, game_id, person_id, hold_cents, kind) values ($1, $2, $3, $4, 'save')", [

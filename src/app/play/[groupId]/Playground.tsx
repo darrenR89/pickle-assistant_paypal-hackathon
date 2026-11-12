@@ -10,7 +10,7 @@ import StatusBar from "../../landing/StatusBar";
 type Person = { id: string; name: string; token: string };
 type Msg = { id: string; sender_id: string | null; dm_to: string | null; text: string; game_slug: string | null };
 type Card = { title: string; subtitle: string; when: string; spots: string };
-type GameInfo = { slug: string; organizerToken: string; organizerId: string; status: string; when: string; inviteOnly: boolean; spots: number; inIds: string[] };
+type GameInfo = { slug: string; organizerToken: string; organizerId: string; status: string; when: string; inviteOnly: boolean; spots: number; inIds: string[]; clockOffsetMs: number };
 type Data = { group: { name: string }; people: Person[]; messages: Msg[]; cards: Record<string, Card>; game: GameInfo | null };
 
 // Each sample sends a real message through the real assistant (Claude on the server), always as the person you're
@@ -44,6 +44,11 @@ const PLAYER: Sample[] = [
   { label: "Help", text: "what can you do?" },
 ];
 
+// The simulator's time, in the game's time zone: the phones' status bars and the clock label show it.
+const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", ...opts });
+const phoneTime = fmt({ hour: "numeric", minute: "2-digit" });
+const dayTime = fmt({ weekday: "short", hour: "numeric", minute: "2-digit" });
+
 // The clock scenarios, in order: where the game stands and what that stage tests.
 const CLOCK: Array<[string, string, string]> = [
   ["week", "A week out", "Delayed hold"],
@@ -68,6 +73,8 @@ export default function Playground({ groupId }: { groupId: string }) {
   const groupBody = useRef<HTMLDivElement>(null);
   const dmBody = useRef<HTMLDivElement>(null);
   const counts = useRef({ group: 0, dm: 0 });
+  // The real time at the last poll; the simulator's time is this plus the game's clock offset.
+  const [realNow, setRealNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     // A dropped request or a server hiccup is retried on the next poll; only a missing group is final.
@@ -82,6 +89,7 @@ export default function Playground({ groupId }: { groupId: string }) {
     }
     if (!res.ok) return;
     setData(body);
+    setRealNow(Date.now());
     setViewerId((v) => v ?? body.people[0]?.id ?? null);
   }, [groupId, viewerId]);
 
@@ -442,14 +450,19 @@ export default function Playground({ groupId }: { groupId: string }) {
   const allSamples = samples.flatMap(([, list]) => list);
   const picked = allSamples.find((sc) => sc.label === pick) ?? allSamples[0];
   const busy = sending || !!running;
+  const simNow = new Date(realNow + (data.game?.clockOffsetMs ?? 0));
+  const statusTime = phoneTime.format(simNow).replace(/\s?[AP]M$/, "");
 
   // Top bar: the game scenarios, then manual steps for the current game.
   const scenarios = (
     <section className="sim-panel" aria-labelledby="sim-game-h">
       <div className="sim-sec-head">
         <h2 id="sim-game-h" className="sim-label">
-          Game scenarios{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · ${data.game.when}`) : ""}
+          Game scenarios{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · game ${data.game.when}`) : ""}
         </h2>
+        <span className="sim-now">
+          Simulated time <strong>{dayTime.format(simNow).replace(/ (AM|PM)$/, (m) => m.toLowerCase().trim())}</strong>
+        </span>
         {data.game && (
           <span className="sim-links">
             <a href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">Game page ↗</a>
@@ -593,7 +606,7 @@ export default function Playground({ groupId }: { groupId: string }) {
         {peopleBlock}
         <section className="phone lp-phone" aria-label={`Group chat: ${data.group.name}`}>
           <div className="lp-screen light sim-screen">
-            <StatusBar />
+            <StatusBar time={statusTime} />
             <div className="phone-top">
               <span className="phone-title">{data.group.name}</span>
               <span className="phone-sub">{data.people.length} people + Assistant</span>
@@ -623,7 +636,7 @@ export default function Playground({ groupId }: { groupId: string }) {
 
         <section className="phone lp-phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
           <div className="lp-screen light sim-screen">
-            <StatusBar />
+            <StatusBar time={statusTime} />
             <div className="phone-top">
               <span className="phone-title">Assistant</span>
               <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
