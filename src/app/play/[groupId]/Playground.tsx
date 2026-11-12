@@ -434,7 +434,7 @@ export default function Playground({ groupId }: { groupId: string }) {
               <span className="im-link-meta">
                 <span className="im-link-title">{card.title}</span>
                 <span className="im-link-sub">
-                  {m.game_slug.includes("?o=") ? "Organizer view · private link" : `${card.subtitle} · pickle-assistant.onrender.com`}
+                  {m.game_slug.includes("?o=") ? "Organizer view · private link" : `${card.subtitle} · getpaddlesin.com`}
                 </span>
               </span>
             </a>

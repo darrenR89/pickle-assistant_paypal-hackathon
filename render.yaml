@@ -35,7 +35,7 @@ services:
       - key: SENDBLUE_FROM_NUMBER
         sync: false
       - key: APP_URL
-        value: https://pickle-assistant.onrender.com
+        value: https://getpaddlesin.com
       - key: DEMO_BUYER_EMAIL
         sync: false
       - key: DEMO_BUYER_PASSWORD
