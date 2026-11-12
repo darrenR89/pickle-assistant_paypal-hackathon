@@ -13,7 +13,8 @@ const DUR = 8000; // ms per step
 
 // "The app" section: a dark stage with the title top left, a vertical numbered timeline, one large phone that swaps
 // screens with two callout chips beside it, and the active step's slogan bottom left. While it plays, the line under
-// the active number fills over DUR and then the next step starts.
+// the active number fills over DUR and then the next step starts. Stacked on phones, only the current step shows,
+// centered, and the ring around its number fills instead; tapping it goes to the next step.
 // Accessibility (WCAG 2.2.2): a Pause/Play button; it also holds while the mouse is over the phone, while keyboard
 // focus is on the steps, and while the section is off screen. Picking a step stops it. Reduced motion never auto-plays.
 // Phones are rendered by the server and passed in, so every screen is in the HTML and crossfades.
@@ -52,6 +53,9 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
       left.current = Math.max(0, left.current - (performance.now() - since.current));
     };
   }, [i, auto, held, steps.length]);
+
+  // When stacked, only the current step shows, so tapping it moves on to the next one.
+  const stacked = () => window.matchMedia("(max-width: 760px)").matches;
 
   function pick(n: number, moveFocus = false) {
     setAuto(false);
@@ -107,7 +111,7 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
               aria-controls="show-panel"
               tabIndex={n === i ? 0 : -1}
               className={`lp-tl-item${n === i ? " on" : ""}${n < i ? " done" : ""}${n === i && auto ? " playing" : ""}`}
-              onClick={() => pick(n)}
+              onClick={() => pick(n === i && stacked() ? (n + 1) % steps.length : n)}
             >
               <span className="lp-tl-node" aria-hidden="true">{n + 1}<span className="lp-tl-ring" /></span>
               <span className="lp-tl-line" aria-hidden="true" />

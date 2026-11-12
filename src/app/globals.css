@@ -730,6 +730,20 @@ a{color:var(--link)}
   .lp-chip.a{left:0;top:22%}
   .lp-chip.b{right:0;bottom:16%}
 }
+/* stacked (phones): the timeline turns sideways and shows only the current step, centered; instead of a line
+   filling down to the next step, the ring around its number fills over the step's time */
+@media (max-width:760px){
+  .lp-tl{flex-direction:row;justify-content:center;margin:28px auto 0;max-width:440px}
+  .lp-tl-item:not(.on){display:none}
+  .lp-tl-item.on{grid-template-columns:1fr;justify-items:center;text-align:center;padding:0}
+  .lp-tl-line{display:none}
+  .lp-tl-node{width:56px;height:56px;font-size:26px}
+  .lp-tl-item.on .lp-tl-node{background:rgba(255,201,168,.12);border-color:rgba(255,255,255,.22);color:var(--ball);box-shadow:none}
+  .lp-tl-ring{inset:-6px;opacity:1;--p:1}
+  .lp-tl-item.on.playing .lp-tl-ring{--p:0;animation:lpTlRing var(--dur,8s) linear forwards}
+  .lp-tl-text{padding-top:16px}
+  .lp-tl-ctrl{justify-self:center}
+}
 @media (prefers-reduced-motion:reduce){.lp-show-phone,.lp-tl-body{transition:none}.lp-show-slogan h3,.lp-chip,.lp-tl-line::after,.lp-tl-ring{animation:none}.lp-tl-ctrl{display:none}}
 /* Narrower than the sections around it, so its edges sit inside theirs; the text column is sized so every fact wraps to two lines */
 .lp-info{margin:112px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:72px 80px}
@@ -817,7 +831,7 @@ a{color:var(--link)}
   .lp-show .lp-h2{grid-area:head}
   .lp-show-lead{grid-area:lead;max-width:560px;margin-bottom:36px}
   .lp-tl{grid-area:tl;margin-top:0}
-  .lp-tl-ctrl{grid-area:ctrl}
+  .lp-tl-ctrl{grid-area:ctrl;justify-self:start}
   .lp-show-slogan{grid-area:slogan;align-self:end;max-width:none}
   .lp-show-device{grid-area:dev}
 }
