@@ -17,11 +17,9 @@ A short map from each judging criterion to what you can try and the code behind 
 
 ## Sandbox buyer
 
-Sign in with this PayPal sandbox personal account to approve a hold. It's a test account in PayPal's sandbox, so no real money moves. Use a computer: PayPal's sandbox checkout doesn't run on phones.
+Sign in with our PayPal sandbox personal account to approve a hold. It's a test account in PayPal's sandbox, so no real money moves. Use a computer: PayPal's sandbox checkout doesn't run on phones.
 
-<!-- Before submission: fill in the sandbox buyer login (the same values as DEMO_BUYER_EMAIL / DEMO_BUYER_PASSWORD on Render). -->
-- Email: `SANDBOX_BUYER_EMAIL`
-- Password: `SANDBOX_BUYER_PASSWORD`
+The email and password are shown on **[getpaddlesin.com/demo](https://getpaddlesin.com/demo)**, next to the step where you approve the hold.
 
 ## Technological implementation
 
