@@ -111,6 +111,12 @@ alter table people add column if not exists texts_welcomed boolean not null defa
 alter table groups add column if not exists demo_phone text;
 alter table groups add column if not exists demo_code text;
 alter table groups add column if not exists demo_phone_name text;
+-- Short links for real texts: a long game link breaks across lines in Messages and gets no preview.
+create table if not exists short_links (
+  code text primary key,
+  path text not null,
+  created_at timestamptz not null default now()
+);
 create table if not exists sendblue_seen (
   message_handle text primary key,
   seen_at timestamptz not null default now()
