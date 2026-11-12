@@ -201,6 +201,13 @@ a{color:var(--link)}
 .sp-phone-pop img{display:block;width:200px;height:200px;margin:0 auto 8px;border-radius:10px}
 .sp-phone-pop p{margin:0;font:500 13px/1.4 var(--sans)}
 .sp-phone-pop strong{display:block;margin-bottom:6px;font:700 15px/1.2 var(--sans)}
+.sp-phone-pop{max-height:calc(100vh - 90px);overflow:auto}
+.sp-phone-text{margin-top:12px;padding-top:12px;border-top:1px solid #e6e3f0;text-align:left}
+.sp-phone-text form{display:grid;gap:8px}
+.sp-phone-text label{display:grid;gap:3px;font:600 12px/1.2 var(--sans);color:#4a4466}
+.sp-phone-text input{height:36px;padding:0 10px;border:1px solid #d6d1e6;border-radius:10px;font:500 15px/1 var(--sans);color:#1f1a3d}
+.sp-phone-text .dr-btn{width:100%;height:38px;margin-top:4px;text-decoration:none;color:inherit}
+.sp-phone-meta{margin-top:6px!important;color:#6b6585}
 .sp-phone-pop a{display:inline-block;margin-top:8px;font:600 13px/1.3 var(--sans);color:#4b2fb8;text-decoration:underline;text-underline-offset:2px}
 .sp-link:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
 @media (hover:hover){.sp-link:hover{opacity:.7}}
