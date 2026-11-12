@@ -166,258 +166,98 @@ a{color:var(--link)}
 .menu button.danger{color:var(--danger)}
 .menu button.danger span{color:var(--danger);opacity:.85}
 
-/* Demo simulator (the playground). Deliberately NOT the app's look: system font,
-   cool greys, phone frames and a labeled control panel, so it reads as a simulation. */
-.sim {
+/* Phone demo chat (PhoneDemo uses .sim for its iMessage colors and system font). */
+.sim,
+.phone {
   --s-bg: #e9ebef;
-  --s-panel: #ffffff;
   --s-line: #d5d9e0;
   --s-text: #1c1f24;
   --s-muted: #5b6270;
   --s-blue: #006ee0; /* iMessage blue, darkened so white text on it reaches 4.5:1 */
   --s-gray: #e9e9eb;
+}
+.sim {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   color: var(--s-text);
   background: var(--s-bg);
   min-height: 100vh;
   padding: 0 16px 24px;
 }
-.sim-banner {
-  max-width: 1180px;
-  margin: 0 auto 16px;
-  padding: 10px 14px;
-  border: 1px dashed #8a94a6;
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  background: #f6f7f9;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--s-muted);
+
+/* ---------- full simulator (/play) ----------
+   The landing page's header, mesh band, type, cards and footer (SimShell). Only the two phones keep the
+   iMessage look, so the chats never read as the product itself. */
+.sp-top{position:relative;isolation:isolate;overflow:hidden;padding:128px max(20px,calc((100% - 1180px)/2)) 64px;background:#2a1f5e;color:#fff;border-radius:0 0 44px 44px;clip-path:inset(0 round 0 0 44px 44px)}
+.sp-top-copy{position:relative;z-index:3;max-width:720px}
+.sp-top h1{margin:0;font:800 clamp(48px,5.6vw,80px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em;text-wrap:balance}
+.sp-lead{margin:20px 0 0;max-width:640px;font:500 19px/1.5 var(--sans);color:var(--onm)}
+.sp-body{padding:48px max(20px,calc((100% - 1180px)/2)) 88px}
+.sp-status{margin:0 0 16px;font:600 19px/1.5 var(--sans);color:var(--muted)}
+.sp-status.err{color:var(--danger)}
+.sim-grid{display:grid;grid-template-columns:340px minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.sim-panel{display:flex;flex-direction:column;gap:22px;padding:22px;background:#fff;border:2px solid var(--edge);box-shadow:0 5px 0 var(--edge);border-radius:24px}
+.sim-h{margin:0;font:800 30px/1 var(--cond);text-transform:uppercase;color:var(--ink)}
+.sim-field{display:flex;flex-direction:column;gap:10px;margin:0}
+.sim-label{font:700 14px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sim-row{display:flex;gap:8px}
+.sim-row>.sim-select,.sim-row>.sim-input{flex:1;min-width:0}
+.sim-select,.sim-input{width:100%;height:48px;padding:0 14px;border:2px solid var(--edge);border-radius:12px;background:#fff;font:500 17px var(--sans);color:var(--ink)}
+.sim-select{appearance:none;-webkit-appearance:none;padding-right:42px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%233B2F7A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center/20px 20px;cursor:pointer}
+.sim-select:disabled{opacity:.45;cursor:default}
+.sim-panel .dr-btn{display:flex;align-items:center;justify-content:center;width:100%;text-decoration:none;text-align:center}
+.sim-row .dr-btn{width:auto;flex:none}
+.sim-acts{display:flex;flex-direction:column;gap:8px}
+.sim-quote{margin:0;padding:12px 14px;border-radius:12px;background:#f3f1f8;font:500 16px/1.45 var(--sans);color:var(--ink)}
+.sim-quote span{font-weight:700}
+.sim-hint{margin:0;font:500 15px/1.45 var(--sans);color:var(--muted)}
+.sim-note{margin:0;padding:12px 14px;border-radius:12px;background:#e6f4ec;color:var(--ok);font:600 15px/1.4 var(--sans)}
+.sim-reset{align-self:flex-start}
+/* the phones: the landing page's dark frame around an iMessage screen */
+/* on desktop the phones stay in view while the controls scroll past */
+.phone{position:sticky;top:84px;display:flex;flex-direction:column;height:min(780px,calc(100dvh - 120px));min-height:560px;padding:8px;border-radius:42px;background:#14102a;box-shadow:0 24px 48px rgba(10,6,30,.22),inset 0 0 0 1.5px rgba(255,255,255,.12);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--s-text)}
+.phone>*{background:#fff}
+.phone-top{display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 16px 10px;border-radius:34px 34px 0 0;border-bottom:1px solid #ececec}
+.phone-title{font-weight:600;font-size:16px}
+.phone-sub{font-size:12px;color:var(--s-muted);text-align:center}
+.phone-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:12px}
+.phone-empty{color:var(--s-muted);font-size:13px;text-align:center;margin-top:40px}
+.phone-compose{display:flex;gap:8px;align-items:center;padding:10px 12px 16px;border-radius:0 0 34px 34px;border-top:1px solid #ececec}
+.phone-compose input{flex:1;min-width:0;min-height:0;padding:9px 14px;border-radius:18px;border:1px solid #d1d1d6;font:400 16px inherit;font-family:inherit}
+.phone-compose button{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--s-blue);color:#fff}
+.phone-compose button:disabled{opacity:.45;cursor:default}
+.phone>.phone-body:last-child{border-radius:0 0 34px 34px}
+/* iPad and small laptops: the controls run across the top in two columns, the two phones side by side below */
+@media (max-width:1240px){
+  .sim-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sim-panel{grid-column:1/-1;display:block;columns:2;column-gap:32px}
+  .sim-panel>*{break-inside:avoid;margin-bottom:22px}
+  .sim-panel>.sim-h{column-span:all}
+  .sim-panel>.sim-reset{margin-bottom:0}
+  /* under the centered logo and menu button the band's copy is centered too, like the landing's sections */
+  .sp-top-copy{margin:0 auto;text-align:center}
+  .sp-lead{margin-left:auto;margin-right:auto}
+  .phone{position:static;height:min(720px,calc(100dvh - 140px))}
 }
-.sim-banner strong {
-  color: var(--s-text);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 12px;
-  margin-right: 4px;
+
+/* phones: one column, controls first, then the group chat and the private texts */
+@media (max-width:760px){
+  .sp-top{padding-top:104px;padding-bottom:48px}
+  .sp-lead{font-size:17px}
+  .sp-body{padding-top:28px}
+  .sim-grid{grid-template-columns:1fr;gap:20px}
+  .sim-panel{display:flex;columns:auto;padding:20px}
+  .sim-panel>*{margin-bottom:0}
+  .phone{height:min(640px,calc(100dvh - 96px));min-height:480px;border-radius:38px;padding:7px}
+  .phone-top{border-radius:31px 31px 0 0}
+  .phone-compose,.phone>.phone-body:last-child{border-radius:0 0 31px 31px}
 }
-.sim-error {
-  color: #b42318;
-}
-.sim-grid {
-  max-width: 1180px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-.sim-panel {
-  background: var(--s-panel);
-  border: 1px solid var(--s-line);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.sim-kicker,
-.sim-label {
-  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--s-muted);
-}
-.sim-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.sim-people {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.sim .sim-person,
-.sim .sim-btn {
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  min-height: 36px;
-  border-radius: 8px;
-  justify-content: space-between;
-  padding: 0 12px;
-  background: #f1f3f6;
-  color: var(--s-text);
-  border: 1px solid transparent;
-}
-.sim .sim-person.on {
-  background: #e3efff;
-  border-color: var(--s-blue);
-  color: #0050b3;
-}
-.sim-tag {
-  font: 500 11px/1 ui-monospace, Menlo, monospace;
-  color: var(--s-muted);
-}
-.sim .sim-btn.ghost {
-  background: transparent;
-  border-color: var(--s-line);
-  justify-content: flex-start;
-}
-.sim-panel {
-  max-height: calc(100vh - 90px);
-  overflow-y: auto;
-  position: sticky;
-  top: 16px;
-}
-.sim a.sim-btn,
-.sim button.sim-btn {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  cursor: pointer;
-}
-.sim .sim-btn:disabled,
-.sim .sim-chip:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.sim-row {
-  display: flex;
-  gap: 6px;
-}
-.sim-input {
-  flex: 1;
-  min-width: 0;
-  min-height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--s-line);
-  padding: 0 10px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--s-text);
-  background: #fff;
-}
-.sim-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.sim .sim-chip {
-  font: 500 13px/1.2 inherit;
-  font-family: inherit;
-  padding: 7px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--s-line);
-  background: #fff;
-  color: var(--s-text);
-  cursor: pointer;
-  text-align: left;
-}
-.sim .sim-chip:hover:not(:disabled) {
-  border-color: var(--s-blue);
-  color: #0050b3;
-}
-.sim-hint {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--s-muted);
-}
-.sim-note {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #eef6ee;
-  color: #1f5f2a;
-}
+
 .im-system {
   align-self: center;
   margin: 6px 0;
   font-size: 12px;
   color: #8a8f98;
   text-align: center;
-}
-.sim-steps {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--s-muted);
-}
-.phone {
-  background: #000;
-  border-radius: 36px;
-  padding: 10px;
-  height: min(780px, calc(100vh - 110px));
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 30px rgba(20, 30, 50, 0.18);
-}
-.phone > * {
-  background: #fff;
-}
-.phone-top {
-  border-radius: 28px 28px 0 0;
-  padding: 16px 16px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  border-bottom: 1px solid #ececec;
-}
-.phone-title {
-  font-weight: 600;
-  font-size: 15px;
-}
-.phone-sub {
-  font-size: 11px;
-  color: var(--s-muted);
-  text-align: center;
-}
-.phone-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-}
-.phone-empty {
-  color: var(--s-muted);
-  font-size: 13px;
-  text-align: center;
-  margin-top: 40px;
-}
-.phone-compose {
-  border-radius: 0 0 28px 28px;
-  padding: 10px 12px 14px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  border-top: 1px solid #ececec;
-}
-.phone-compose input {
-  min-height: 0;
-  font-weight: 400;
-  border-radius: 18px;
-  border: 1px solid #d1d1d6;
-  padding: 8px 14px;
-  font-family: inherit;
-  font-size: 15px;
-}
-.phone-compose button {
-  width: 32px;
-  min-height: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--s-blue);
-  color: #fff;
-  flex: none;
-}
-.phone > .phone-body:last-child {
-  border-radius: 0 0 28px 28px;
 }
 .im-msg {
   display: flex;
@@ -490,19 +330,6 @@ a{color:var(--link)}
 .im-link-sub {
   font-size: 11px;
   color: #6b6b70;
-}
-@media (max-width: 980px) {
-  .sim-grid {
-    grid-template-columns: 1fr;
-  }
-  .phone {
-    height: 640px;
-  }
-  .sim-panel {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
 }
 
 

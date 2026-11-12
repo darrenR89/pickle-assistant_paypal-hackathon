@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import SimShell from "./SimShell";
 
 // Gives each visitor their own sample group chat, remembered in this browser.
 export default function PlayStart() {
@@ -30,10 +31,12 @@ export default function PlayStart() {
   }, [router]);
 
   return (
-    <div className="sim">
-      <div className="sim-banner">
-        <strong>Demo simulator.</strong> {error ?? "Setting up a simulated group chat…"}
+    <SimShell>
+      <div className="sp-body">
+        <p className={error ? "sp-status err" : "sp-status"} role="status">
+          {error ?? "Setting up a simulated group chat…"}
+        </p>
       </div>
-    </div>
+    </SimShell>
   );
 }
