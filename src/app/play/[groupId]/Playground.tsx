@@ -606,7 +606,7 @@ export default function Playground({ groupId }: { groupId: string }) {
       controls={scenarios}
       actions={
         <>
-          <PhoneQr />
+          <PhoneQr groupId={groupId} personId={viewer.id} personName={viewer.name} />
           <button type="button" className="sp-link" onClick={newGroup}>
             New<span className="sp-wide"> demo</span> group
           </button>
