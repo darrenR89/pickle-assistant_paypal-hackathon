@@ -14,8 +14,8 @@ const DUR = 8000; // ms per step
 // "How it works": a dark stage with the title top left, a vertical numbered timeline, one large phone that swaps
 // screens with two callout chips beside it, and the active step's slogan bottom left. While it plays, the line under
 // the active number fills over DUR and then the next step starts. Stacked on phones, only the current step shows,
-// centered between previous/next arrows, and the ring around its number fills instead; tapping it, the arrows or a
-// sideways swipe over the section moves between steps.
+// centered between previous/next arrows, and the ring around its number stays full. It never auto-plays there; tapping
+// it, the arrows or a sideways swipe over the section moves between steps.
 // Accessibility (WCAG 2.2.2): a Pause/Play button; it also holds while the mouse is over the phone, while keyboard
 // focus is on the steps, and while the section is off screen. Picking a step stops it. Reduced motion never auto-plays.
 // Phones are rendered by the server and passed in, so every screen is in the HTML and crossfades.
@@ -33,9 +33,12 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   const since = useRef(0);
   const shown = useRef(0);
   const held = paused || hover || focus || !visible;
+  // When stacked (phones), only the current step shows; the arrows, a swipe or tapping it moves between steps.
+  const stacked = () => window.matchMedia("(max-width: 760px)").matches;
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setAuto(false);
+    // Phones step through with the arrows and swipes only, so nothing moves on its own there.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || stacked()) setAuto(false);
     const io = new IntersectionObserver(([e]) => { setVisible(e.isIntersecting); if (e.isIntersecting) setSeen(true); }, { threshold: 0.35 });
     if (stage.current) io.observe(stage.current);
     return () => io.disconnect();
@@ -55,9 +58,6 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
       left.current = Math.max(0, left.current - (performance.now() - since.current));
     };
   }, [i, auto, held, steps.length]);
-
-  // When stacked, only the current step shows, so tapping it moves on to the next one.
-  const stacked = () => window.matchMedia("(max-width: 760px)").matches;
 
   function pick(n: number, moveFocus = false) {
     setAuto(false);

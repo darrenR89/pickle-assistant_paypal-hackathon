@@ -545,6 +545,8 @@ a{color:var(--link)}
 .lp-logo{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--cond);text-transform:uppercase;letter-spacing:.02em;text-decoration:none;color:#fff!important;white-space:nowrap}
 .lp-eyebrow{margin:0 0 16px;font:700 14px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ball)}
 .lp-hero h1{margin:0;font:800 clamp(52px,6.4vw,92px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em}
+/* phones: just small enough that "Pickleball games" fits on one line, so the headline takes three lines, not four */
+@media (max-width:480px){.lp-hero h1{font-size:min(52px,12.6vw)}}
 .lp-sub{margin:22px 0 0;font:500 20px/1.5 var(--sans);color:var(--onm);max-width:560px}
 .lp-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
 .lp-btn{display:inline-flex;align-items:center;justify-content:center;height:58px;padding:0 26px;border-radius:18px;background:#fff;color:var(--btn)!important;font:800 22px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;box-shadow:0 5px 0 #C9C1E6;cursor:pointer;transition:box-shadow .15s,background .15s,color .15s}
@@ -656,10 +658,11 @@ a{color:var(--link)}
   .lp-tl-ring{inset:-6px;opacity:1;--p:1}
   .lp-tl-item.on.playing .lp-tl-ring{--p:0;animation:lpTlRing var(--dur,8s) linear forwards}
   .lp-tl-text{padding-top:16px}
-  /* previous/next on either side of the step, level with its number */
-  .lp-tl-wrap{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:start;gap:8px;margin:28px auto 0;width:100%;max-width:480px}
+  /* previous/next on either side of the step, centered on the whole step; no Play/Pause, since phones never auto-play */
+  .lp-tl-ctrl{display:none}
+  .lp-tl-wrap{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px;margin:28px auto 0;width:100%;max-width:480px}
   .lp-tl-wrap .lp-tl{margin:0;max-width:none}
-  .lp-tl-arrow{all:unset;box-sizing:border-box;display:grid;place-items:center;width:44px;height:44px;margin-top:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#E2DAF2;cursor:pointer}
+  .lp-tl-arrow{all:unset;box-sizing:border-box;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#E2DAF2;cursor:pointer}
   .lp-tl-arrow svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
   .lp-tl-arrow:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
   .lp-tl-arrow:active{background:rgba(255,255,255,.16)}
