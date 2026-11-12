@@ -13,7 +13,8 @@ type Body =
   | { action: "join"; personId?: string }
   | { action: "fill" }
   | { action: "time"; mode?: "week" | "before" | "gameday" | "soon" | "over" }
-  | { action: "tick" };
+  | { action: "tick" }
+  | { action: "phoneAs"; personId?: string };
 
 // What players say in the group as they join. Some just tap the link and say nothing, like in a real chat.
 const SAYS = ["I'm in!", "count me in", null, "in 🙌", "yep, in", null, "see you there", "in"];
@@ -73,6 +74,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       case "time": {
         if (!game) return NextResponse.json({ error: "Create a game first" }, { status: 409 });
         return NextResponse.json({ ok: true, label: await moveClock(game, body.mode ?? "over") });
+      }
+      case "phoneAs": {
+        // "Your own phone": a phone paired by text speaks and is texted as this person, the way the walkthrough's
+        // player step switches the phone to Jo. Inbound texts and the copies sent out both follow demo_viewer.
+        const member = await one("select 1 from group_members where group_id = $1 and person_id = $2", [id, body.personId ?? ""]);
+        if (!member) return NextResponse.json({ error: "That person isn't in this chat" }, { status: 400 });
+        await q("update groups set demo_viewer = $2 where id = $1", [id, body.personId]);
+        return NextResponse.json({ ok: true });
       }
       case "tick": {
         if (!game) return NextResponse.json({ ok: true, ran: [] });
