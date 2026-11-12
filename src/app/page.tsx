@@ -154,7 +154,7 @@ export default function Home() {
             <li key={k}><strong>{k}</strong> {v}</li>
           ))}
         </ul>
-        <p className="lp-prob-fix">Paddles In takes the asking out of it. Saying you’re in holds your share with PayPal, and everyone pays their real share after the game.</p>
+        <p className="lp-prob-fix">Paddles In takes the asking out of it.</p>
       </section>
 
       <section className="lp-section lp-al" id="screens" aria-labelledby="how">
@@ -200,12 +200,7 @@ export default function Home() {
               </dl>
             </div>
             <div className="lp-build-time">
-              <h3>Seven days, start to finish</h3>
-              <p className="lp-build-sub">
-                The idea came first: on Oct 16 an older pickleball app idea became one about money. The build ran through hackathon week, with
-                42 pull requests, each one through typecheck, lint, tests and build.
-              </p>
-              <ol>
+              <ol aria-label="How it was built, day by day">
                 {BUILD_DAYS.map((d) => (
                   <li key={d.date}>
                     <span className="lp-build-day">{d.date}</span>

@@ -661,7 +661,6 @@ a{color:var(--link)}
 .lp-info dd{margin:10px 0 0;max-width:290px;font:600 21px/1.4 var(--sans)}
 /* The problem: three short beats under a big line, light page, no cards (so it reads as a statement, not a feature) */
 .lp-prob .lp-eyebrow{color:var(--link)}
-.lp-prob .lp-h2{max-width:900px;text-wrap:balance}
 .lp-beats{list-style:none;margin:32px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 36px}
 .lp-beats li{padding-top:16px;border-top:3px solid var(--btn);font:500 18px/1.5 var(--sans);color:var(--muted)}
 .lp-beats strong{display:block;margin-bottom:4px;font:700 21px/1.25 var(--sans);color:var(--ink)}
@@ -703,10 +702,8 @@ a{color:var(--link)}
 .lp-build-stack dt{font:700 13px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--link)}
 .lp-build-stack dd{margin:0;display:flex;flex-wrap:wrap;gap:8px}
 .lp-build-stack dd span{padding:6px 12px;border-radius:99px;background:var(--lav);color:var(--btn);font:600 15px/1.3 var(--sans)}
-.lp-build-sub{margin:-6px 0 24px;font:500 17px/1.5 var(--sans)}
-.lp-build-sub{max-width:760px}
 /* The rail runs down the left of the content; dates sit in their own column to its left on wider screens. */
-.lp-build-time>ol{list-style:none;margin:0;padding:0;display:grid;gap:18px;position:relative;--date:132px}
+.lp-build-time>ol{list-style:none;margin:0 auto;padding:0;width:min(100%,820px);display:grid;gap:18px;position:relative;--date:132px}
 .lp-build-time>ol::before{content:"";position:absolute;left:calc(var(--date) + 5px);top:10px;bottom:10px;width:2px;background:linear-gradient(180deg,var(--btn),var(--edge))}
 .lp-build-time>ol>li{position:relative;display:grid;grid-template-columns:var(--date) minmax(0,1fr);column-gap:34px;align-items:baseline}
 .lp-build-time>ol>li::before{content:"";position:absolute;left:var(--date);top:6px;width:12px;height:12px;border-radius:50%;background:var(--page);border:2px solid var(--btn);box-sizing:border-box}
