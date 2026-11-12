@@ -385,7 +385,7 @@ export default function Playground({ groupId }: { groupId: string }) {
                 ))}
               </ol>
             </div>
-            <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal. Each clock stop also does what's due then: the game-day reminder at 90 min to go, settling up after the game.</p>
+            <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal. Each clock stop also does what&apos;s due then: the game-day reminder at 90 min to go, settling up after the game.</p>
           </>
         ) : (
           <p className="sim-hint">No game yet. Send “Game with full details” as the host to start one, then join, fill and move the clock here.</p>
