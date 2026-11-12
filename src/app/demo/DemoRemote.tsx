@@ -174,10 +174,14 @@ export default function DemoRemote() {
     <main className="dr">
       <header className="dr-head">
         <Link href="/" className="dr-back">← Paddles In</Link>
+        <p className="dr-kicker">The 2-minute walkthrough</p>
         <h1>Run a game from your phone</h1>
         <p>
           Your phone is the organizer’s group chat. This page plays everyone else. The assistant (Claude) and your PayPal sandbox hold are
           real; the other players and their holds are simulated.
+        </p>
+        <p className="dr-alt">
+          Want to try every case yourself? <Link href="/play">Open the full simulator →</Link>
         </p>
       </header>
 

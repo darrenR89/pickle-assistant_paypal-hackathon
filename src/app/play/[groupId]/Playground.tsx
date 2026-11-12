@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import SimShell from "../SimShell";
 import StatusBar from "../../landing/StatusBar";
+import PhoneQr from "../PhoneQr";
 
 // A demo simulator of the group chat. It runs full screen on the landing page's mesh (SimShell) with the controls in a
 // bar across the top; the two phones keep an iMessage look, because in real use the assistant lives in a group chat.
@@ -604,9 +605,12 @@ export default function Playground({ groupId }: { groupId: string }) {
     <SimShell
       controls={scenarios}
       actions={
-        <button type="button" className="sp-link" onClick={newGroup}>
-          New<span className="sp-wide"> demo</span> group
-        </button>
+        <>
+          <PhoneQr />
+          <button type="button" className="sp-link" onClick={newGroup}>
+            New<span className="sp-wide"> demo</span> group
+          </button>
+        </>
       }
     >
       <p className="sim-note" role="status">

@@ -59,12 +59,12 @@ export default function IslandNav({ repo }: { repo: string }) {
           <a href="#screens" tabIndex={scrolled ? 0 : -1}>The app</a>
           <a href="#built" tabIndex={scrolled ? 0 : -1}>Built</a>
           <a href={repo} tabIndex={scrolled ? 0 : -1}>GitHub</a>
-          <Link href="/demo" className="lp-isle-cta" tabIndex={scrolled ? 0 : -1}>Try it live</Link>
+          <Link href="/demo" className="lp-isle-cta" tabIndex={scrolled ? 0 : -1}>2-min walkthrough</Link>
         </span>
       </div>
       <nav className="lp-isle-side r" aria-label="Actions">
         <a href={repo}>GitHub</a>
-        <Link href="/demo" className="lp-isle-cta">Try it live</Link>
+        <Link href="/demo" className="lp-isle-cta">2-min walkthrough</Link>
       </nav>
       <button
         type="button"
@@ -83,7 +83,7 @@ export default function IslandNav({ repo }: { repo: string }) {
         <a href="#screens" onClick={closeMenu}>The app</a>
         <a href="#built" onClick={closeMenu}>How it was built</a>
         <a href={repo} onClick={closeMenu}>GitHub</a>
-        <Link href="/demo" className="lp-isle-cta" onClick={closeMenu}>Try it live</Link>
+        <Link href="/demo" className="lp-isle-cta" onClick={closeMenu}>2-min walkthrough</Link>
       </nav>
     </header>
   );
