@@ -2,8 +2,7 @@
 
 **The group chat assistant that gets the organizer paid back.**
 
-<!-- Before submission: replace VIDEO_URL with the public YouTube link. -->
-**[getpaddlesin.com](https://getpaddlesin.com)** · **[▶ Watch the demo (under 3 min)](VIDEO_URL)** · **[Try it on your phone](https://getpaddlesin.com/demo)** · **[For judges](JUDGES.md)** · **[For AI reviewers](docs/AI-REVIEWERS.md)**
+**[getpaddlesin.com](https://getpaddlesin.com)** · **[▶ Watch the demo (under 3 min)](https://youtu.be/qMzS6yVeeFY)** · **[Try it on your phone](https://getpaddlesin.com/demo)** · **[For judges](JUDGES.md)** · **[For AI reviewers](docs/AI-REVIEWERS.md)**
 
 ![Pickleball games that settle themselves. Friends hold their spot with PayPal or Venmo, right from the group chat. After the game, everyone pays only their real share. A tilted phone shows the game page: Thursday 6:00 pm, 4 spots left.](docs/images/hero.webp)
 

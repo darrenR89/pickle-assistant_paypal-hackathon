@@ -6,7 +6,7 @@ A short map from each judging criterion to what you can try and the code behind 
 
 | | |
 |---|---|
-| Video (under 3 min) | <!-- Before submission: replace VIDEO_URL --> [Watch on YouTube](VIDEO_URL) |
+| Video (under 3 min) | [Watch on YouTube](https://youtu.be/qMzS6yVeeFY) |
 | Landing page | https://getpaddlesin.com |
 | For AI reviewers | [docs/AI-REVIEWERS.md](docs/AI-REVIEWERS.md) |
 | Live demo, no keys | https://getpaddlesin.com/play (one-tap game scenarios) |
