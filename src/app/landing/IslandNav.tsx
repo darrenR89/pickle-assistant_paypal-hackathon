@@ -6,8 +6,8 @@ import Logo from "../Logo";
 
 // Sticky header. Over the hero it is a centered wordmark with links on each side; once the page
 // scrolls it shrinks into a black pill shaped like the iPhone's Dynamic Island. Hover, keyboard
-// focus or a tap on the pill opens the links inside it. On tablets the side links don't fit around the
-// wordmark, so the top of the page shows a menu button that opens them in a panel instead.
+// focus or a tap on the pill opens the links inside it. Below desktop width the side links don't fit around
+// the wordmark, so the top of the page shows a menu button that opens them in a panel instead.
 export default function IslandNav({ repo }: { repo: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
