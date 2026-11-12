@@ -166,173 +166,146 @@ a{color:var(--link)}
 .menu button.danger{color:var(--danger)}
 .menu button.danger span{color:var(--danger);opacity:.85}
 
-/* Demo simulator (the playground). Deliberately NOT the app's look: system font,
-   cool greys, phone frames and a labeled control panel, so it reads as a simulation. */
-.sim {
+/* Phone demo chat (PhoneDemo uses .sim for its iMessage colors and system font). */
+.sim,
+.phone {
   --s-bg: #e9ebef;
-  --s-panel: #ffffff;
   --s-line: #d5d9e0;
   --s-text: #1c1f24;
   --s-muted: #5b6270;
   --s-blue: #006ee0; /* iMessage blue, darkened so white text on it reaches 4.5:1 */
   --s-gray: #e9e9eb;
+}
+.sim {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   color: var(--s-text);
   background: var(--s-bg);
   min-height: 100vh;
   padding: 0 16px 24px;
 }
-.sim-banner {
-  max-width: 1180px;
-  margin: 0 auto 16px;
-  padding: 10px 14px;
-  border: 1px dashed #8a94a6;
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  background: #f6f7f9;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--s-muted);
+
+/* ---------- full simulator (/play) ----------
+   Full screen on the landing hero's mesh, like its video preview: a close button instead of the site header, the
+   controls in a full-width bar across the top, and the two phones below. Only the phones keep the iMessage look. */
+.sp{position:relative;isolation:isolate;min-height:100dvh;background:#2a1f5e;color:#fff;font-family:var(--sans)}
+.sp-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.sp-bar{padding:12px max(20px,calc((100% - 1400px)/2)) 14px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.14)}
+.sp-bar-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:2px 20px;margin-bottom:12px}
+.sp-title{display:contents}
+.sp-title h1{grid-column:1;grid-row:1}
+.sp-title p{grid-column:1/-1;grid-row:2}
+.sp-acts{grid-column:2;grid-row:1;display:flex;align-items:center;gap:6px}
+.sp-link{all:unset;padding:8px 10px;border-radius:99px;color:#E2DAF2;font:600 14px/1 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;transition:opacity .2s}
+.sp-link:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
+@media (hover:hover){.sp-link:hover{opacity:.7}}
+.sp-title h1{margin:0;font:800 24px/1 var(--cond);text-transform:uppercase;letter-spacing:.01em}
+.sp-title p{margin:0;font:500 14px/1.4 var(--sans);color:#C9BFE3}
+.sp-exit{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:99px;background:rgba(18,14,36,.75);color:#fff;font:600 14px/1 var(--sans);text-decoration:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);transition:box-shadow .2s}
+.sp-exit svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.sp-exit:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
+@media (hover:hover){.sp-exit:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 22px rgba(255,255,255,.28)}}
+.sp-main{padding:20px max(20px,calc((100% - 1400px)/2)) 40px}
+.sp-body{max-width:640px}
+.sp-status{margin:0 0 16px;font:600 19px/1.5 var(--sans);color:var(--onm)}
+.sp-status.err{color:#FFC9A8}
+/* the controls: people (who you are, and a sample message to send as them) beside the game scenarios */
+.sim-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 0;align-items:start}
+.sim-sec{min-width:0;padding-right:24px}
+.sim-sec.sim-game{padding:0 0 0 24px;border-left:1px solid rgba(255,255,255,.16)}
+.sim-sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.sim-sec h2{margin:0}
+.sim-links{display:flex;gap:16px}
+.sim-links a{color:#fff;font:600 14px/1 var(--sans);text-underline-offset:3px;transition:opacity .2s}
+@media (hover:hover){.sim-links a:hover{opacity:.7}}
+/* people as pills; the current one is filled. The plus at the end opens a name field in its place. */
+.sim-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sim-pill{display:inline-flex;align-items:center;height:34px;padding:0 13px;border-radius:99px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font:600 14px/1 var(--sans);transition:background .2s,border-color .2s,box-shadow .2s}
+.sim-pill small{font:500 12px/1 var(--sans);opacity:.75;margin-left:.25em}
+.sim-pill[aria-pressed="true"]{background:#fff;border-color:#fff;color:var(--btn);box-shadow:0 3px 0 #C9C1E6}
+.sim-plus{width:34px;padding:0;justify-content:center;border-style:dashed}
+.sim-plus svg,.sim-pill-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+@media (hover:hover){.sim-pill:not([aria-pressed="true"]):hover{border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.1),0 0 22px rgba(255,255,255,.25)}}
+.sim-pill:focus-visible,.sim-pill-add button:focus-visible,.sim-track button:focus-visible,.sim-links a:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
+.sim-pill-add{display:inline-flex;align-items:center;gap:2px;height:34px;padding:0 3px 0 13px;border-radius:99px;background:#fff}
+.sim-pill-add input{width:110px;border:0;outline:0;background:none;font:600 14px var(--sans);color:var(--ink)}
+.sim-pill-ok{height:28px;padding:0 12px;border:0;border-radius:99px;background:var(--btn);color:#fff;font:700 13px/1 var(--sans)}
+.sim-pill-x{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;color:var(--muted)}
+.sim-say{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+/* game scenarios: the players row, then the clock as four stages on a line */
+.sim-scn{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;margin-top:8px}
+.sim-scn-k{font:700 13px/1.2 var(--sans);color:#fff}
+.sim-scn-acts{grid-column:2/-1;display:flex;gap:6px}
+.sp .sim-scn-acts .dr-btn{flex:1;width:auto}
+.sim-track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.sim-track li{position:relative}
+.sim-track li+li::before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:rgba(255,255,255,.28)}
+.sim-track button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:4px 2px;border:0;border-radius:10px;background:none;color:#fff;text-align:center}
+.sim-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:#221a46;transition:background .2s,border-color .2s}
+.sim-track strong{font:700 13px/1.15 var(--sans)}
+.sim-track button>span:last-child{font:500 12px/1.2 var(--sans);color:#C9BFE3}
+.sim-track button[aria-pressed="true"] .sim-dot{background:var(--ball);border-color:var(--ball);box-shadow:0 0 0 4px rgba(255,201,168,.25)}
+.sim-track button[aria-pressed="true"] strong{color:var(--ball)}
+@media (hover:hover){.sim-track button:hover{background:rgba(255,255,255,.07)}}
+.sim-game .sim-hint{margin-top:8px}
+.sim-field{display:flex;flex-direction:column;gap:8px;margin:0}
+.sim-label{font:700 12px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--onm)}
+.sim-row{display:flex;gap:8px}
+.sim-row>.sim-select,.sim-row>.sim-input{flex:1;min-width:0}
+.sim-select,.sim-input{width:100%;height:38px;padding:0 12px;border:2px solid transparent;border-radius:10px;background:#fff;font:500 15px var(--sans);color:var(--ink)}
+.sim-select{appearance:none;-webkit-appearance:none;padding-right:36px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%233B2F7A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center/18px 18px;cursor:pointer}
+.sim-select:disabled{opacity:.5;cursor:default}
+.sim-select:focus-visible,.sim-input:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
+/* buttons on the dark bar: outlined, with the ball color for the one primary action */
+.sp .dr-btn{display:flex;align-items:center;justify-content:center;width:100%;height:38px;padding:0 12px;border-radius:10px;font-size:14px;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;text-decoration:none;text-align:center;white-space:nowrap}
+.sp .dr-btn.p{background:var(--ball);border-color:var(--ball);color:#171428;box-shadow:0 3px 0 #D9946B}
+.sp .dr-btn:disabled{opacity:.45}
+.sim-row .dr-btn{width:auto;flex:none}
+.sim-quote{margin:0;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.1);font:500 13px/1.4 var(--sans);color:#fff;}
+.sim-quote span{font-weight:700;color:var(--ball)}
+.sim-hint{margin:0;font:500 13px/1.4 var(--sans);color:#C9BFE3}
+/* the result of the last control: a toast at the bottom, as on the phone demo's desktop remote */
+.sim-note{position:fixed;z-index:20;left:50%;bottom:24px;transform:translateX(-50%);width:max-content;max-width:min(640px,calc(100% - 40px));margin:0;padding:14px 18px;border-radius:16px;background:#171428;color:#fff;font:500 16px/1.4 var(--sans);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.14)}
+.sim-note:empty{display:none}
+/* the phones: the landing page's dark frame around an iMessage screen */
+.sim-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;max-width:1100px;margin:0 auto}
+.phone{display:flex;flex-direction:column;height:min(780px,calc(100dvh - 48px));min-height:520px;padding:8px;border-radius:42px;background:#14102a;box-shadow:0 24px 48px rgba(10,6,30,.35),inset 0 0 0 1.5px rgba(255,255,255,.14);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--s-text)}
+.phone>*{background:#fff}
+.phone-top{display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 16px 10px;border-radius:34px 34px 0 0;border-bottom:1px solid #ececec}
+.phone-title{font-weight:600;font-size:16px}
+.phone-sub{font-size:12px;color:var(--s-muted);text-align:center}
+.phone-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:12px}
+.phone-empty{color:var(--s-muted);font-size:13px;text-align:center;margin-top:40px}
+.phone-compose{display:flex;gap:8px;align-items:center;padding:10px 12px 16px;border-radius:0 0 34px 34px;border-top:1px solid #ececec}
+.phone-compose input{flex:1;min-width:0;min-height:0;padding:9px 14px;border-radius:18px;border:1px solid #d1d1d6;font:400 16px inherit;font-family:inherit}
+.phone-compose button{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--s-blue);color:#fff}
+.phone-compose button:disabled{opacity:.45;cursor:default}
+.phone>.phone-body:last-child{border-radius:0 0 34px 34px}
+/* iPad portrait and small laptops: the controls wrap to two columns */
+@media (max-width:1100px){
+  .sim-panel{grid-template-columns:1fr}
+  .sim-sec{padding-right:0}
+  .sim-sec.sim-game{padding:20px 0 0;border-left:0;border-top:1px solid rgba(255,255,255,.16)}
+  .phone{height:min(720px,calc(100dvh - 48px))}
 }
-.sim-banner strong {
-  color: var(--s-text);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 12px;
-  margin-right: 4px;
-}
-.sim-error {
-  color: #b42318;
-}
-.sim-grid {
-  max-width: 1180px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-.sim-panel {
-  background: var(--s-panel);
-  border: 1px solid var(--s-line);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.sim-kicker,
-.sim-label {
-  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--s-muted);
-}
-.sim-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.sim-people {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.sim .sim-person,
-.sim .sim-btn {
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  min-height: 36px;
-  border-radius: 8px;
-  justify-content: space-between;
-  padding: 0 12px;
-  background: #f1f3f6;
-  color: var(--s-text);
-  border: 1px solid transparent;
-}
-.sim .sim-person.on {
-  background: #e3efff;
-  border-color: var(--s-blue);
-  color: #0050b3;
-}
-.sim-tag {
-  font: 500 11px/1 ui-monospace, Menlo, monospace;
-  color: var(--s-muted);
-}
-.sim .sim-btn.ghost {
-  background: transparent;
-  border-color: var(--s-line);
-  justify-content: flex-start;
-}
-.sim-panel {
-  max-height: calc(100vh - 90px);
-  overflow-y: auto;
-  position: sticky;
-  top: 16px;
-}
-.sim a.sim-btn,
-.sim button.sim-btn {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  cursor: pointer;
-}
-.sim .sim-btn:disabled,
-.sim .sim-chip:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.sim-row {
-  display: flex;
-  gap: 6px;
-}
-.sim-input {
-  flex: 1;
-  min-width: 0;
-  min-height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--s-line);
-  padding: 0 10px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--s-text);
-  background: #fff;
-}
-.sim-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.sim .sim-chip {
-  font: 500 13px/1.2 inherit;
-  font-family: inherit;
-  padding: 7px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--s-line);
-  background: #fff;
-  color: var(--s-text);
-  cursor: pointer;
-  text-align: left;
-}
-.sim .sim-chip:hover:not(:disabled) {
-  border-color: var(--s-blue);
-  color: #0050b3;
-}
-.sim-hint {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--s-muted);
-}
-.sim-note {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.4;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #eef6ee;
-  color: #1f5f2a;
+/* phones: one column of controls, then the group chat and the private texts */
+@media (max-width:760px){
+  .sp-bar{padding-top:14px}
+  .sp-bar-top{margin-bottom:14px}
+  .sp-wide{display:none}
+  .sp-link{padding:10px 8px}
+  .sp-title h1{align-self:center;font-size:22px;white-space:nowrap}
+  .sp-bar-top{column-gap:10px}
+  .sim-scn{grid-template-columns:1fr;gap:8px}
+  .sim-scn-acts{grid-column:1}
+  .sim-track button>span:last-child{display:none}
+  .sim-say .sim-row{flex-direction:column}
+  .sim-say .sim-row>.sim-select{flex:none}
+  .sp .sim-say .dr-btn{width:100%}
+  .sp-main{padding-top:20px}
+  .sim-grid{grid-template-columns:1fr;gap:20px}
+  .phone{height:min(640px,calc(100dvh - 40px));min-height:480px;border-radius:38px;padding:7px}
+  .phone-top{border-radius:31px 31px 0 0}
+  .phone-compose,.phone>.phone-body:last-child{border-radius:0 0 31px 31px}
 }
 .im-system {
   align-self: center;
@@ -340,84 +313,6 @@ a{color:var(--link)}
   font-size: 12px;
   color: #8a8f98;
   text-align: center;
-}
-.sim-steps {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--s-muted);
-}
-.phone {
-  background: #000;
-  border-radius: 36px;
-  padding: 10px;
-  height: min(780px, calc(100vh - 110px));
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 30px rgba(20, 30, 50, 0.18);
-}
-.phone > * {
-  background: #fff;
-}
-.phone-top {
-  border-radius: 28px 28px 0 0;
-  padding: 16px 16px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  border-bottom: 1px solid #ececec;
-}
-.phone-title {
-  font-weight: 600;
-  font-size: 15px;
-}
-.phone-sub {
-  font-size: 11px;
-  color: var(--s-muted);
-  text-align: center;
-}
-.phone-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-}
-.phone-empty {
-  color: var(--s-muted);
-  font-size: 13px;
-  text-align: center;
-  margin-top: 40px;
-}
-.phone-compose {
-  border-radius: 0 0 28px 28px;
-  padding: 10px 12px 14px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  border-top: 1px solid #ececec;
-}
-.phone-compose input {
-  min-height: 0;
-  font-weight: 400;
-  border-radius: 18px;
-  border: 1px solid #d1d1d6;
-  padding: 8px 14px;
-  font-family: inherit;
-  font-size: 15px;
-}
-.phone-compose button {
-  width: 32px;
-  min-height: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--s-blue);
-  color: #fff;
-  flex: none;
-}
-.phone > .phone-body:last-child {
-  border-radius: 0 0 28px 28px;
 }
 .im-msg {
   display: flex;
@@ -490,19 +385,6 @@ a{color:var(--link)}
 .im-link-sub {
   font-size: 11px;
   color: #6b6b70;
-}
-@media (max-width: 980px) {
-  .sim-grid {
-    grid-template-columns: 1fr;
-  }
-  .phone {
-    height: 640px;
-  }
-  .sim-panel {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
 }
 
 
