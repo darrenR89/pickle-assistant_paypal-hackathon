@@ -1,4 +1,4 @@
-# Pickleball assistant
+# Paddles In
 
 > An AI assistant in a pickleball group chat. Players hold their spot with a PayPal or Venmo authorization; after the game each is captured for their real share and the rest is released. Entry for the PayPal AI Hackathon 2026, running in the PayPal sandbox.
 

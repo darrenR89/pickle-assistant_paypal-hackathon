@@ -137,7 +137,7 @@ export default function PhoneDemo({ id }: { id: string }) {
     return (
       <main className="dp dp-center">
         <form className="dp-join" onSubmit={connect}>
-          <span className="dp-kicker">Pickleball assistant · live demo</span>
+          <span className="dp-kicker">Paddles In · live demo</span>
           <h1 className="dp-h1">You’re organizing Thursday’s game.</h1>
           <p className="dp-lead">
             This phone becomes your group chat. Set up a game, and the demo page plays your friends. Everything the assistant says is

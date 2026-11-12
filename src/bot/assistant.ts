@@ -501,7 +501,7 @@ export async function playerJoined(game: Game, personId: string, authorizationId
     [personId],
   );
   if (p?.texts_opt_in && !p.texts_welcomed) {
-    await postDm(game.group_id, personId, `Hi ${p.name}, it's the Pickleball Assistant from your group chat. I'll text you here about your games: receipts, reminders and refunds. Nothing about money goes in the group. Reply STOP anytime.`);
+    await postDm(game.group_id, personId, `Hi ${p.name}, it's Paddles In, the assistant from your group chat. I'll text you here about your games: receipts, reminders and refunds. Nothing about money goes in the group. Reply STOP anytime.`);
     await q("update people set texts_welcomed = true where id = $1", [personId]);
   }
   await postDm(

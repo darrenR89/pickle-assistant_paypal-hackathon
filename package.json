@@ -2,7 +2,7 @@
   "name": "pickle-assistant",
   "version": "0.1.0",
   "private": true,
-  "description": "Pickleball assistant for group chats: holds each player's share with PayPal or Venmo and settles after the game.",
+  "description": "Paddles In, a pickleball assistant for group chats: holds each player's share with PayPal or Venmo and settles after the game.",
   "license": "MIT",
   "packageManager": "pnpm@10.28.0",
   "engines": {

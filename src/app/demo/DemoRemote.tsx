@@ -173,7 +173,7 @@ export default function DemoRemote() {
   return (
     <main className="dr">
       <header className="dr-head">
-        <Link href="/" className="dr-back">← Pickleball assistant</Link>
+        <Link href="/" className="dr-back">← Paddles In</Link>
         <h1>Run a game from your phone</h1>
         <p>
           Your phone is the organizer’s group chat. This page plays everyone else. The assistant (Claude) and your PayPal sandbox hold are

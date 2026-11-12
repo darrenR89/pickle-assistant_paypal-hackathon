@@ -1,4 +1,4 @@
-# Pickleball assistant
+# Paddles In
 
 **An AI assistant in your pickleball group chat. Friends say they're in and hold their spot with PayPal or Venmo; after the game each player is charged their real share.**
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Logo from "../Logo";
 
 // Sticky header. Over the hero it is a centered wordmark with links on each side; once the page
 // scrolls it shrinks into a black pill shaped like the iPhone's Dynamic Island. Hover, keyboard
@@ -29,7 +30,7 @@ export default function IslandNav({ repo }: { repo: string }) {
       </nav>
       <div className="lp-isle-pill">
         <a href="#top" className="lp-logo">
-          <span className="lp-ball" aria-hidden="true" /> Pickleball assistant
+          <Logo />
         </a>
         <Link href="/demo" className="lp-isle-peek" tabIndex={scrolled ? 0 : -1}>Try it</Link>
         <button
