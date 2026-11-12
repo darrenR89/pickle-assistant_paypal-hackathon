@@ -1005,6 +1005,7 @@ html:has(.lp-hero.playing){overflow:hidden}
 /* phones: no 3D phone in the hero until the demo plays; Watch the demo starts it */
 @media (max-width:640px){
   .lp-hero{padding-bottom:72px}
+  .lp-hero .lp-ctas .lp-btn{flex:1 1 100%}
   .lp-hero:not(.playing) :is(.lp-gl,.lp-still,.lp-play,.lp-motion){visibility:hidden;opacity:0;pointer-events:none}
 }
 /* tablet portrait: same stacked hero, with a taller phone (HeroStage sizes it to match) */
