@@ -634,26 +634,18 @@ a{color:var(--link)}
 @media (max-width:760px){
   .lp-show{grid-template-columns:1fr;gap:8px;padding:44px var(--sp,20px) 40px;border-radius:28px}
   .lp-show::before{right:50%;top:auto;bottom:18%;width:110%;transform:translateX(50%)}
-  .lp-show-copy{display:contents}
-  .lp-show .lp-h2,.lp-show-lead,.lp-tl{order:0}
-  .lp-show-device{order:1;padding:28px 0 8px}
-  .lp-show-slogan{order:2;margin-top:0;padding-top:18px}
-  .lp-show-phones{width:min(250px,72%)}
-  .lp-chip.a{left:0;top:22%}
-  .lp-chip.b{right:0;bottom:16%}
 }
-/* stacked (phones): the timeline turns sideways and shows only the current step, centered; instead of a line
-   filling down to the next step, the ring around its number fills over the step's time */
+/* stacked (phones): no phone mockup and no autoplay. The four steps read as a plain list, each with its body open. */
 @media (max-width:760px){
-  .lp-tl{flex-direction:row;justify-content:center;margin:28px auto 0;max-width:440px}
-  .lp-tl-item:not(.on){display:none}
-  .lp-tl-item.on{grid-template-columns:1fr;justify-items:center;text-align:center;padding:0}
-  .lp-tl-line{display:none}
-  .lp-tl-node{width:56px;height:56px;font-size:26px}
-  .lp-tl-item.on .lp-tl-node{background:rgba(255,201,168,.12);border-color:rgba(255,255,255,.22);color:var(--ball);box-shadow:none}
-  .lp-tl-ring{inset:-6px;opacity:1;--p:1}
-  .lp-tl-item.on.playing .lp-tl-ring{--p:0;animation:lpTlRing var(--dur,8s) linear forwards}
-  .lp-tl-text{padding-top:16px}
+  .lp-show-device,.lp-show-slogan{display:none}
+  .lp-tl{margin-top:28px;max-width:none}
+  .lp-tl-item{cursor:default}
+  .lp-tl-item .lp-tl-node,.lp-tl-item.on .lp-tl-node{background:rgba(255,201,168,.16);border-color:var(--ball);color:var(--ball);box-shadow:none}
+  .lp-tl-item .lp-tl-label{color:#fff}
+  .lp-tl-item .lp-tl-body{grid-template-rows:1fr}
+  .lp-tl-item .lp-tl-body>span{padding-top:6px}
+  .lp-tl-line::after,.lp-tl-item.on.playing .lp-tl-line::after{animation:none;transform:scaleY(1);opacity:.5}
+  .lp-tl-ring{display:none}
 }
 @media (prefers-reduced-motion:reduce){.lp-show-phone,.lp-show-phone.on,.lp-tl-body,.lp-show-device{transition:none}.lp-show:not(.seen) .lp-show-device{opacity:1;transform:none}.lp-show-slogan h3,.lp-chip,.lp-tl-line::after,.lp-tl-ring{animation:none}.lp-tl-ctrl{display:none}}
 /* Narrower than the sections around it, so its edges sit inside theirs; the text column is sized so every fact wraps to two lines */
@@ -924,6 +916,8 @@ a{color:var(--link)}
 .lp-final::before{border-radius:inherit}
 .lp-gl{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;opacity:0;transition:opacity .8s}
 .lp-gl[data-ready]{opacity:1}
+/* The 3D phone has its own Play demo button, so the hero copy drops its Watch the demo link while the phone shows */
+.lp-hero:has(.lp-gl[data-ready]) .lp-ctas [data-play-demo]{display:none}
 .lp-hero-copy{position:relative;z-index:3;max-width:560px;transition:opacity .5s,translate .5s,visibility .5s}
 /* The demo takes over the whole screen: the hero grows to the viewport, loses its rounded foot, and the page stops scrolling. */
 .lp-hero.playing{min-height:100vh;min-height:100dvh;border-radius:0;clip-path:none}

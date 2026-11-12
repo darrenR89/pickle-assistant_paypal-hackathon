@@ -187,7 +187,7 @@ function start(T: typeof THREE_NS, env: Env): () => void {
     // lifted clear of the rounded corners by a home-indicator band (as on a real iPhone).
     const im = imgs[key];
     if (im) {
-      const k = SW / im.width, BAND = 64, BAR = 200 / k; // BAR: source px of the bottom bar (I'm in / message box)
+      const k = SW / im.width, BAND = 30, BAR = 200 / k; // BAR: source px of the bottom bar (I'm in / message box)
       const barY = SH - BAND - BAR * k, topH = barY - 110;
       sx.drawImage(im, 0, 0, im.width, topH / k, 0, 110, SW, topH);
       sx.drawImage(im, 0, im.height - BAR, im.width, BAR, 0, barY, SW, BAR * k);
