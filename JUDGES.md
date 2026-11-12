@@ -4,6 +4,14 @@ A short map from each judging criterion to what you can try and the code behind 
 
 **Fastest way to see it:** open https://pickle-assistant.onrender.com/demo on a computer and scan the code with your phone (or open it on your phone and use **Demo steps**). You organize a game; the page plays the rest of the group. About two minutes.
 
+| | |
+|---|---|
+| Video (under 3 min) | <!-- Before submission: replace VIDEO_URL --> [Watch on YouTube](VIDEO_URL) |
+| Live demo, no keys | https://pickle-assistant.onrender.com/play (one-tap game scenarios) |
+| Every PayPal call | [docs/PAYPAL.md](docs/PAYPAL.md) |
+| Real sandbox ids from one full game | [README: Proof from a real sandbox run](README.md#proof-from-a-real-sandbox-run) |
+| Sandbox buyer to approve a hold | shown on the `/demo` page |
+
 ## Technological implementation
 
 - **PayPal Orders v2 with intent AUTHORIZE.** Joining creates an order for the share plus a cap, then authorizes it: `createHoldOrder`, `authorizeOrder` in `src/lib/paypal.ts`; routes `src/app/api/paypal/orders/route.ts` and `src/app/api/paypal/orders/[id]/authorize/route.ts`.
@@ -16,7 +24,8 @@ A short map from each judging criterion to what you can try and the code behind 
 - **PayPal and Venmo buttons** via the PayPal JS SDK (`fundingSource`), in `src/app/g/[slug]/GameScreen.tsx`.
 - **Claude (Haiku 5.5) with forced tool calls.** `parseWithClaude` in `src/bot/parse.ts` (setup messages → structured game). `understand` / `withClaude` in `src/bot/agent.ts` (every other message → one of: join, leave, maybe, waitlist, give spot, invite, answer, private money question, change request, call off, ask organizer, clarify, help, ignore). `withRules` is the fallback.
 - **AI never moves money.** `actOn` in `src/bot/assistant.ts` turns a decision into fixed, rule-checked actions.
-- **Scheduled work** on Render Workflows: reminders, auto-settle, hold renewal (`src/workflows/tasks.ts`).
+- **Scheduled work** on Render Workflows: reminders, auto-settle, hold renewal, payout retries and recovery after a restart. A cron job starts the `tick` task every 10 minutes and it fans out one task run per item due (`src/workflows/tasks.ts`, `render.workflows.yaml`).
+- **Tested.** `pnpm test` covers money maths, the rule-based fallback, rate limits, retries and the proof table; CI runs typecheck, lint, tests and build on every PR.
 
 ## Design
 
@@ -37,8 +46,8 @@ A short map from each judging criterion to what you can try and the code behind 
 
 ## What's real vs simulated
 
-- **Real:** Claude interpreting messages; the game pages; any hold you place with a PayPal sandbox account (authorize, capture, void against PayPal's sandbox API).
-- **Simulated:** the group chat itself (real iMessage delivery is next) and the other players' holds (ids start with `SIM-`, see `src/lib/sim.ts`).
+- **Real:** Claude interpreting messages; the game pages; any hold you place with a PayPal sandbox account (authorize, capture, void, refund against PayPal's sandbox API); the organizer's payout; verified webhooks. `pnpm proof` lists the real sandbox ids from a game.
+- **Simulated:** the group chat in `/play` and `/demo` (real iMessage through Blooio and SMS through Sendblue work when their keys are set) and the other players' holds (ids start with `SIM-`, see `src/lib/sim.ts`).
 
 ## Known limits
 
@@ -49,6 +58,6 @@ A short map from each judging criterion to what you can try and the code behind 
 
 ## Not built yet
 
-Real iMessage/WhatsApp delivery, recurring games with regulars getting first pick, phone number verification, games more than 4 weeks out.
+WhatsApp delivery, recurring games with regulars getting first pick, phone number verification, games more than 4 weeks out.
 
 **Built, off by default, not yet run against the PayPal sandbox:** delayed holds (`DELAYED_HOLDS=on`). For a game more than 3 days away the player saves their PayPal at join (PayPal Vault), the scheduled job places the real hold 2 days before the start, and a refused hold gives the player a day to approve again before the spot opens up. See `src/bot/delayed.ts`.
