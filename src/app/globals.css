@@ -208,12 +208,18 @@ a{color:var(--link)}
 .sp-body{max-width:640px}
 .sp-status{margin:0 0 16px;font:600 19px/1.5 var(--sans);color:var(--onm)}
 .sp-status.err{color:#FFC9A8}
-/* the controls: people (who you are, and a sample message to send as them) beside the game scenarios */
-.sim-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 0;align-items:start}
-.sim-sec{min-width:0;padding-right:24px}
-.sim-sec.sim-game{padding:0 0 0 24px;border-left:1px solid rgba(255,255,255,.16)}
+/* the top bar: game scenarios as one-tap cards, then manual steps (players, clock) for the current game */
+.sim-panel{display:flex;flex-direction:column;gap:10px}
 .sim-sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
-.sim-sec h2{margin:0}
+.sim-panel h2,.sim-people h2{margin:0}
+.sim-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.sim-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);transition:border-color .2s,background .2s}
+.sim-card h3{margin:0;font:700 15px/1.2 var(--sans);color:#fff}
+.sim-card p{flex:1;margin:0;font:500 13px/1.4 var(--sans);color:#C9BFE3}
+.sim-card.on{border-color:var(--ball);background:rgba(255,201,168,.1)}
+.sim-card-step{font-weight:700;color:var(--ball)}
+.sp .sim-card .dr-btn{height:32px;margin-top:2px}
+.sim-manual{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.4fr);align-items:center;gap:16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
 .sim-links{display:flex;gap:16px}
 .sim-links a{color:#fff;font:600 14px/1 var(--sans);text-underline-offset:3px;transition:opacity .2s}
 @media (hover:hover){.sim-links a:hover{opacity:.7}}
@@ -230,11 +236,10 @@ a{color:var(--link)}
 .sim-pill-add input{width:110px;border:0;outline:0;background:none;font:600 14px var(--sans);color:var(--ink)}
 .sim-pill-ok{height:28px;padding:0 12px;border:0;border-radius:99px;background:var(--btn);color:#fff;font:700 13px/1 var(--sans)}
 .sim-pill-x{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;color:var(--muted)}
-.sim-say{display:flex;flex-direction:column;gap:6px;margin-top:12px}
-/* game scenarios: the players row, then the clock as four stages on a line */
-.sim-scn{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;margin-top:8px}
-.sim-scn-k{font:700 13px/1.2 var(--sans);color:#fff}
-.sim-scn-acts{grid-column:2/-1;display:flex;gap:6px}
+.sim-say{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+/* beside the phones: people and the sample message, on the same dark glass as the top bar */
+.sim-people{position:sticky;top:20px;align-self:start;min-width:0;padding:16px;border-radius:20px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);color:#fff}
+.sim-scn-acts{display:flex;gap:6px}
 .sp .sim-scn-acts .dr-btn{flex:1;width:auto}
 .sim-track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 .sim-track li{position:relative}
@@ -246,27 +251,22 @@ a{color:var(--link)}
 .sim-track button[aria-pressed="true"] .sim-dot{background:var(--ball);border-color:var(--ball);box-shadow:0 0 0 4px rgba(255,201,168,.25)}
 .sim-track button[aria-pressed="true"] strong{color:var(--ball)}
 @media (hover:hover){.sim-track button:hover{background:rgba(255,255,255,.07)}}
-.sim-game .sim-hint{margin-top:8px}
-.sim-field{display:flex;flex-direction:column;gap:8px;margin:0}
 .sim-label{font:700 12px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--onm)}
-.sim-row{display:flex;gap:8px}
-.sim-row>.sim-select,.sim-row>.sim-input{flex:1;min-width:0}
-.sim-select,.sim-input{width:100%;height:38px;padding:0 12px;border:2px solid transparent;border-radius:10px;background:#fff;font:500 15px var(--sans);color:var(--ink)}
+.sim-select{width:100%;height:38px;padding:0 12px;border:2px solid transparent;border-radius:10px;background:#fff;font:500 15px var(--sans);color:var(--ink)}
 .sim-select{appearance:none;-webkit-appearance:none;padding-right:36px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%233B2F7A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center/18px 18px;cursor:pointer}
 .sim-select:disabled{opacity:.5;cursor:default}
-.sim-select:focus-visible,.sim-input:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
+.sim-select:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 /* buttons on the dark bar: outlined, with the ball color for the one primary action */
 .sp .dr-btn{display:flex;align-items:center;justify-content:center;width:100%;height:38px;padding:0 12px;border-radius:10px;font-size:14px;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;text-decoration:none;text-align:center;white-space:nowrap}
 .sp .dr-btn.p{background:var(--ball);border-color:var(--ball);color:#171428;box-shadow:0 3px 0 #D9946B}
 .sp .dr-btn:disabled{opacity:.45}
-.sim-row .dr-btn{width:auto;flex:none}
 .sim-quote{margin:0;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.1);font:500 13px/1.4 var(--sans);color:#fff;}
 .sim-quote span{font-weight:700;color:var(--ball)}
 .sim-hint{margin:0;font:500 13px/1.4 var(--sans);color:#C9BFE3}
 /* the result of the last control: a toast at the bottom, as on the phone demo's desktop remote */
 .sim-note{position:fixed;z-index:20;left:50%;bottom:24px;transform:translateX(-50%);width:max-content;max-width:min(640px,calc(100% - 40px));margin:0;padding:14px 18px;border-radius:16px;background:#171428;color:#fff;font:500 16px/1.4 var(--sans);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.14)}
 .sim-note:empty{display:none}
-.sim-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;max-width:860px;margin:0 auto}
+.sim-grid{display:grid;grid-template-columns:300px repeat(2,minmax(0,390px));justify-content:center;align-items:start;gap:24px}
 /* the phones: the same frame and status bar as the landing page's app screenshots (.lp-phone, .lp-screen, StatusBar)
    around an iMessage screen, at a real phone's width */
 .phone.lp-phone{display:flex;flex-direction:column;width:100%;max-width:390px;height:min(800px,calc(100dvh - 48px));min-height:520px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--s-text);box-shadow:0 40px 80px rgba(5,2,20,.55),inset 0 0 0 1.5px rgba(255,255,255,.14)}
@@ -281,11 +281,15 @@ a{color:var(--link)}
 .phone-compose button{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--s-blue);color:#fff}
 .phone-compose button:disabled{opacity:.45;cursor:default}
 /* iPad portrait and small laptops: the controls wrap to two columns */
-@media (max-width:1100px){
-  .sim-panel{grid-template-columns:1fr}
-  .sim-sec{padding-right:0}
-  .sim-sec.sim-game{padding:20px 0 0;border-left:0;border-top:1px solid rgba(255,255,255,.16)}
+/* iPad and small laptops: three scenario cards a row; the people block runs across above the two phones */
+@media (max-width:1240px){
+  .sim-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .sim-grid{grid-template-columns:repeat(2,minmax(0,390px))}
+  .sim-people{grid-column:1/-1;position:static}
   .phone.lp-phone{height:min(760px,calc(100dvh - 48px))}
+}
+@media (max-width:900px){
+  .sim-manual{grid-template-columns:1fr;gap:10px}
 }
 /* phones: one column of controls, then the group chat and the private texts */
 @media (max-width:760px){
@@ -295,12 +299,9 @@ a{color:var(--link)}
   .sp-link{padding:10px 8px}
   .sp-title h1{align-self:center;font-size:22px;white-space:nowrap}
   .sp-bar-top{column-gap:10px}
-  .sim-scn{grid-template-columns:1fr;gap:8px}
-  .sim-scn-acts{grid-column:1}
+  .sim-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .sim-card{padding:10px}
   .sim-track button>span:last-child{display:none}
-  .sim-say .sim-row{flex-direction:column}
-  .sim-say .sim-row>.sim-select{flex:none}
-  .sp .sim-say .dr-btn{width:100%}
   .sp-main{padding-top:20px}
   .sim-grid{grid-template-columns:1fr;gap:20px}
   .phone.lp-phone{height:min(700px,calc(100dvh - 40px));min-height:480px}
