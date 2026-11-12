@@ -32,8 +32,8 @@ const VERTICAL_SRC = process.env.NEXT_PUBLIC_DEMO_VERTICAL_SRC; // vertical MP4 
 
 // Chapters for the hero player. Times follow the demo plan; set them from the final edit.
 const CHAPTERS: Chapter[] = [
-  { t: 0, shot: "chat", title: "The organizer texts the group", body: "“@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude turns it into a game: 8 spots, $8 each." },
-  { t: 14, shot: "chat", title: "Friends reply like normal", body: "“yeah I’m down” is enough. The assistant counts them in and posts the game link." },
+  { t: 0, shot: "chat", title: "The organizer texts the group", body: "“@PaddlesIn Thu 6pm Riverside courts 3–4, $64.” Claude turns it into a game: 8 spots, $8 each." },
+  { t: 14, shot: "chat", title: "Friends reply like normal", body: "“yeah I’m down” is enough. PaddlesIn counts them in and posts the game link." },
   { t: 28, shot: "game", title: "One tap to hold a spot", body: "Time, courts and the share up front. Players pay with PayPal or Venmo, no app needed." },
   { t: 44, shot: "in", title: "Held, not charged", body: "PayPal authorizes the $8 share plus a small cap. Nothing leaves the account yet." },
   { t: 60, shot: "late", title: "A late cancel, handled fairly", body: "After free cancel ends, the organizer chooses: charge the share or cover it." },
@@ -42,28 +42,28 @@ const CHAPTERS: Chapter[] = [
 
 // "How it works": five steps, each with a phone screen, a slogan and two callouts taken from that screen.
 const SHOW: Array<ShowcaseStep & { src: string }> = [
-  { src: "chat", tab: "Text the group", title: "Say it in the group.", body: "The organizer texts “@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude makes it a game: 8 spots, $8 each, free cancel until the day before. Friends reply like normal.", chips: ["“in 🙌” counts as in", "Claude reads every reply"] },
-  { src: "game", tab: "Join", title: "One tap to hold a spot.", body: "The link shows the time, courts and your share. Tap I’m in and pay with PayPal or Venmo. No app, no account.", chips: ["$8 is your share", "No app, no account"] },
-  { src: "in", tab: "Hold", title: "Held, not charged.", body: "PayPal authorizes your share plus a small cap. You’re counted in, and nothing leaves your account before the game.", chips: ["$10 on hold", "Charged after the game"] },
-  { src: "late", tab: "Late cancel", title: "Late cancels, handled fairly.", body: "After free cancel ends, the organizer decides: charge the share or cover it.", chips: ["Organizer decides", "Charge $8 or cover it"] },
+  { src: "chat", tab: "Ask the group", title: "Ask for a game, in plain words.", body: "Anyone in the group asks for a game the way they’d text a friend: “@PaddlesIn Thu 6pm Riverside courts 3–4, $64.” Claude makes it a game: 8 spots, $8 each, free cancel until the day before. Friends reply like normal.", chips: ["“in 🙌” counts as in", "Claude reads every reply"] },
+  { src: "game", tab: "Join", title: "One tap to hold a spot.", body: "The game link shows the time, the courts and each player’s share. Players tap I’m in and pay with PayPal or Venmo. No app, no account.", chips: ["$8 share each", "No app, no account"] },
+  { src: "in", tab: "Hold", title: "Held, not charged.", body: "PayPal authorizes each player’s share plus a small cap. They’re counted in, and nothing leaves their account before the game.", chips: ["$10 on hold", "Charged after the game"] },
+  { src: "late", tab: "Late cancel", title: "Late cancels, handled fairly.", body: "After the free cancel period ends, the organizer decides to charge them their share or cover it.", chips: ["Organizer decides", "Charge $8 or cover it"] },
   { src: "paid", tab: "Settle", title: "Charged the real share.", body: "After the game each player is charged their real share and the rest of the hold is released. The organizer sees exactly what was collected.", chips: ["Never more than the hold", "Receipts sent privately"] },
 ];
 
 
 // The problem band: the awkward part of collecting money for a game, in three beats.
 const PROBLEM: Array<[string, string]> = [
-  ["Someone has to ask.", "One person books the court, then has to ask friends for $8 in the group chat. Nobody wants to be that person."],
-  ["Not everyone is a friend.", "Friends bring friends. Sending a payment request to someone you’ve never met feels even worse."],
+  ["But someone has to do it.", "One person books the court, then has to ask friends for $8 in the group chat. Nobody wants to be that person."],
+  ["Not everyone is a friend.", "Sending a payment request to someone you’ve never met feels even worse."],
   ["The host covers the rest.", "When someone drops out the night before, the organizer quietly pays their share."],
 ];
 
 // "Built to be trusted": what a judge checks first. Every number is backed by the repo (see JUDGES.md):
-// 8 PayPal APIs in src/lib/paypal.ts, 100 tests from `pnpm test`.
+// 8 PayPal APIs in src/lib/paypal.ts, 101 tests from `pnpm test`.
 const PROOF: Proof[] = [
   { n: 0, k: "amounts chosen by the AI", v: "Claude reads the chat. Plain code makes every hold, charge and refund, and a rules parser takes over if Claude is down." },
-  { n: 8, k: "PayPal APIs in a real game", v: "Create order, authorize, void, reauthorize, partial capture, refund, Payouts to the organizer and verified webhooks. Venmo uses the same SDK." },
+  { n: 8, k: "PayPal APIs to handle it all", v: "Create order, authorize, void, reauthorize, partial capture, refund, Payouts to the organizer and verified webhooks. Venmo uses the same SDK." },
   { n: 1, k: "charge per payment, even on retry", v: "Every PayPal write sends a PayPal-Request-Id. A settle cut off by a restart is finished by the next scheduled run." },
-  { n: 100, k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
+  { n: 101, k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
 ];
 
 // Inside the judges' fold: what it's built with, grouped by job.
@@ -85,37 +85,22 @@ const BUILD_DAYS: Array<{ date: string; title: string; notes: string }> = [
   { date: "Thu Nov 12", title: "Ready for judges", notes: "Late cancels can be charged, covered or wait for a replacement. 2-minute walkthrough and sandbox proof." },
 ];
 
-// Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
+// Three highlights, each with a large line icon (24px grid, drawn with strokes in currentColor).
 const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   {
-    k: "Lives in",
-    v: "Your group chat, by text. Link your own phone in the demo.",
+    k: "Where it lives",
+    v: "Money handled in the group chats people already use.",
     icon: <><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /><path d="M19 9h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-3" /></>,
   },
   {
-    k: "Payments",
-    v: "PayPal and Venmo, via PayPal Orders v2",
+    k: "How money moves",
+    v: "Payments handled securely through PayPal.",
     icon: <><rect x="2" y="5" width="20" height="14" rx="3" /><path d="M2 10h20M6 15h4" /></>,
   },
   {
-    k: "AI",
-    v: "Claude (Haiku 5.5) reads every message",
-    icon: <g transform="translate(-1.75 0)"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" /></g>,
-  },
-  {
-    k: "Players need",
-    v: "No app, no account with us. A text and a link",
-    icon: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>,
-  },
-  {
-    k: "Price for players",
-    v: "Their share of the court. Nothing more",
+    k: "What it costs",
+    v: "No new app, no fee, just pay your share.",
     icon: <><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" /><circle cx="8" cy="8" r="1.6" /></>,
-  },
-  {
-    k: "Status",
-    v: "Working prototype in the PayPal sandbox",
-    icon: <><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3" /><path d="M7.5 15h9" /></>,
   },
 ];
 
@@ -134,7 +119,7 @@ export default function Home() {
           <h1 id="hero-h">Pickleball games that settle themselves.</h1>
           <p className="lp-sub">
             An AI assistant that lives in your group chat. Friends say they’re in, hold their spot with PayPal or Venmo, and after the game
-            each one is charged their real share. Nobody chases payment requests.
+            each one is charged their real share.
           </p>
           <div className="lp-ctas">
             <Link href="/demo" className="lp-btn">Try the 2-minute walkthrough</Link>
@@ -154,13 +139,13 @@ export default function Home() {
             <li key={k}><strong>{k}</strong> {v}</li>
           ))}
         </ul>
-        <p className="lp-prob-fix">With <Logo variant="wordmark" tone="light" className="lp-prob-logo" />, everyone’s share is held with PayPal the moment they’re in. <strong>Nobody has to ask.</strong></p>
+        <p className="lp-prob-fix">With Paddles In, everyone’s share is held with PayPal the moment they’re in. <strong>Nobody has to ask.</strong></p>
       </section>
 
       <section className="lp-section lp-al" id="screens" aria-labelledby="how">
         <AppShowcase
           title="How it works"
-          lead="The organizer texts the group, friends hold their spot with PayPal, and it settles after the game. Nobody downloads anything: every screen opens from a text."
+          lead="Someone asks the group for a game, friends hold their spot with PayPal, and it settles after the game. Nobody downloads anything: every screen opens from a text."
           steps={SHOW.map(({ src: _src, ...step }) => step)}
           phones={SHOW.map((s) => <Phone key={s.src} src={s.src} alt={s.title} eager />)}
         />
@@ -219,11 +204,11 @@ export default function Home() {
               <strong>Simulated:</strong> the other players and their holds, marked SIM-.
             </p>
             <p className="lp-trust-links">
-              <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a>
-              <a href={`${REPO}/blob/main/docs/PAYPAL.md`}>Every PayPal call</a>
-              <a href={`${REPO}/blob/main/docs/EDGE-CASES.md`}>Every edge case, and how it’s handled</a>
-              <a href={`${REPO}#proof-from-a-real-sandbox-run`}>Sandbox proof</a>
-              <a href={REPO}>Source on GitHub (MIT)</a>
+              <a href={`${REPO}/blob/main/JUDGES.md`} target="_blank" rel="noopener noreferrer">For judges</a>
+              <a href={`${REPO}/blob/main/docs/PAYPAL.md`} target="_blank" rel="noopener noreferrer">Every PayPal call</a>
+              <a href={`${REPO}/blob/main/docs/EDGE-CASES.md`} target="_blank" rel="noopener noreferrer">Every edge case, and how it’s handled</a>
+              <a href={`${REPO}#proof-from-a-real-sandbox-run`} target="_blank" rel="noopener noreferrer">Sandbox proof</a>
+              <a href={REPO} target="_blank" rel="noopener noreferrer">Source on GitHub (MIT)</a>
             </p>
           </div>
         </CaseStudy>
@@ -238,7 +223,7 @@ export default function Home() {
           <p>Scan a code, set up Thursday’s game, and watch it fill, cancel and settle in about two minutes.</p>
           <div className="lp-final-act">
             <Link href="/demo" className="lp-btn">Start the 2-minute walkthrough</Link>
-            <a href={`${REPO}/blob/main/JUDGES.md`} className="lp-btn ghost">For judges</a>
+            <a href={`${REPO}/blob/main/JUDGES.md`} target="_blank" rel="noopener noreferrer" className="lp-btn ghost">For judges</a>
           </div>
         </div>
       </section>
@@ -249,7 +234,7 @@ export default function Home() {
         <Logo className="lp-foot-logo" />
         <span>Built for the PayPal AI Hackathon 2026. Sandbox only: no real money moves.</span>
         <span>
-          <a href={REPO}>GitHub</a> · <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a> · <Link href="/play">Full simulator</Link>
+          <a href={REPO} target="_blank" rel="noopener noreferrer">GitHub</a> · <a href={`${REPO}/blob/main/JUDGES.md`} target="_blank" rel="noopener noreferrer">For judges</a> · <Link href="/play">Full simulator</Link>
         </span>
       </footer>
     </div>

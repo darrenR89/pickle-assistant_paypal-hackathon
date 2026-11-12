@@ -53,7 +53,7 @@ A short map from each judging criterion to what you can try and the code behind 
 ## Known limits
 
 - **Phone numbers aren't verified.** The game page recognises a returning player by the phone number they type. No code is texted to that phone yet, so someone who knows a player's number could drop them out of a game or ask for their refund. Organizer actions are not affected: those need the organizer's private link.
-- **Games up to 4 weeks ahead.** A PayPal hold lasts 29 days and can be renewed once, so a game further out is asked for a nearer date. Placing the hold later (approve now, hold a few days before the game) needs PayPal's vault and isn't built.
+- **Games up to 4 weeks ahead.** A PayPal hold lasts 29 days and can be renewed once, so a game further out is asked for a nearer date. Placing the hold later (approve now, hold a few days before the game) uses PayPal's vault; it's built but off by default (see below).
 - **Refunds after the organizer is paid.** Once the payout has gone out, a refund in the app would come from the app's own balance, so the app asks the organizer to pay the player back directly.
 - **The demo endpoints are open on purpose.** `/api/demo` and `/api/play` need no sign-in and hand out the simulated players' link tokens, so a judge can switch between them. They only answer for demo groups (`groups.playground`), are rate limited (`src/lib/rate.ts`), and never serve a real group's members or private messages.
 

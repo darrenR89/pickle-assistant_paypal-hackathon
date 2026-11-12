@@ -37,8 +37,8 @@ export default function IslandNav({ repo }: { repo: string }) {
   return (
     <header className={`lp-isle${scrolled ? " scrolled" : ""}${open ? " open" : ""}`}>
       <nav className="lp-isle-side l" aria-label="Sections">
-        <a href="#screens">The app</a>
-        <a href="#built">How it was built</a>
+        <a href="#screens">How it works</a>
+        <a href="#built">For judges</a>
       </nav>
       <div className="lp-isle-pill">
         <a href="#top" className="lp-logo">
@@ -56,14 +56,14 @@ export default function IslandNav({ repo }: { repo: string }) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14" /></svg>
         </button>
         <span className="lp-isle-more">
-          <a href="#screens" tabIndex={scrolled ? 0 : -1}>The app</a>
-          <a href="#built" tabIndex={scrolled ? 0 : -1}>Built</a>
-          <a href={repo} tabIndex={scrolled ? 0 : -1}>GitHub</a>
+          <a href="#screens" tabIndex={scrolled ? 0 : -1}>How it works</a>
+          <a href="#built" tabIndex={scrolled ? 0 : -1}>For judges</a>
+          <a href={repo} target="_blank" rel="noopener noreferrer" tabIndex={scrolled ? 0 : -1}>GitHub</a>
           <Link href="/demo" className="lp-isle-cta" tabIndex={scrolled ? 0 : -1}>2-min walkthrough</Link>
         </span>
       </div>
       <nav className="lp-isle-side r" aria-label="Actions">
-        <a href={repo}>GitHub</a>
+        <a href={repo} target="_blank" rel="noopener noreferrer">GitHub</a>
         <Link href="/demo" className="lp-isle-cta">2-min walkthrough</Link>
       </nav>
       <button
@@ -80,9 +80,9 @@ export default function IslandNav({ repo }: { repo: string }) {
         </svg>
       </button>
       <nav id="lp-isle-menu" className="lp-isle-menu" aria-label="Menu" hidden={!menu}>
-        <a href="#screens" onClick={closeMenu}>The app</a>
-        <a href="#built" onClick={closeMenu}>How it was built</a>
-        <a href={repo} onClick={closeMenu}>GitHub</a>
+        <a href="#screens" onClick={closeMenu}>How it works</a>
+        <a href="#built" onClick={closeMenu}>For judges</a>
+        <a href={repo} target="_blank" rel="noopener noreferrer" onClick={closeMenu}>GitHub</a>
         <Link href="/demo" className="lp-isle-cta" onClick={closeMenu}>2-min walkthrough</Link>
       </nav>
     </header>

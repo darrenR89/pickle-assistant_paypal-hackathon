@@ -25,6 +25,7 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [seen, setSeen] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const tabs = useRef<Array<HTMLButtonElement | null>>([]);
   const left = useRef(DUR);
@@ -34,7 +35,7 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setAuto(false);
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.35 });
+    const io = new IntersectionObserver(([e]) => { setVisible(e.isIntersecting); if (e.isIntersecting) setSeen(true); }, { threshold: 0.35 });
     if (stage.current) io.observe(stage.current);
     return () => io.disconnect();
   }, []);
@@ -86,7 +87,7 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   const running = auto && !paused;
   const s = steps[i];
   return (
-    <div className={`lp-show${held ? " held" : ""}`} ref={stage}>
+    <div className={`lp-show${held ? " held" : ""}${seen ? " seen" : ""}`} ref={stage}>
       <div className="lp-show-copy">
         <h2 id="how" className="lp-h2 light">{title}</h2>
         <p className="lp-show-lead">{lead}</p>
@@ -122,13 +123,6 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
             </button>
           ))}
         </div>
-        <button type="button" className="lp-tl-ctrl" aria-pressed={!running} onClick={toggle}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            {running ? <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></> : <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" />}
-          </svg>
-          <span>{running ? "Pause" : "Play"}</span>
-          <span className="sr-only"> the walkthrough</span>
-        </button>
         <div className="lp-show-slogan" id="show-panel" role="tabpanel" aria-labelledby={`show-tab-${i}`} aria-live={auto ? "off" : "polite"}>
           <h3 key={s.title}>{s.title}</h3>
           <span className="sr-only">{s.chips.join(". ")}.</span>
@@ -143,6 +137,13 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
             </div>
           ))}
         </div>
+        <button type="button" className="lp-tl-ctrl" aria-pressed={!running} onClick={toggle}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            {running ? <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></> : <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" />}
+          </svg>
+          <span>{running ? "Pause" : "Play"}</span>
+          <span className="sr-only"> the walkthrough</span>
+        </button>
         <span key={`a${i}`} className="lp-chip a" aria-hidden="true"><i />{s.chips[0]}</span>
         <span key={`b${i}`} className="lp-chip b" aria-hidden="true"><i />{s.chips[1]}</span>
       </div>
