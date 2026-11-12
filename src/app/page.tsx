@@ -148,7 +148,7 @@ export default function Home() {
 
       <section className="lp-section lp-al lp-prob" aria-labelledby="problem-h">
         <p className="lp-eyebrow">The problem</p>
-        <h2 id="problem-h" className="lp-h2">Asking friends to pay you back is awkward. <span className="lp-prob-hi">Asking strangers is <em>worse</em>.</span></h2>
+        <h2 id="problem-h" className="lp-h2">Asking friends to pay you back is awkward. <span className="lp-prob-hi">Asking strangers is <em>worse.</em></span></h2>
         <ul className="lp-beats">
           {PROBLEM.map(([k, v]) => (
             <li key={k}><strong>{k}</strong> {v}</li>
