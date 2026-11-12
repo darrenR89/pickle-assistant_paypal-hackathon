@@ -1232,7 +1232,7 @@ function EditSheet({ v, busy, formErr, save, close }: { v: ViewData; busy: boole
           : "Once someone is in, money changes can only help players. Where and what kind of game can change any time."}
       </p>
       <div style={{ display: "grid", gap: 12, margin: "0 8px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="field-row">
           <label className="field">Day<input name="date" type="date" defaultValue={org.startDate} required /></label>
           <label className="field">Start time<input name="time" type="time" step={1800} defaultValue={draft && org.needs.includes("when") ? "" : org.startTime} required autoFocus={draft && org.needs.includes("when")} /></label>
         </div>
