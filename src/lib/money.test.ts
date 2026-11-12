@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { cancelRule, gameDayLine, holdCents, money, payoutUnderway } from "@/lib/games";
-import { PayPalError, capturedCents, isTerminalPayPalError, payoutReceiver, verifyBody } from "@/lib/paypal";
-import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
+import { PayPalError, capturedCents, isTerminalPayPalError, payoutReceiver, routePayout, verifyBody } from "@/lib/paypal";
+import { describeReceiver, organizerPayoutTo, payoutErrorReason } from "@/bot/payout";
 import { chargedLateCancels, shareFor, shortfall } from "@/bot/assistant";
 
 describe("holdCents", () => {
@@ -37,6 +37,33 @@ describe("payoutReceiver", () => {
     assert.equal(payoutReceiver("555-0134"), null);
     assert.equal(payoutReceiver("not an address"), null);
     assert.equal(payoutReceiver("@a"), null);
+  });
+});
+
+describe("routePayout", () => {
+  const phone = { receiver: "4155550134", recipientType: "PHONE", wallet: "VENMO" } as const;
+  it("sends a Venmo phone payout through PayPal in sandbox", () => {
+    assert.deepEqual(routePayout(phone, false), { ...phone, wallet: "PAYPAL" });
+  });
+  it("leaves Venmo alone in live", () => {
+    assert.deepEqual(routePayout(phone, true), phone);
+  });
+  it("keeps a Venmo @handle and a PayPal email as they are", () => {
+    const handle = { receiver: "alex_r", recipientType: "USER_HANDLE", wallet: "VENMO" } as const;
+    const email = { receiver: "alex@example.com", recipientType: "EMAIL", wallet: "PAYPAL" } as const;
+    assert.deepEqual(routePayout(handle, false), handle);
+    assert.deepEqual(routePayout(email, false), email);
+  });
+});
+
+describe("payoutErrorReason", () => {
+  const validation = (issue: string) =>
+    new PayPalError("x", 422, { name: "VALIDATION_ERROR", message: "Invalid request - see details", details: [{ field: "items[0].recipient_wallet", issue }] });
+  it("explains the sandbox's Venmo refusal", () => {
+    assert.match(payoutErrorReason(validation("Recipient wallet not supported in sandbox.")), /use a PayPal email/);
+  });
+  it("shows PayPal's specific issue instead of the generic message", () => {
+    assert.equal(payoutErrorReason(validation("Receiver is not a valid phone.")), "Receiver is not a valid phone");
   });
 });
 

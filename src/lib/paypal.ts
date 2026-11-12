@@ -312,6 +312,16 @@ export function payoutReceiver(raw: string, wallet: PayoutWallet = "VENMO"): Pay
   return null;
 }
 
+/**
+ * PayPal's sandbox refuses every Venmo payout ("Recipient wallet not supported in sandbox"), and Venmo is the
+ * default. In sandbox, a Venmo payout to a phone or email goes to the same phone or email through PayPal instead.
+ * A Venmo @handle has no PayPal equivalent, so it stays as is. Live is unchanged.
+ */
+export function routePayout(to: PayoutReceiver, live = process.env.PAYPAL_ENV === "live"): PayoutReceiver {
+  if (live || to.wallet !== "VENMO" || to.recipientType === "USER_HANDLE") return to;
+  return { ...to, wallet: "PAYPAL" };
+}
+
 export type PayoutBatch = { batch_header: { payout_batch_id: string; batch_status: string } };
 
 /** Send one payout. PayPal-Request-Id and sender_batch_id are both tied to the game, so a retry never pays twice. */
