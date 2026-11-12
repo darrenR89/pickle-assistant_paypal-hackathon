@@ -4,6 +4,8 @@ import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
 import Logo from "./Logo";
 import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
+import CaseStudy from "./landing/CaseStudy";
+import ProofCards, { type Proof } from "./landing/ProofCards";
 import FinalPhone from "./landing/FinalPhone";
 import StatusBar from "./landing/StatusBar";
 
@@ -38,13 +40,13 @@ const CHAPTERS: Chapter[] = [
   { t: 75, shot: "paid", title: "Settled after the game", body: "Each player is charged their real share and the rest of every hold is released." },
 ];
 
-// "The app" section: five steps, each with a phone screen, a slogan and two callouts taken from that screen.
+// "How it works": five steps, each with a phone screen, a slogan and two callouts taken from that screen.
 const SHOW: Array<ShowcaseStep & { src: string }> = [
-  { src: "chat", tab: "Chat", title: "Say it in the group.", body: "“yeah I’m down” is enough. The assistant reads the chat and replies with the game link.", chips: ["“in 🙌” counts as in", "Claude reads every reply"] },
-  { src: "game", tab: "Join", title: "One tap to hold a spot.", body: "Time, courts and your share up front. Tap I’m in and pay with PayPal or Venmo.", chips: ["$8 is your share", "No app, no account"] },
-  { src: "in", tab: "Hold", title: "Held, not charged.", body: "PayPal holds your share plus a small cap. Nothing leaves your account before the game.", chips: ["$10 on hold", "Charged after the game"] },
+  { src: "chat", tab: "Text the group", title: "Say it in the group.", body: "The organizer texts “@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude makes it a game: 8 spots, $8 each, free cancel until the day before. Friends reply like normal.", chips: ["“in 🙌” counts as in", "Claude reads every reply"] },
+  { src: "game", tab: "Join", title: "One tap to hold a spot.", body: "The link shows the time, courts and your share. Tap I’m in and pay with PayPal or Venmo. No app, no account.", chips: ["$8 is your share", "No app, no account"] },
+  { src: "in", tab: "Hold", title: "Held, not charged.", body: "PayPal authorizes your share plus a small cap. You’re counted in, and nothing leaves your account before the game.", chips: ["$10 on hold", "Charged after the game"] },
   { src: "late", tab: "Late cancel", title: "Late cancels, handled fairly.", body: "After free cancel ends, the organizer decides: charge the share or cover it.", chips: ["Organizer decides", "Charge $8 or cover it"] },
-  { src: "paid", tab: "Settle", title: "Charged the real share.", body: "After the game each player pays their share. The rest of the hold is released.", chips: ["Never more than the hold", "Receipts sent privately"] },
+  { src: "paid", tab: "Settle", title: "Charged the real share.", body: "After the game each player is charged their real share and the rest of the hold is released. The organizer sees exactly what was collected.", chips: ["Never more than the hold", "Receipts sent privately"] },
 ];
 
 
@@ -57,11 +59,11 @@ const PROBLEM: Array<[string, string]> = [
 
 // "Built to be trusted": what a judge checks first. Every number is backed by the repo (see JUDGES.md):
 // 8 PayPal APIs in src/lib/paypal.ts, 104 tests from `pnpm test`.
-const PROOF: Array<{ n: string; k: string; v: string }> = [
-  { n: "0", k: "amounts chosen by the AI", v: "Claude reads the chat. Plain code makes every hold, charge and refund, and a rules parser takes over if Claude is down." },
-  { n: "8", k: "PayPal APIs in a real game", v: "Create order, authorize, void, reauthorize, partial capture, refund, Payouts to the organizer and verified webhooks. Venmo uses the same SDK." },
-  { n: "1", k: "charge per payment, even on retry", v: "Every PayPal write sends a PayPal-Request-Id. A settle cut off by a restart is finished by the next scheduled run." },
-  { n: "104", k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
+const PROOF: Proof[] = [
+  { n: 0, k: "amounts chosen by the AI", v: "Claude reads the chat. Plain code makes every hold, charge and refund, and a rules parser takes over if Claude is down." },
+  { n: 8, k: "PayPal APIs in a real game", v: "Create order, authorize, void, reauthorize, partial capture, refund, Payouts to the organizer and verified webhooks. Venmo uses the same SDK." },
+  { n: 1, k: "charge per payment, even on retry", v: "Every PayPal write sends a PayPal-Request-Id. A settle cut off by a restart is finished by the next scheduled run." },
+  { n: 104, k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
 ];
 
 // Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
@@ -79,7 +81,7 @@ const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   {
     k: "AI",
     v: "Claude (Haiku 5.5) reads every message",
-    icon: <><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" /></>,
+    icon: <g transform="translate(-1.75 0)"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" /></g>,
   },
   {
     k: "Players need",
@@ -136,31 +138,10 @@ export default function Home() {
         <p className="lp-prob-fix">With Paddles In, a spot is held with PayPal, not promised in a chat.</p>
       </section>
 
-      <section className="lp-section lp-al" aria-labelledby="how">
-        <h2 id="how" className="lp-h2">How it works</h2>
-        <ol className="lp-steps">
-          <li>
-            <span className="lp-n">1</span>
-            <h3>The organizer texts the group</h3>
-            <p>“@Assistant Thu 6pm Riverside courts 3–4, $64.” Claude turns that into a game: 8 spots, $8 each, free cancel until the day before.</p>
-          </li>
-          <li>
-            <span className="lp-n">2</span>
-            <h3>Players hold their spot</h3>
-            <p>Tapping the link and I’m in places a PayPal authorization for the share plus a small cap. It counts you in without charging you.</p>
-          </li>
-          <li>
-            <span className="lp-n">3</span>
-            <h3>It settles after the game</h3>
-            <p>Each player is captured for their real share and the rest of each hold is released. The organizer sees exactly what was collected.</p>
-          </li>
-        </ol>
-      </section>
-
-      <section className="lp-section lp-al" id="screens" aria-labelledby="screens-h">
+      <section className="lp-section lp-al" id="screens" aria-labelledby="how">
         <AppShowcase
-          title="The app"
-          lead="Players never download anything. Every screen is a web page that opens from a text."
+          title="How it works"
+          lead="The organizer texts the group, friends hold their spot with PayPal, and it settles after the game. Nobody downloads anything: every screen opens from a text."
           steps={SHOW.map(({ src: _src, ...step }) => step)}
           phones={SHOW.map((s) => <Phone key={s.src} src={s.src} alt={s.title} eager />)}
         />
@@ -178,33 +159,30 @@ export default function Home() {
         </dl>
       </section>
 
-      <section className="lp-section lp-al lp-trust" id="built" aria-labelledby="built-h">
-        <p className="lp-eyebrow">For judges</p>
-        <h2 id="built-h" className="lp-h2">Built to be trusted</h2>
-        <p className="lp-trust-lead">What we’d check first if we were judging.</p>
-        <ul className="lp-proof">
-          {PROOF.map(({ n, k, v }) => (
-            <li key={k}>
-              <span className="lp-proof-n">{n}</span>
-              <h3>{k}</h3>
-              <p>{v}</p>
-            </li>
-          ))}
-        </ul>
-        <div className="lp-trust-foot">
-          <p>
-            <strong>Real:</strong> Claude reading every message, your own PayPal sandbox hold and capture, and the organizer’s payout.{" "}
-            <strong>Simulated:</strong> the other players and their holds, marked SIM-.
-          </p>
-          <p className="lp-trust-links">
-            <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a>
-            <a href={`${REPO}/blob/main/docs/PAYPAL.md`}>Every PayPal call</a>
-            <a href={`${REPO}#proof-from-a-real-sandbox-run`}>Sandbox proof</a>
-          </p>
-          <p className="lp-stack">
-            Next.js, TypeScript and Postgres on Render · PayPal Orders v2, Payouts and the JS SDK · Claude Haiku 5.5 · <a href={REPO}>Source on GitHub</a> (MIT)
-          </p>
-        </div>
+      <section className="lp-built" id="built" aria-labelledby="built-h">
+        <CaseStudy
+          eyebrow="For judges"
+          title="Built to be trusted"
+          summary="Four numbers: what the AI is never allowed to do, how deep the PayPal work goes, how retries stay safe and how it’s tested."
+          thumb={["04", "proofs"]}
+          cta="See the proof"
+        >
+          <ProofCards items={PROOF} />
+          <div className="lp-trust-foot">
+            <p>
+              <strong>Real:</strong> Claude reading every message, your own PayPal sandbox hold and capture, and the organizer’s payout.{" "}
+              <strong>Simulated:</strong> the other players and their holds, marked SIM-.
+            </p>
+            <p className="lp-trust-links">
+              <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a>
+              <a href={`${REPO}/blob/main/docs/PAYPAL.md`}>Every PayPal call</a>
+              <a href={`${REPO}#proof-from-a-real-sandbox-run`}>Sandbox proof</a>
+            </p>
+            <p className="lp-stack">
+              Next.js, TypeScript and Postgres on Render · PayPal Orders v2, Payouts and the JS SDK · Claude Haiku 5.5 · <a href={REPO}>Source on GitHub</a> (MIT)
+            </p>
+          </div>
+        </CaseStudy>
       </section>
 
       <section className="lp-final" aria-labelledby="final-h">
