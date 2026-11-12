@@ -154,7 +154,7 @@ export default function Home() {
             <li key={k}><strong>{k}</strong> {v}</li>
           ))}
         </ul>
-        <p className="lp-prob-fix">With Paddles In, everyone’s share is held with PayPal the moment they’re in. <strong>Nobody has to ask.</strong></p>
+        <p className="lp-prob-fix">With <Logo variant="wordmark" tone="light" className="lp-prob-logo" />, everyone’s share is held with PayPal the moment they’re in. <strong>Nobody has to ask.</strong></p>
       </section>
 
       <section className="lp-section lp-al" id="screens" aria-labelledby="how">

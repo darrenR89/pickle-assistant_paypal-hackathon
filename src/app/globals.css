@@ -671,6 +671,7 @@ a{color:var(--link)}
 @media (max-width:480px){.lp-prob-hi{font-size:.66em}}
 .lp-prob-hi em{font-style:normal;color:#C93C0A}
 .lp-prob-fix{margin:32px 0 0;font:600 21px/1.4 var(--sans);color:var(--ink)}
+.lp-prob-logo{font-size:1.3em;vertical-align:-.06em}
 .lp-prob-fix strong{color:var(--btn);font-weight:800}
 /* For judges: one light card that unfolds (the portfolio's "Open the build" pattern) */
 .lp-built{margin-top:88px;padding:0 max(20px,calc((100% - 1180px)/2))}
