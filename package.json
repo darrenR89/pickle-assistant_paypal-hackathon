@@ -22,12 +22,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
-    "@chat-adapter/state-memory": "^4.44.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/figtree": "^5.3.0",
     "@renderinc/sdk": "^1.8.0",
-    "chat": "^4.44.0",
-    "chat-adapter-blooio": "^0.1.0",
     "next": "^16.4.5",
     "pg": "^8.23.1",
     "qrcode": "^1.5.4",

@@ -62,7 +62,7 @@ _The table of real sandbox ids from the final run goes here._
 
 ## For AI reviewers
 
-A technical map of the system, with pointers to the code. Deeper docs: [docs/PAYPAL.md](docs/PAYPAL.md) (every PayPal call), [JUDGES.md](JUDGES.md) (criteria to code), [docs/SETUP.md](docs/SETUP.md) (run, deploy, test), [public/llms.txt](public/llms.txt).
+A technical map of the system, with pointers to the code. Deeper docs: [docs/PAYPAL.md](docs/PAYPAL.md) (every PayPal call), [docs/EDGE-CASES.md](docs/EDGE-CASES.md) (every edge case and how it's handled), [JUDGES.md](JUDGES.md) (criteria to code), [docs/SETUP.md](docs/SETUP.md) (run, deploy, test), [public/llms.txt](public/llms.txt).
 
 **Stack.** Next.js 16 (App Router, TypeScript) on a Render web service, Render Postgres, Render Workflows for scheduled tasks, the Anthropic API (`claude-haiku-5-5`), PayPal REST APIs against `api-m.sandbox.paypal.com`, Sendblue for SMS. Schema is created idempotently on first request (`src/lib/db.ts`); all SQL is parameterized through `q`, `one` and `tx`.
 

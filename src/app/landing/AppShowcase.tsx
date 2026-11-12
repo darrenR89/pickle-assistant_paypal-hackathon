@@ -11,7 +11,7 @@ export type ShowcaseStep = {
 
 const DUR = 8000; // ms per step
 
-// "The app" section: a dark stage with the title top left, a vertical numbered timeline, one large phone that swaps
+// "How it works": a dark stage with the title top left, a vertical numbered timeline, one large phone that swaps
 // screens with two callout chips beside it, and the active step's slogan bottom left. While it plays, the line under
 // the active number fills over DUR and then the next step starts. Stacked on phones, only the current step shows,
 // centered, and the ring around its number fills instead; tapping it goes to the next step.
@@ -88,7 +88,7 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   return (
     <div className={`lp-show${held ? " held" : ""}`} ref={stage}>
       <div className="lp-show-copy">
-        <h2 id="screens-h" className="lp-h2 light">{title}</h2>
+        <h2 id="how" className="lp-h2 light">{title}</h2>
         <p className="lp-show-lead">{lead}</p>
         <div
           className="lp-tl"

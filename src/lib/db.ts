@@ -99,7 +99,7 @@ create table if not exists invites (
   primary key (game_id, person_id)
 );
 alter table spots add column if not exists authorized_at timestamptz;
--- Private texts are opt-in: each new 1:1 chat (Blooio) costs money, so only open one when asked.
+-- Private texts are opt-in: each new 1:1 chat costs money, so only open one when asked.
 alter table people add column if not exists texts_opt_in boolean not null default false;
 -- Demo groups made by /play. Testing shortcuts (simulated holds, moving the clock) only work on these.
 alter table groups add column if not exists playground boolean not null default false;
@@ -107,8 +107,6 @@ alter table groups add column if not exists playground boolean not null default 
 alter table groups add column if not exists demo_viewer text;
 alter table groups add column if not exists demo_name text;
 alter table people add column if not exists texts_welcomed boolean not null default false;
--- Groups that live in a real iMessage group (Blooio's group id). Posts there are also texted.
-alter table groups add column if not exists blooio_chat text unique;
 -- Phone demo by text (Sendblue): the judge's number, the join code they text, and their name until it connects.
 alter table groups add column if not exists demo_phone text;
 alter table groups add column if not exists demo_code text;
