@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { type GroupContext, resolveMember, withRules } from "@/bot/agent";
+import { type GroupContext, resolveMember, withRules, worthReading } from "@/bot/agent";
 import { parseGameRequest, toHalfHour, zonedTime } from "@/bot/parse";
 
 const ctx = (over: Partial<GroupContext> = {}): GroupContext => ({
@@ -83,5 +83,13 @@ describe("parseGameRequest without Claude", () => {
     } finally {
       if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved;
     }
+  });
+});
+
+describe("worthReading", () => {
+  it("reads a message that mentions PaddlesIn, or the old @Assistant name", () => {
+    assert.equal(worthReading("@PaddlesIn Thu 6pm Riverside courts 3–4, $64", false), true);
+    assert.equal(worthReading("@paddlesin who's in?", false), true);
+    assert.equal(worthReading("@Assistant Thu 6pm", false), true);
   });
 });

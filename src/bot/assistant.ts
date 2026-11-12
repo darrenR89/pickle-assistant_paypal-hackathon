@@ -70,7 +70,7 @@ export async function postDm(groupId: string, personId: string, text: string, ga
 // ---------- intent matching ----------
 
 const NO_GAME_HINT = "There's no game set up yet.";
-const MENTION = /@(assistant|pickle\w*|bot)\b/i;
+const MENTION = /@(paddlesin|assistant|pickle\w*|bot)\b/i;
 const SAYS_IN = /^\s*(i'?m\s+in|in|me|me too|count me in|\+1|i can play|i'?ll play|yes|yep)\b[\s!.]*$/i;
 const SAYS_OUT = /^\s*(i'?m\s+out|out|can'?t make it|i can'?t (play|make it)|drop me|count me out)\b/i;
 
@@ -105,7 +105,7 @@ export async function handleGroupMessage(groupId: string, senderId: string, text
         [groupId],
       );
       if (!last[0]?.text.startsWith(NO_GAME_HINT)) {
-        await postGroup(groupId, `${NO_GAME_HINT} Anyone can start one, like: "@Assistant Thu 6pm Riverside courts 3–4, 8 spots, $64"`);
+        await postGroup(groupId, `${NO_GAME_HINT} Anyone can start one, like: "@PaddlesIn Thu 6pm Riverside courts 3–4, 8 spots, $64"`);
       }
     }
     return;

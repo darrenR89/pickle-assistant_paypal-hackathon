@@ -22,13 +22,13 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 
 
 const CHAT: Array<[string, string, 0 | 1 | 2 | 3]> = [
   ["Sam", "yeah I’m down", 0],
-  ["Assistant", "4 of 8 in · 4 spots left", 1],
+  ["PaddlesIn", "4 of 8 in · 4 spots left", 1],
   ["Priya", "count me in!", 0],
   ["", "$8 held, not charged", 2],
   ["Mei", "in", 0],
   ["", "Settled · $8 each", 3],
   ["Lee", "can someone take my spot?", 0],
-  ["Assistant", "Thu 6pm · Courts 3–4", 1],
+  ["PaddlesIn", "Thu 6pm · Courts 3–4", 1],
 ];
 
 const PAUSE_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>';
@@ -183,7 +183,16 @@ function start(T: typeof THREE_NS, env: Env): () => void {
     sx.clearRect(0, 0, SW, SH); sx.save(); rr(sx, 0, 0, SW, SH, SR); sx.clip();
     const g = sx.createLinearGradient(0, 0, SW, 0); g.addColorStop(0, light ? "#fff" : "#114C5D"); g.addColorStop(0.5, light ? "#fff" : "#2B3970"); g.addColorStop(1, light ? "#fff" : "#3B2F7A");
     sx.fillStyle = g; sx.fillRect(0, 0, SW, 130);
-    const im = imgs[key]; if (im) sx.drawImage(im, 0, 110, SW, (SW * im.height) / im.width);
+    // The screenshot is taller than the screen, so drop rows from above its bottom bar and keep the bar whole,
+    // lifted clear of the rounded corners by a home-indicator band (as on a real iPhone).
+    const im = imgs[key];
+    if (im) {
+      const k = SW / im.width, BAND = 30, BAR = 200 / k; // BAR: source px of the bottom bar (I'm in / message box)
+      const barY = SH - BAND - BAR * k, topH = barY - 110;
+      sx.drawImage(im, 0, 0, im.width, topH / k, 0, 110, SW, topH);
+      sx.drawImage(im, 0, im.height - BAR, im.width, BAR, 0, barY, SW, BAR * k);
+      sx.drawImage(im, 0, im.height - 1, im.width, 1, 0, SH - BAND, SW, BAND);
+    }
     sx.fillStyle = light ? "#000" : "#fff"; sx.font = "600 38px Figtree, system-ui, sans-serif"; sx.textBaseline = "middle"; sx.fillText("9:41", 74, 58);
     [[620, 46, 22], [632, 40, 28], [644, 34, 34], [656, 28, 40]].forEach(([x, y, h]) => { rr(sx, x, y, 8, h, 2); sx.fill(); });
     rr(sx, 676, 38, 52, 26, 8); sx.lineWidth = 3; sx.strokeStyle = sx.fillStyle; sx.stroke(); rr(sx, 680, 42, 38, 18, 5); sx.fill();

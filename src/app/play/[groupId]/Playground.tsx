@@ -18,10 +18,10 @@ type Data = { group: { name: string }; people: Person[]; messages: Msg[]; cards:
 // acting as. The host's samples only show when you act as the host, and players' samples only when you act as a player.
 type Sample = { label: string; text: string };
 const START: Sample[] = [
-  { label: "Game with full details", text: "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64" },
-  { label: "Invite-only game", text: "@Assistant Thu 6pm Riverside Park courts 3–4, $64, mixed doubles, invite only" },
-  { label: "Singles: spots → courts", text: "@Assistant Sat 9am Lincoln Park, singles, 6 spots, $30" },
-  { label: "Missing details", text: "@Assistant let's play Thursday" },
+  { label: "Game with full details", text: "@PaddlesIn Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64" },
+  { label: "Invite-only game", text: "@PaddlesIn Thu 6pm Riverside Park courts 3–4, $64, mixed doubles, invite only" },
+  { label: "Singles: spots → courts", text: "@PaddlesIn Sat 9am Lincoln Park, singles, 6 spots, $30" },
+  { label: "Missing details", text: "@PaddlesIn let's play Thursday" },
 ];
 const HOST: Sample[] = [
   { label: "Move to 7pm", text: "actually let's push to 7pm" },
@@ -417,7 +417,7 @@ export default function Playground({ groupId }: { groupId: string }) {
     }
     const mine = m.sender_id === viewerId;
     const bot = !m.sender_id;
-    const sender = m.sender_id ? people.get(m.sender_id)?.name : "Assistant";
+    const sender = m.sender_id ? people.get(m.sender_id)?.name : "PaddlesIn";
     const slug = m.game_slug?.split("?")[0];
     const card = slug ? data!.cards[slug] : undefined;
     return (
@@ -434,7 +434,7 @@ export default function Playground({ groupId }: { groupId: string }) {
               <span className="im-link-meta">
                 <span className="im-link-title">{card.title}</span>
                 <span className="im-link-sub">
-                  {m.game_slug.includes("?o=") ? "Organizer view · private link" : `${card.subtitle} · pickle-assistant.onrender.com`}
+                  {m.game_slug.includes("?o=") ? "Organizer view · private link" : `${card.subtitle} · getpaddlesin.com`}
                 </span>
               </span>
             </a>
@@ -644,7 +644,7 @@ export default function Playground({ groupId }: { groupId: string }) {
             <StatusBar time={statusTime} />
             <div className="phone-top">
               <span className="phone-title">{data.group.name}</span>
-              <span className="phone-sub">{data.people.length} people + Assistant</span>
+              <span className="phone-sub">{data.people.length} people + PaddlesIn</span>
             </div>
             <div className="phone-body" role="log" aria-label="Group messages" ref={groupBody}>
               {groupMsgs.map((m) => bubble(m))}
@@ -673,11 +673,11 @@ export default function Playground({ groupId }: { groupId: string }) {
           </div>
         </section>
 
-        <section className="phone lp-phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
+        <section className="phone lp-phone" aria-label={`${viewer.name}'s private texts with PaddlesIn`}>
           <div className="lp-screen light sim-screen">
             <StatusBar time={statusTime} />
             <div className="phone-top">
-              <span className="phone-title">Assistant</span>
+              <span className="phone-title">PaddlesIn</span>
               <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
             </div>
             <div className="phone-body" role="log" aria-label="Private messages" ref={dmBody}>

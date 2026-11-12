@@ -1121,7 +1121,7 @@ function OrganizerCard({
       <section className="card" aria-label="Your game">
         <div className="stats">
           <div className="stat">
-            <span className="k">Shares in</span>
+            <span className="k">Holds collected</span>
             <span className="v">{money(org.sharesInCents)} <small>of {money(org.totalCents)}</small></span>
           </div>
           <div className="stat">

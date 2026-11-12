@@ -23,6 +23,6 @@ jobs:
     steps:
       - name: Ping health check
         env:
-          URL: https://pickle-assistant.onrender.com/api/health
+          URL: https://getpaddlesin.com/api/health
         # A cold start can take about a minute, so allow a long wait and retry.
         run: curl --fail --silent --show-error --max-time 120 --retry 3 --retry-delay 10 --retry-all-errors "$URL"

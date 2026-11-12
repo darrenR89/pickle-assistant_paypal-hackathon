@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type TouchEvent } from "react";
 
 export type ShowcaseStep = {
   tab: string; // step label in the timeline
@@ -14,7 +14,8 @@ const DUR = 8000; // ms per step
 // "How it works": a dark stage with the title top left, a vertical numbered timeline, one large phone that swaps
 // screens with two callout chips beside it, and the active step's slogan bottom left. While it plays, the line under
 // the active number fills over DUR and then the next step starts. Stacked on phones, only the current step shows,
-// centered, and the ring around its number fills instead; tapping it goes to the next step.
+// centered between previous/next arrows, and the ring around its number stays full. It never auto-plays there; tapping
+// it, the arrows or a sideways swipe over the section moves between steps.
 // Accessibility (WCAG 2.2.2): a Pause/Play button; it also holds while the mouse is over the phone, while keyboard
 // focus is on the steps, and while the section is off screen. Picking a step stops it. Reduced motion never auto-plays.
 // Phones are rendered by the server and passed in, so every screen is in the HTML and crossfades.
@@ -25,16 +26,20 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [seen, setSeen] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const tabs = useRef<Array<HTMLButtonElement | null>>([]);
   const left = useRef(DUR);
   const since = useRef(0);
   const shown = useRef(0);
   const held = paused || hover || focus || !visible;
+  // When stacked (phones), only the current step shows; the arrows, a swipe or tapping it moves between steps.
+  const stacked = () => window.matchMedia("(max-width: 760px)").matches;
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setAuto(false);
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.35 });
+    // Phones step through with the arrows and swipes only, so nothing moves on its own there.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || stacked()) setAuto(false);
+    const io = new IntersectionObserver(([e]) => { setVisible(e.isIntersecting); if (e.isIntersecting) setSeen(true); }, { threshold: 0.35 });
     if (stage.current) io.observe(stage.current);
     return () => io.disconnect();
   }, []);
@@ -54,14 +59,26 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
     };
   }, [i, auto, held, steps.length]);
 
-  // When stacked, only the current step shows, so tapping it moves on to the next one.
-  const stacked = () => window.matchMedia("(max-width: 760px)").matches;
-
   function pick(n: number, moveFocus = false) {
     setAuto(false);
     setPaused(false);
     setI(n);
     if (moveFocus) tabs.current[n]?.focus();
+  }
+
+  const go = (d: number) => pick((i + d + steps.length) % steps.length);
+
+  // Phones: a sideways swipe anywhere on the section moves a step. Vertical drags are left to page scrolling.
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  function onTouchStart(e: TouchEvent) {
+    touch.current = stacked() ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  }
+  function onTouchEnd(e: TouchEvent) {
+    const t0 = touch.current;
+    touch.current = null;
+    if (!t0) return;
+    const dx = e.changedTouches[0].clientX - t0.x, dy = e.changedTouches[0].clientY - t0.y;
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
   }
 
   function toggle() {
@@ -86,10 +103,14 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
   const running = auto && !paused;
   const s = steps[i];
   return (
-    <div className={`lp-show${held ? " held" : ""}`} ref={stage}>
+    <div className={`lp-show${held ? " held" : ""}${seen ? " seen" : ""}`} ref={stage} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="lp-show-copy">
         <h2 id="how" className="lp-h2 light">{title}</h2>
         <p className="lp-show-lead">{lead}</p>
+        <div className="lp-tl-wrap">
+        <button type="button" className="lp-tl-arrow prev" aria-label="Previous step" onClick={() => go(-1)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
         <div
           className="lp-tl"
           role="tablist"
@@ -122,13 +143,10 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
             </button>
           ))}
         </div>
-        <button type="button" className="lp-tl-ctrl" aria-pressed={!running} onClick={toggle}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            {running ? <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></> : <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" />}
-          </svg>
-          <span>{running ? "Pause" : "Play"}</span>
-          <span className="sr-only"> the walkthrough</span>
+        <button type="button" className="lp-tl-arrow next" aria-label="Next step" onClick={() => go(1)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
         </button>
+        </div>
         <div className="lp-show-slogan" id="show-panel" role="tabpanel" aria-labelledby={`show-tab-${i}`} aria-live={auto ? "off" : "polite"}>
           <h3 key={s.title}>{s.title}</h3>
           <span className="sr-only">{s.chips.join(". ")}.</span>
@@ -143,6 +161,13 @@ export default function AppShowcase({ steps, phones, title, lead }: { steps: Sho
             </div>
           ))}
         </div>
+        <button type="button" className="lp-tl-ctrl" aria-pressed={!running} onClick={toggle}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            {running ? <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></> : <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" />}
+          </svg>
+          <span>{running ? "Pause" : "Play"}</span>
+          <span className="sr-only"> the walkthrough</span>
+        </button>
         <span key={`a${i}`} className="lp-chip a" aria-hidden="true"><i />{s.chips[0]}</span>
         <span key={`b${i}`} className="lp-chip b" aria-hidden="true"><i />{s.chips[1]}</span>
       </div>

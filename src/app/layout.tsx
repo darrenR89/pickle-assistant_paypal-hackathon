@@ -11,7 +11,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   // Makes link preview image addresses absolute. APP_URL is the public address of the app.
-  metadataBase: new URL(process.env.APP_URL ?? "https://pickle-assistant.onrender.com"),
+  metadataBase: new URL(process.env.APP_URL ?? "https://getpaddlesin.com"),
   title: "Paddles In",
   description: "An AI assistant in your pickleball group chat. Hold your spot with PayPal or Venmo; after the game each player is charged their real share.",
 };

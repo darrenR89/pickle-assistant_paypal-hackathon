@@ -28,7 +28,7 @@ function firstTime(key: string) {
   return true;
 }
 
-const SETUP = "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
+const SETUP = "@PaddlesIn Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
 
 export default function PhoneDemo({ id }: { id: string }) {
   const router = useRouter();

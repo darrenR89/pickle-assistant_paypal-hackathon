@@ -15,7 +15,7 @@ services:
       - key: PAYPAL_ENV
         value: sandbox
       - key: APP_URL
-        value: https://pickle-assistant.onrender.com
+        value: https://getpaddlesin.com
       - key: DATABASE_URL
         sync: false
       - key: PAYPAL_CLIENT_ID

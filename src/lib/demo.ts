@@ -27,7 +27,7 @@ const DEMO_EXTRA = ["Nia"];
 const PLAYER_ROLE = DEMO_PLAYER;
 const LATE_LINE = "ugh, something came up. I can't make it tonight, sorry!";
 
-export const SETUP_MESSAGE = "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
+export const SETUP_MESSAGE = "@PaddlesIn Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
 
 export async function createDemo() {
   const groupId = await createPlaygroundGroup(DEMO_EXTRA);
