@@ -2,21 +2,21 @@
 
 **The group chat assistant that gets the organizer paid back.**
 
-One friend books the pickleball court and pays for it. Then they spend the week chasing everyone for $8. Paddles In lives in the group chat: friends hold their spot with PayPal or Venmo, and after the game each one is charged their real share and the organizer is paid back. Nobody chases anyone.
-
 <!-- Before submission: replace VIDEO_URL with the public YouTube link. -->
-**[▶ Watch the demo (under 3 min)](VIDEO_URL)** · **[Try it on your phone](https://pickle-assistant.onrender.com/demo)** · **[Simulator](https://pickle-assistant.onrender.com/play)** · **[For judges](JUDGES.md)** · **[For AI reviewers](#for-ai-reviewers)**
+**[getpaddlesin.com](https://getpaddlesin.com)** · **[▶ Watch the demo (under 3 min)](VIDEO_URL)** · **[Try it on your phone](https://getpaddlesin.com/demo)** · **[For judges](JUDGES.md)** · **[For AI reviewers](docs/AI-REVIEWERS.md)**
 
-![Paddles In: pickleball games that settle themselves. A phone shows the game page with 4 spots left and an I'm in button.](docs/images/hero.webp)
+![Pickleball games that settle themselves. Friends hold their spot with PayPal or Venmo, right from the group chat. After the game, everyone pays only their real share. A tilted phone shows the game page: Thursday 6:00 pm, 4 spots left.](docs/images/hero.webp)
+
+One friend books the court and pays for it, then spends the week asking everyone for $8. Paddles In does that job for them. A hold makes "I'm in" mean something, a late drop is the organizer's call, and the money comes back without anyone having to ask.
 
 ## Try it (judges)
 
-1. Open **[pickle-assistant.onrender.com/demo](https://pickle-assistant.onrender.com/demo)** on a laptop and scan the code with your phone. You're the organizer.
+1. Open **[getpaddlesin.com/demo](https://getpaddlesin.com/demo)** on a laptop and scan the code with your phone. You're the organizer.
 2. Follow the steps on the page. Friends join in the group chat, then you switch to a player and tap **I'm in**.
-3. Approve the hold with the **PayPal sandbox buyer** shown on the `/demo` page. That hold is real, in PayPal's sandbox.
+3. Approve the hold on a computer (PayPal's sandbox checkout doesn't run on phones), signing in as the **PayPal sandbox buyer** shown on the `/demo` page and in [JUDGES.md](JUDGES.md#sandbox-buyer). That hold is real, in PayPal's sandbox.
 4. Move the clock past the game and settle. You'll see the player charged only their share, and the organizer paid back.
 
-No phone handy? **[/play](https://pickle-assistant.onrender.com/play)** runs the same game in one browser tab. The free server may take about 30 seconds to wake up.
+No phone handy? **[/play](https://getpaddlesin.com/play)** runs the same game in one browser tab.
 
 ## How it works
 
@@ -62,40 +62,12 @@ _The table of real sandbox ids from the final run goes here._
 
 ## For AI reviewers
 
-A technical map of the system, with pointers to the code. Deeper docs: [docs/PAYPAL.md](docs/PAYPAL.md) (every PayPal call), [docs/EDGE-CASES.md](docs/EDGE-CASES.md) (every edge case and how it's handled), [JUDGES.md](JUDGES.md) (criteria to code), [docs/SETUP.md](docs/SETUP.md) (run, deploy, test), [public/llms.txt](public/llms.txt).
+The full technical brief is in **[docs/AI-REVIEWERS.md](docs/AI-REVIEWERS.md)**: what to read first, the message pipeline, every PayPal call with its idempotency key, the money invariants and how the system recovers. In short:
 
-**Stack.** Next.js 16 (App Router, TypeScript) on a Render web service, Render Postgres, Render Workflows for scheduled tasks, the Anthropic API (`claude-haiku-5-5`), PayPal REST APIs against `api-m.sandbox.paypal.com`, Sendblue for SMS. Schema is created idempotently on first request (`src/lib/db.ts`); all SQL is parameterized through `q`, `one` and `tx`.
-
-**Message pipeline.** A group message enters `src/bot/assistant.ts` from the simulator or Sendblue (polled every 4s, `src/bot/sendblue.ts`). A setup message goes to `parse.ts`, which forces the `create_game` tool to return structured terms (time, place, courts, spots, price, free-cancel time). Every other message goes to `agent.ts`, which forces the `decide` tool to choose one of a fixed set of actions: `ignore`, `join`, `leave`, `maybe`, `waitlist`, `give_spot`, `invite`, `answer`, `private_money`, `change_request`, `call_off`, `ask_organizer`, `clarify`, `help`. Code then checks permissions (only the organizer can change or call off a game), resolves names against real group members, and routes anything about money to a private message. If Claude is unavailable or times out, a keyword rules fallback (`withRules` in `agent.ts`, tested in `rules.test.ts`) returns the same actions.
-
-**The boundary.** The model outputs an action and short reply text, never an amount and never a PayPal call. Only `actOn` in `assistant.ts` turns an action into money movement. The browser sends a game and a person; the server derives every amount from the game row (`holdCents = share_cents + cap_cents`, `src/lib/games.ts`). Amounts are integer cents end to end and converted to PayPal's decimal string only in `src/lib/paypal.ts`.
-
-**Money lifecycle per spot.** `hold_status`: `none → held → captured | voided`, with `reauthorized` set when renewed.
-
-| Step | PayPal API | `PayPal-Request-Id` |
-|---|---|---|
-| Join | `POST /v2/checkout/orders` (`intent: AUTHORIZE`), order bound to game and person in `pending_orders` | fresh per attempt |
-| Approve | `POST /v2/checkout/orders/{id}/authorize` | `authorize-{orderId}` |
-| Early drop or call-off | `POST /v2/payments/authorizations/{id}/void` | `void-{authorizationId}` |
-| Hold past 3-day honor period | `POST /v2/payments/authorizations/{id}/reauthorize` | `reauthorize-{authorizationId}` |
-| Settle or charged late cancel | `POST /v2/payments/authorizations/{id}/capture`, partial, `final_capture: true` | `capture-{authorizationId}` |
-| Spot refilled after a charge | `POST /v2/payments/captures/{id}/refund` | `refund-{captureId}` |
-| Organizer paid back | `POST /v1/payments/payouts` to a Venmo phone or handle, or PayPal email | batch id from game, address and retry round |
-| Every webhook | `POST /v1/notifications/verify-webhook-signature` | read only |
-
-Every request id is derived from the object acted on, so a retry can never charge twice. `call()` retries only timeouts and 5xx, with the same id.
-
-**Invariants the code keeps.**
-- Capture is never more than the hold. A short game's gap is split only up to the cap players agreed to, or the organizer covers it (`shortfall` in `src/bot/assistant.ts`, tested in `src/lib/money.test.ts`).
-- Claim before charge: settling flips `games.status` from `open` to `settling` in one conditional `UPDATE`, so the scheduled run and the organizer's button can't both capture. Late-cancel decisions use the same pattern on `spots.late_cancel`.
-- Webhooks are signature-verified and applied once (`webhook_events`), so replays are safe (`src/lib/webhooks.ts`).
-- Money details are sent only by private message, never to the group.
-
-**Scheduling and recovery.** A Render cron runs `pnpm trigger` every 10 minutes to start the `tick` workflow task, which fans out one task run per due item: cancel-by and game-day reminders, auto-settle 3 hours after start, `reauthorizeHold`, payout retries (up to 3), and `recoverGame`, which finishes a settle, call-off or payout interrupted by a restart using the choice it started with (`src/workflows/tasks.ts`, `render.workflows.yaml`). Each task is idempotent.
-
-**Built, off by default.** With `DELAYED_HOLDS=on`, PayPal Vault saves the player's PayPal at join (`/v3/vault/setup-tokens`, `/v3/vault/payment-tokens`) and the hold is placed 2 days before a far-off game (`src/bot/delayed.ts`).
-
-**Verification.** `pnpm typecheck`, `pnpm lint`, `pnpm test` (node:test: money maths, rules fallback, rate limits, clock, retries, Sendblue parsing, proof table) and `pnpm build` run in CI on every PR. `pnpm proof` prints the real-sandbox-id table above from the database, read only, skipping `SIM-` ids (`scripts/proof.ts`).
+- **Claude reads, code pays.** Claude (`claude-haiku-5-5`, forced tool calls) only picks one of 14 fixed actions. Deterministic code in `src/bot/assistant.ts` sets every amount and makes every PayPal call.
+- **Eight PayPal operations:** create order (`AUTHORIZE`), authorize, void, reauthorize, partial capture, refund, payout, and webhook verification. Every write sends a `PayPal-Request-Id` derived from the object it acts on.
+- **Safe to run twice.** Settling claims the game row before charging, webhooks apply once, and Render Workflows finishes anything a restart cut off.
+- **Checked on every PR:** typecheck, lint, unit tests and build in CI.
 
 ## Run it yourself
 
