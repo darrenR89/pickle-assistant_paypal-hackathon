@@ -32,6 +32,7 @@ import { dropSavedMethods } from "./delayed";
 import { parseGameRequest, zonedTime } from "./parse";
 import { type Decision, type GroupContext, buildContext, resolveMember, understand, worthReading } from "./agent";
 import { KIND_LABEL, perCourt } from "./details";
+import { repostsLink } from "@/lib/limits";
 
 const DEFAULT_CAP_CENTS = 200;
 const CANCEL_BY_HOURS = 24;
@@ -494,7 +495,7 @@ export async function playerJoined(game: Game, personId: string, authorizationId
     await playerOut(game, giver, { replaced: true });
   }
 
-  if (!retried) await postGroup(game.group_id, await rosterLine(game));
+  if (!retried) await postJoinedLine(game);
   // First private text to someone who opted in: say who we are before anything else.
   const p = await one<{ name: string; texts_opt_in: boolean; texts_welcomed: boolean }>(
     "select name, texts_opt_in, texts_welcomed from people where id = $1",
@@ -1011,6 +1012,14 @@ async function stickyChoice<T extends string>(game: Game, wanted: T, family: rea
   );
   const prior = family.find((c) => c === row?.closing_choice);
   return row?.started && prior ? prior : wanted;
+}
+
+/** The roster after someone joins. Every fourth player, while spots are left, it carries the game link again. */
+export async function postJoinedLine(game: Game) {
+  const n = inPlayers(await roster(game.id)).length;
+  const line = await rosterLine(game);
+  if (repostsLink(n, game.spots)) return postGroup(game.group_id, `${line} Tap to play:`, game.slug);
+  return postGroup(game.group_id, line);
 }
 
 export async function rosterLine(game: Game) {

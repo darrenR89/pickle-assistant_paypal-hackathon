@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { delaysHold, fixDeadline, holdBlocked, holdDate, sanePriceCents, saneSpots, saneStart, termsProblem } from "@/lib/limits";
+import { delaysHold, repostsLink, fixDeadline, holdBlocked, holdDate, sanePriceCents, saneSpots, saneStart, termsProblem } from "@/lib/limits";
 
 describe("saneSpots", () => {
   it("keeps a normal game size", () => {
@@ -93,5 +93,17 @@ describe("delayed holds", () => {
   });
   it("but never lets the fix window run into the last 3 hours before the game", () => {
     assert.equal(fixDeadline(inDays(0), inDays(0, 10)).getTime(), inDays(0, 7).getTime());
+  });
+});
+
+describe("repostsLink", () => {
+  it("reposts the link at the fourth and eighth player while spots are left", () => {
+    assert.equal(repostsLink(4, 8), true);
+    assert.equal(repostsLink(8, 12), true);
+  });
+  it("stays quiet otherwise, and once the game is full", () => {
+    for (const n of [0, 1, 3, 5, 7]) assert.equal(repostsLink(n, 8), false, String(n));
+    assert.equal(repostsLink(8, 8), false);
+    assert.equal(repostsLink(4, 4), false);
   });
 });

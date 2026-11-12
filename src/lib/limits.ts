@@ -95,3 +95,10 @@ export function holdBlocked(game: { status: string; spots: number }, inCount: nu
   if (inCount >= game.spots && !offered) return "The game just filled up, so no hold was placed.";
   return null;
 }
+
+// ---------- Keeping the link in view ----------
+
+/** Every fourth player in, while spots are left, the roster update carries the game link again so it isn't buried. */
+export function repostsLink(inCount: number, spots: number) {
+  return inCount > 0 && inCount % 4 === 0 && inCount < spots;
+}

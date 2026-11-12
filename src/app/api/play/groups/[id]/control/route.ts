@@ -12,7 +12,7 @@ type Body =
   | { action: "addPerson"; name?: string }
   | { action: "join"; personId?: string }
   | { action: "fill" }
-  | { action: "time"; mode?: "before" | "gameday" | "soon" | "over" }
+  | { action: "time"; mode?: "week" | "before" | "gameday" | "soon" | "over" }
   | { action: "tick" };
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

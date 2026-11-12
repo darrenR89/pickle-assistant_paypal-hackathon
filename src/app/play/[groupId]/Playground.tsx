@@ -13,52 +13,41 @@ type Card = { title: string; subtitle: string; when: string; spots: string };
 type GameInfo = { slug: string; organizerToken: string; organizerId: string; status: string; when: string; inviteOnly: boolean; spots: number; inIds: string[] };
 type Data = { group: { name: string }; people: Person[]; messages: Msg[]; cards: Record<string, Card>; game: GameInfo | null };
 
-// Each scenario sends a real message through the real assistant (Claude on the server).
-// "as" is who sends it: the organizer, or whoever you're acting as.
-type Scenario = { label: string; text: string; as: "organizer" | "me" };
-const SCENARIOS: Array<[string, Scenario[]]> = [
-  [
-    "Start a game (as Alex)",
-    [
-      { label: "Game with full details", as: "organizer", text: "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64" },
-      { label: "Invite-only game", as: "organizer", text: "@Assistant Thu 6pm Riverside Park courts 3–4, $64, mixed doubles, invite only" },
-      { label: "Singles: spots → courts", as: "organizer", text: "@Assistant Sat 9am Lincoln Park, singles, 6 spots, $30" },
-      { label: "Missing details", as: "organizer", text: "@Assistant let's play Thursday" },
-    ],
-  ],
-  [
-    "Say it like a person (as you)",
-    [
-      { label: "I'm down", as: "me", text: "yeah I'm down" },
-      { label: "Maybe", as: "me", text: "maybe, depends if work lets out" },
-      { label: "Can't make it", as: "me", text: "ugh I can't make it thursday, sorry all" },
-      { label: "Not sure (injury)", as: "me", text: "tweaked my knee, not sure I can play" },
-      { label: "Waitlist me", as: "me", text: "waitlist me" },
-      { label: "Give spot to Lee", as: "me", text: "can Lee take my spot?" },
-      { label: "Bring a friend", as: "me", text: "can my friend Dana come?" },
-      { label: "Who's in?", as: "me", text: "who's playing?" },
-      { label: "What time?", as: "me", text: "what time is it again?" },
-      { label: "Parking? (to host)", as: "me", text: "is there parking near the courts?" },
-      { label: "Still on? (to host)", as: "me", text: "rain forecast thursday, are we still on?" },
-      { label: "Did I get charged?", as: "me", text: "did I get charged yet?" },
-      { label: "Ask to change time", as: "me", text: "can we push it to 7?" },
-      { label: "Small talk", as: "me", text: "lol did anyone watch the game last night" },
-      { label: "Help", as: "me", text: "what can you do?" },
-    ],
-  ],
-  [
-    "Organizer (as Alex)",
-    [
-      { label: "Add the newest person", as: "organizer", text: "add {newest}" },
-      { label: "Move to 7pm", as: "organizer", text: "actually let's push to 7pm" },
-      { label: "Call it off", as: "organizer", text: "rained out, cancel the game" },
-    ],
-  ],
+// Each sample sends a real message through the real assistant (Claude on the server), always as the person you're
+// acting as. The host's samples only show when you act as the host, and players' samples only when you act as a player.
+type Sample = { label: string; text: string };
+const START: Sample[] = [
+  { label: "Game with full details", text: "@Assistant Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, outdoor, $64" },
+  { label: "Invite-only game", text: "@Assistant Thu 6pm Riverside Park courts 3–4, $64, mixed doubles, invite only" },
+  { label: "Singles: spots → courts", text: "@Assistant Sat 9am Lincoln Park, singles, 6 spots, $30" },
+  { label: "Missing details", text: "@Assistant let's play Thursday" },
+];
+const HOST: Sample[] = [
+  { label: "Move to 7pm", text: "actually let's push to 7pm" },
+  { label: "Call it off", text: "rained out, cancel the game" },
+];
+const PLAYER: Sample[] = [
+  { label: "I'm down", text: "yeah I'm down" },
+  { label: "Maybe", text: "maybe, depends if work lets out" },
+  { label: "Can't make it", text: "ugh I can't make it thursday, sorry all" },
+  { label: "Not sure (injury)", text: "tweaked my knee, not sure I can play" },
+  { label: "Waitlist me", text: "waitlist me" },
+  { label: "Give spot to Lee", text: "can Lee take my spot?" },
+  { label: "Bring a friend", text: "can my friend Dana come?" },
+  { label: "Who's in?", text: "who's playing?" },
+  { label: "What time?", text: "what time is it again?" },
+  { label: "Parking? (to host)", text: "is there parking near the courts?" },
+  { label: "Still on? (to host)", text: "rain forecast thursday, are we still on?" },
+  { label: "Did I get charged?", text: "did I get charged yet?" },
+  { label: "Ask to change time", text: "can we push it to 7?" },
+  { label: "Small talk", text: "lol did anyone watch the game last night" },
+  { label: "Help", text: "what can you do?" },
 ];
 
 // The clock scenarios, in order: where the game stands and what that stage tests.
 const CLOCK: Array<[string, string, string]> = [
-  ["before", "3 days out", "Free cancel"],
+  ["week", "A week out", "Delayed hold"],
+  ["before", "Days out", "Free cancel"],
   ["gameday", "Game day", "Drops are late"],
   ["soon", "90 min to go", "Reminder"],
   ["over", "After", "Settle up"],
@@ -72,7 +61,7 @@ export default function Playground({ groupId }: { groupId: string }) {
   const [sending, setSending] = useState(false);
   const [newName, setNewName] = useState("Dana");
   const [note, setNote] = useState<string | null>(null);
-  const [pick, setPick] = useState("0:0");
+  const [pick, setPick] = useState("");
   const [clock, setClock] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [running, setRunning] = useState<{ id: string; step: string } | null>(null);
@@ -185,13 +174,9 @@ export default function Playground({ groupId }: { groupId: string }) {
   }
 
   const organizerId = data.game?.organizerId ?? data.people[0]?.id;
-  const newest = [...data.people].reverse().find((p) => !["Alex", "Sam", "Priya", "Jo", "Mei", "Chris", "Lee"].includes(p.name))?.name ?? "Dana";
-
-  async function runScenario(sc: Scenario) {
-    const sender = sc.as === "organizer" ? organizerId : viewerId!;
-    if (sc.as === "organizer") setViewerId(organizerId);
+  async function runSample(sc: Sample) {
     setNote(null);
-    await sendAs(sender, sc.text.replace("{newest}", newest));
+    await sendAs(viewerId!, sc.text);
   }
 
   async function control(body: Record<string, unknown>, done?: (r: Record<string, unknown>) => string) {
@@ -271,7 +256,7 @@ export default function Playground({ groupId }: { groupId: string }) {
     if (!d) throw new Error("Couldn't load the chat");
     if (d.game?.status !== "open") {
       step("The host posts a new game");
-      await sendAs(hostOf(d), SCENARIOS[0][1][0].text);
+      await sendAs(hostOf(d), START[0].text);
       d = await fresh();
       if (!d || d.game?.status !== "open") throw new Error("The game didn't open. Try “Start a new demo group”.");
     }
@@ -281,6 +266,13 @@ export default function Playground({ groupId }: { groupId: string }) {
     await post({ action: "time", mode });
     await post({ action: "tick" });
     setClock(mode);
+  }
+
+  // A scenario that ends on the host's side switches who you act as, and its note says so.
+  function actAsHost(d: Data) {
+    const id = hostOf(d);
+    setViewerId(id);
+    return `You're now acting as ${d.people.find((p) => p.id === id)?.name ?? "the host"}`;
   }
 
   type GameScenario = { id: string; title: string; body: string; run: (step: (s: string) => void) => Promise<string> };
@@ -317,8 +309,7 @@ export default function Playground({ groupId }: { groupId: string }) {
         const name = people.get(who)?.name ?? f.people.find((p) => p.id === who)?.name ?? "A player";
         step(`${name} drops out`);
         await sendAs(who, "ugh I can't make it thursday, sorry all");
-        setViewerId(hostOf(d));
-        return `${name} cancelled after free cancel ended. The host's choice is in their private texts.`;
+        return `${name} cancelled after free cancel ended. ${actAsHost(d)}, whose private texts show the choice: charge the share or cover it.`;
       },
     },
     {
@@ -348,8 +339,7 @@ export default function Playground({ groupId }: { groupId: string }) {
         await sendAs(named(d, "Priya", 2), "is there parking near the courts?");
         step("Jo asks about rain");
         await sendAs(named(d, "Jo", 3), "rain forecast thursday, are we still on?");
-        setViewerId(hostOf(d));
-        return "Both questions went to the host privately.";
+        return `Both questions went to the host privately. ${actAsHost(d)} to show them.`;
       },
     },
     {
@@ -362,8 +352,7 @@ export default function Playground({ groupId }: { groupId: string }) {
         await post({ action: "fill" });
         step("The host calls it off");
         await sendAs(hostOf(d), "rained out, cancel the game");
-        setViewerId(hostOf(d));
-        return "The host is asked to confirm on the organizer page, which releases every hold.";
+        return `${actAsHost(d)}. They're asked to confirm on the organizer page, which releases every hold.`;
       },
     },
     {
@@ -378,8 +367,7 @@ export default function Playground({ groupId }: { groupId: string }) {
         await clockTo("soon");
         step("After the game: settling up");
         await clockTo("over");
-        setViewerId(hostOf(d));
-        return "Played and settled. Each player's receipt is in their private texts.";
+        return `Played and settled. ${actAsHost(d)} to show the payout; each player's receipt is in their own private texts.`;
       },
     },
   ];
@@ -441,9 +429,18 @@ export default function Playground({ groupId }: { groupId: string }) {
     );
   }
 
-  const [gi, si] = pick.split(":").map(Number);
-  const picked = SCENARIOS[gi]?.[1][si] ?? SCENARIOS[0][1][0];
-  const pickedAs = picked.as === "organizer" ? (people.get(organizerId)?.name ?? "the organizer") : viewer.name;
+  const isHost = viewer.id === organizerId;
+  const hostName = people.get(organizerId)?.name ?? "the host";
+  // The host can add anyone in the chat who isn't playing yet, including people you added with +.
+  const addable = data.people.filter((p) => p.id !== organizerId && !data.game?.inIds.includes(p.id));
+  const samples: Array<[string, Sample[]]> = isHost
+    ? [
+        ["Start a game", START],
+        ["Run the game", [...addable.map((p) => ({ label: `Add ${p.name}`, text: `add ${p.name}` })), ...HOST]],
+      ]
+    : [["Say it like a person", PLAYER]];
+  const allSamples = samples.flatMap(([, list]) => list);
+  const picked = allSamples.find((sc) => sc.label === pick) ?? allSamples[0];
   const busy = sending || !!running;
 
   // Top bar: the game scenarios, then manual steps for the current game.
@@ -552,26 +549,29 @@ export default function Playground({ groupId }: { groupId: string }) {
         className="sim-say"
         onSubmit={(e) => {
           e.preventDefault();
-          runScenario(picked);
+          runSample(picked);
         }}
       >
         <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
-        <select id="sim-say" className="sim-select" value={pick} onChange={(e) => setPick(e.target.value)}>
-          {SCENARIOS.map(([title, list], g) => (
+        <select id="sim-say" className="sim-select" value={picked.label} onChange={(e) => setPick(e.target.value)}>
+          {samples.map(([title, list]) => (
             <optgroup key={title} label={title}>
-              {list.map((sc, i) => (
-                <option key={sc.label} value={`${g}:${i}`}>
-                  {sc.label.replace("the newest person", newest)}
+              {list.map((sc) => (
+                <option key={sc.label} value={sc.label}>
+                  {sc.label}
                 </option>
               ))}
             </optgroup>
           ))}
         </select>
         <p className="sim-quote">
-          <span>{pickedAs}:</span> “{picked.text.replace("{newest}", newest)}”
+          <span>{viewer.name}:</span> “{picked.text}”
+        </p>
+        <p className="sim-hint">
+          {isHost ? `${viewer.name} is the host, so these are host messages.` : `Host messages, like adding someone, are under ${hostName}. Tap their pill.`}
         </p>
         <button className="dr-btn p" disabled={busy}>
-          {sending ? "Sending…" : `Send as ${pickedAs}`}
+          {sending ? "Sending…" : `Send as ${viewer.name}`}
         </button>
       </form>
     </section>

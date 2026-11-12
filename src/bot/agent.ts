@@ -70,6 +70,10 @@ export function worthReading(text: string, assistantSpokeRecently: boolean) {
 // ---------- understanding ----------
 
 export async function understand(ctx: GroupContext, text: string): Promise<Decision> {
+  // Asking for the waitlist is unambiguous, and the waitlist path checks for an open spot first (and sends the link if
+  // there is one), so don't let the model turn it into a free-text answer.
+  const ruled = withRules(ctx, text);
+  if (ruled.action === "waitlist") return ruled;
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       return await withClaude(ctx, text);
@@ -181,7 +185,7 @@ export function withRules(ctx: GroupContext, raw: string): Decision {
   if (/\b(maybe|probably|might|tentative|50\/50|depends)\b/.test(t)) return d("maybe");
   if (/\b(sick|injured|hurt my|tweaked my|tweaked)\b/.test(t) && !/\?/.test(t)) return d("leave", { confidence: 0.6 });
   if (/\b(can'?t|cannot|won'?t) (make|come|play)|\bi'?m out\b|^out\b|drop me|count me out|have to bail|bail(ing)?\b/.test(t)) return d("leave");
-  if (/^(in|i'?m in|me|me too|count me in|\+1|i can play|i'?ll play|i'?m down|im down|down|i'?m there|i'?ll be there|sign me up)\b/.test(t)) return d("join");
+  if (/^((yeah|yes|yep|yup|ok|okay|sure)[,!.]?\s+)?(in|i'?m in|me|me too|count me in|\+1|i can play|i'?ll play|i'?m down|im down|down|i'?m there|i'?ll be there|sign me up)\b/.test(t)) return d("join");
   if (/\b(running|be) (\d+ (min|mins|minutes) )?late\b|\beta\b|on my way|omw/.test(t)) return d("ignore");
   if (/\b(parking|ball|balls|rules|dupr|lights|bathroom|nets?|rain|raining|weather|smoke|still on)\b/.test(t) && !ctx.isOrganizer) return d("ask_organizer");
   if (/\?/.test(t) && /\b(when|what time|where|who'?s|how many|spots|price|cost|cancel)\b/.test(t)) return d("answer");

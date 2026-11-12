@@ -7,7 +7,7 @@ import { type Game, gameDayLine, holdCents, inPlayers, isInvited, logEvent, rost
 import { newSimulatedAuthorization } from "./paypal";
 import { nudgeUnfinished, playerJoined, postGroup, settleGame, spotOfferFor } from "@/bot/assistant";
 import { freeFailedSpot, placeSavedHold } from "@/bot/delayed";
-import { toHalfHour } from "@/bot/parse";
+import { type ClockMode, clockStart } from "./clock";
 import { HOLD_LEAD } from "./limits";
 
 const HOUR = 3_600_000;
@@ -56,19 +56,17 @@ export async function runDue(game: Game) {
   return ran;
 }
 
-export type ClockMode = "before" | "gameday" | "soon" | "over";
 
-/** Move the game in time: days out, game day (after free cancel), 90 minutes out, or finished. */
+/** Move the game in time: a week out (far enough for a delayed hold), 3 days out, game day (after free cancel), 90 minutes out, or finished. */
 export async function moveClock(game: Game, mode: ClockMode) {
   const len = game.ends_at ? new Date(game.ends_at).getTime() - new Date(game.starts_at).getTime() : 2 * HOUR;
   const now = Date.now();
-  const raw = mode === "before" ? now + 3 * 24 * HOUR : mode === "gameday" ? now + 5 * HOUR : mode === "soon" ? now + 90 * 60_000 : now - 4 * HOUR;
-  const start = toHalfHour(new Date(raw), "floor").getTime();
+  const start = clockStart(mode, new Date(game.starts_at), now).getTime();
   await q(
     `update games set starts_at = $2, ends_at = $3, cancel_by = $4,
        cancel_reminder_sent = $5, gameday_reminder_sent = $6 where id = $1`,
-    [game.id, new Date(start), game.ends_at ? new Date(start + len) : null, new Date(start - 24 * HOUR), mode !== "before", mode === "over"],
+    [game.id, new Date(start), game.ends_at ? new Date(start + len) : null, new Date(start - 24 * HOUR), mode !== "before" && mode !== "week", mode === "over"],
   );
   await logEvent(game.id, null, "demo_clock", { mode });
-  return { before: "3 days before the game", gameday: "game day, after free cancel", soon: "90 minutes before the game", over: "after the game" }[mode];
+  return { week: "a week before the game", before: "a few days before the game", gameday: "game day, after free cancel", soon: "90 minutes before the game", over: "after the game" }[mode];
 }
