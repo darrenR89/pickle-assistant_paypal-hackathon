@@ -167,7 +167,11 @@ export async function demoAct(groupId: string, a: DemoAction): Promise<{ ok: boo
     case "player": {
       const jo = byName(PLAYER_ROLE);
       await setViewer(jo.id);
-      return { ok: true, note: `Your phone is now ${PLAYER_ROLE}, a player. Tap the game link in the chat to hold a spot with PayPal.` };
+      // Jo says they're in from your phone, so PaddlesIn replies in the group with Jo's own link to hold a spot.
+      // The viewer is switched first, so a linked phone's copy of that link opens as Jo.
+      const joIn = game && (await roster(game.id)).some((e) => e.person_id === jo.id && e.status === "in");
+      if (game && !joIn) await handleGroupMessage(groupId, jo.id, "I'm in");
+      return { ok: true, note: `Your phone is now ${PLAYER_ROLE}, a player. ${PLAYER_ROLE} said “I'm in”: tap the game link PaddlesIn just posted to hold a spot with PayPal.` };
     }
     case "organizer": {
       await setViewer(organizer.id);
