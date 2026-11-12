@@ -630,7 +630,6 @@ a{color:var(--link)}
 .lp{background:var(--page);color:var(--ink);font-family:var(--sans);overflow-x:clip}
 .lp a{color:inherit}
 .lp-logo{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--cond);text-transform:uppercase;letter-spacing:.02em;text-decoration:none;color:#fff!important;white-space:nowrap}
-.lp-ball{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE3D2,var(--ball) 55%,#F2A97F);box-shadow:inset 0 0 0 2px rgba(0,0,0,.08)}
 .lp-eyebrow{margin:0 0 16px;font:700 14px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ball)}
 .lp-hero h1{margin:0;font:800 clamp(52px,6.4vw,92px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em}
 .lp-sub{margin:22px 0 0;font:500 20px/1.5 var(--sans);color:var(--onm);max-width:560px}
@@ -1006,3 +1005,13 @@ html:has(.lp-hero.playing){overflow:hidden}
 .recap-btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media (hover:hover){.recap-btn:hover{box-shadow:inset 0 5px 0 #E89B72}}
 @media (prefers-reduced-motion:reduce){.recap{animation:none}}
+
+/* Paddles In logo (src/app/Logo.tsx). Sized in em: set font-size on the logo or a parent. */
+.pi{display:inline-flex;align-items:center;gap:.22em;font:800 1em/.9 var(--cond);text-transform:uppercase;letter-spacing:.01em;white-space:nowrap;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.pi svg{display:block;flex:none;width:1.4em;height:1.4em}
+.pi-name span{margin-left:.2em}
+.pi-icon svg{width:1em;height:1em}
+/* Stacked: the slot line spans the first D to the S. The widths come from the font's letter measurements. */
+.pi-stacked{flex-direction:column;align-items:flex-start;gap:.18em}
+.pi-stacked svg{width:2.486em;height:2.689em;margin-left:.895em}
+.dp-logo{font-size:34px}

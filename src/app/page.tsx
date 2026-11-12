@@ -15,7 +15,7 @@ const SHARE_TEXT = "An AI assistant in your group chat. Friends hold their spot 
 export const metadata: Metadata = {
   openGraph: {
     type: "website",
-    siteName: "Pickleball assistant",
+    siteName: "Paddles In",
     title: SHARE_TITLE,
     description: SHARE_TEXT,
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Pickleball games that settle themselves. An AI assistant for your group chat. The game page on a phone shows Thursday 6:00 pm, 4 spots left." }],

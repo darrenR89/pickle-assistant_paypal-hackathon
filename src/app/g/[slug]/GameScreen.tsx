@@ -932,7 +932,7 @@ function JoinSheet({
       </div>
       {v.savesFirst && (
         <p className="sh-p" style={{ fontSize: 15 }}>
-          This game is more than 3 days away, so approving saves your PayPal with Pickleball Assistant instead of holding money today. We use it once, to place your {money(v.holdCents)} hold on {v.holdDateLabel}, and tell you when we do. Then it’s removed, or sooner if you drop out. PayPal only for now.
+          This game is more than 3 days away, so approving saves your PayPal with Paddles In instead of holding money today. We use it once, to place your {money(v.holdCents)} hold on {v.holdDateLabel}, and tell you when we do. Then it’s removed, or sooner if you drop out. PayPal only for now.
         </p>
       )}
       <p className="sh-p" style={{ fontSize: 15 }}>

@@ -1,7 +1,7 @@
 import ModalFocus from "@/app/ModalFocus";
 import PhoneDemo from "./PhoneDemo";
 
-export const metadata = { title: "Pickleball assistant · your phone" };
+export const metadata = { title: "Paddles In · your phone" };
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   return (

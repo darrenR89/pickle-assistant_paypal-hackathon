@@ -226,7 +226,7 @@ export default function Playground({ groupId }: { groupId: string }) {
 
   return (
     <main className="sim">
-      <h1 className="sr-only">Pickleball assistant demo simulator</h1>
+      <h1 className="sr-only">Paddles In demo simulator</h1>
       <div className="sim-banner" role="note">
         <strong>Demo simulator.</strong> These chats are simulated so you can try the assistant without a real group. In real use it
         lives in your iMessage or WhatsApp group. The PayPal and Venmo holds are real sandbox transactions.
