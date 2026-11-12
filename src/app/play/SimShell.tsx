@@ -1,37 +1,31 @@
 import Link from "next/link";
-import IslandNav from "../landing/IslandNav";
-import Logo from "../Logo";
 
-const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
-
-// The landing page's header, mesh band and footer around the simulator, so /play reads as part of the same site.
-// The phones inside keep an iMessage look on purpose: that's where the assistant lives in real use.
-export default function SimShell({ lead, children }: { lead?: React.ReactNode; children: React.ReactNode }) {
+// The simulator runs full screen on the landing page's mesh, like the hero's video preview: no site header, just a
+// close button back to the landing page. The controls run across the top in a full-width bar; the phones sit below.
+export default function SimShell({ controls, actions, children }: { controls?: React.ReactNode; actions?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="lp sp">
-      <IslandNav repo={REPO} base="/" />
-      <main>
-        <section className="sp-top" id="top" aria-labelledby="sp-h">
-          <div className="lp-mesh" aria-hidden="true"><i /><i /><i /><i /></div>
-          <div className="lp-grain" aria-hidden="true" />
-          <div className="sp-top-copy">
-            <p className="lp-eyebrow">Full simulator · PayPal sandbox</p>
-            <h1 id="sp-h">Play the whole group chat.</h1>
-            <p className="sp-lead">
-              {lead ??
-                "Act as anyone in a simulated group, send the assistant real messages and move the clock. In real use it lives in your iMessage or WhatsApp group. PayPal and Venmo holds are real sandbox transactions."}
-            </p>
+    <div className="sp">
+      <div className="sp-bg" aria-hidden="true">
+        <div className="lp-mesh"><i /><i /><i /><i /></div>
+        <div className="lp-grain" />
+      </div>
+      <header className="sp-bar">
+        <div className="sp-bar-top">
+          <div className="sp-title">
+            <h1>Full simulator</h1>
+            <p>Act as anyone in a simulated group chat. The assistant’s replies are real; PayPal and Venmo holds are real sandbox transactions.</p>
           </div>
-        </section>
-        {children}
-      </main>
-      <footer className="lp-foot">
-        <Logo className="lp-foot-logo" />
-        <span>Built for the PayPal AI Hackathon 2026. Sandbox only: no real money moves.</span>
-        <span>
-          <a href={REPO}>GitHub</a> · <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a> · <Link href="/demo">Live phone demo</Link>
-        </span>
-      </footer>
+          <div className="sp-acts">
+            {actions}
+            <Link href="/" className="sp-exit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+              <span>Close<span className="sp-wide"> simulator</span></span>
+            </Link>
+          </div>
+        </div>
+        {controls}
+      </header>
+      <main className="sp-main">{children}</main>
     </div>
   );
 }

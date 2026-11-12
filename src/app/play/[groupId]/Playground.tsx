@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import SimShell from "../SimShell";
 
-// A demo simulator of the group chat. The page around it matches the landing page (SimShell); the two phones keep
-// an iMessage look so they never read as the product itself: in real use the assistant lives in a group chat.
+// A demo simulator of the group chat. It runs full screen on the landing page's mesh (SimShell) with the controls in a
+// bar across the top; the two phones keep an iMessage look, because in real use the assistant lives in a group chat.
 
 type Person = { id: string; name: string; token: string };
 type Msg = { id: string; sender_id: string | null; dm_to: string | null; text: string; game_slug: string | null };
@@ -112,6 +112,13 @@ export default function Playground({ groupId }: { groupId: string }) {
       dmBody.current?.scrollTo({ top: dmBody.current.scrollHeight, behavior: "smooth" });
     }
   }, [groupMsgs.length, inbox.length]);
+
+  // The note is a toast: it clears itself after a few seconds.
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(null), 6000);
+    return () => clearTimeout(t);
+  }, [note]);
 
   function newGroup() {
     try {
@@ -246,169 +253,169 @@ export default function Playground({ groupId }: { groupId: string }) {
   const picked = SCENARIOS[gi]?.[1][si] ?? SCENARIOS[0][1][0];
   const pickedAs = picked.as === "organizer" ? (people.get(organizerId)?.name ?? "the organizer") : viewer.name;
 
-  return (
-    <SimShell>
-      <div className="sp-body">
-        <div className="sim-grid">
-          <section className="sim-panel" aria-labelledby="sim-controls-h">
-            <h2 id="sim-controls-h" className="sim-h">Simulator controls</h2>
-
-            <div className="sim-field">
-              <label className="sim-label" htmlFor="sim-as">Act as</label>
-              <select id="sim-as" className="sim-select" value={viewerId} onChange={(e) => setViewerId(e.target.value)}>
-                {data.people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                    {p.id === organizerId ? " (organizer)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <form
-              className="sim-field"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const r = await control({ action: "addPerson", name: newName }, () => `${newName} joined the chat. They weren't here when the game was made.`);
-                if (r.personId) setViewerId(r.personId as string);
-              }}
-            >
-              <label className="sim-label" htmlFor="sim-new">Add someone to the chat</label>
-              <div className="sim-row">
-                <input id="sim-new" className="sim-input" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={20} />
-                <button className="dr-btn">Add</button>
-              </div>
-            </form>
-
-            <form
-              className="sim-field"
-              onSubmit={(e) => {
-                e.preventDefault();
-                runScenario(picked);
-              }}
-            >
-              <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
-              <select id="sim-say" className="sim-select" value={pick} onChange={(e) => setPick(e.target.value)}>
-                {SCENARIOS.map(([title, list], g) => (
-                  <optgroup key={title} label={title}>
-                    {list.map((sc, i) => (
-                      <option key={sc.label} value={`${g}:${i}`}>
-                        {sc.label.replace("the newest person", newest)}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              <p className="sim-quote">
-                <span>{pickedAs}:</span> “{picked.text.replace("{newest}", newest)}”
-              </p>
-              <button className="dr-btn p" disabled={sending}>
-                {sending ? "Sending…" : `Send as ${pickedAs}`}
-              </button>
-            </form>
-
-            <div className="sim-field">
-              <span className="sim-label">Game {data.game ? (data.game.status === "draft" ? "· not posted yet" : `· ${data.game.when}`) : ""}</span>
-              {data.game ? (
-                <div className="sim-acts">
-                  <a className="dr-btn" href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">
-                    Game page as {viewer.name} ↗
-                  </a>
-                  <a className="dr-btn" href={`/g/${data.game.slug}?o=${data.game.organizerToken}`} target="_blank" rel="noreferrer">
-                    Organizer page ↗
-                  </a>
-                  <button type="button" className="dr-btn" onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
-                    Join as {viewer.name}
-                  </button>
-                  <button type="button" className="dr-btn" onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
-                    Fill, leave 1 spot
-                  </button>
-                </div>
-              ) : (
-                <p className="sim-hint">Start a game first: pick “Game with full details” above.</p>
-              )}
-              <p className="sim-hint">Joins and fills here use simulated holds that skip the PayPal login. To test real money, open the game page and use a PayPal sandbox account.</p>
-            </div>
-
-            <form
-              className="sim-field"
-              onSubmit={(e) => {
-                e.preventDefault();
-                control({ action: "time", mode: clock }, (r) => `The game is now ${r.label}.`);
-              }}
-            >
-              <label className="sim-label" htmlFor="sim-clock">Move the clock</label>
-              <div className="sim-row">
-                <select id="sim-clock" className="sim-select" value={clock} onChange={(e) => setClock(e.target.value)} disabled={!data.game}>
-                  {CLOCK.map(([mode, label]) => (
-                    <option key={mode} value={mode}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <button className="dr-btn" disabled={!data.game}>
-                  Move
-                </button>
-              </div>
-              <button
-                type="button"
-                className="dr-btn"
-                disabled={!data.game}
-                onClick={() => control({ action: "tick" }, (r) => ((r.ran as string[])?.length ? `Ran: ${(r.ran as string[]).join(", ")}.` : "Nothing was due."))}
-              >
-                Run scheduled jobs now
-              </button>
-              <p className="sim-hint">Game day: dropping out becomes a late cancel. 90 min to go + run jobs: game-day reminder. After the game + run jobs: settles up.</p>
-            </form>
-
-            {note && (
-              <p className="sim-note" role="status">
-                {note}
-              </p>
-            )}
-
-            <button type="button" className="dr-link sim-reset" onClick={newGroup}>
-              Start a new demo group
-            </button>
-          </section>
-
-          <section className="phone" aria-label={`Group chat: ${data.group.name}`}>
-            <div className="phone-top">
-              <span className="phone-title">{data.group.name}</span>
-              <span className="phone-sub">{data.people.length} people + Assistant</span>
-            </div>
-            <div className="phone-body" role="log" aria-label="Group messages" ref={groupBody}>
-              {groupMsgs.map((m) => bubble(m))}
-            </div>
-            <form className="phone-compose" onSubmit={send}>
-              <label className="sr-only" htmlFor="compose">
-                Message as {viewer.name}
-              </label>
-              <input
-                id="compose"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={`iMessage as ${viewer.name}`}
-                maxLength={500}
-              />
-              <button type="submit" disabled={sending || !text.trim()} aria-label="Send">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </form>
-          </section>
-
-          <section className="phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
-            <div className="phone-top">
-              <span className="phone-title">Assistant</span>
-              <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
-            </div>
-            <div className="phone-body" role="log" aria-label="Private messages" ref={dmBody}>
-              {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="phone-empty">No private texts yet.</p>}
-            </div>
-          </section>
+  const controls = (
+    <section className="sim-panel" aria-label="Simulator controls">
+      <div className="sim-group">
+        <div className="sim-field">
+          <label className="sim-label" htmlFor="sim-as">Act as</label>
+          <select id="sim-as" className="sim-select" value={viewerId} onChange={(e) => setViewerId(e.target.value)}>
+            {data.people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.id === organizerId ? " (organizer)" : ""}
+              </option>
+            ))}
+          </select>
         </div>
+        <form
+          className="sim-field"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await control({ action: "addPerson", name: newName }, () => `${newName} joined the chat. They weren't here when the game was made.`);
+            if (r.personId) setViewerId(r.personId as string);
+          }}
+        >
+          <label className="sim-label" htmlFor="sim-new">Add someone to the chat</label>
+          <div className="sim-row">
+            <input id="sim-new" className="sim-input" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={20} />
+            <button className="dr-btn">Add</button>
+          </div>
+        </form>
+      </div>
+
+      <form
+        className="sim-group sim-field"
+        onSubmit={(e) => {
+          e.preventDefault();
+          runScenario(picked);
+        }}
+      >
+        <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
+        <select id="sim-say" className="sim-select" value={pick} onChange={(e) => setPick(e.target.value)}>
+          {SCENARIOS.map(([title, list], g) => (
+            <optgroup key={title} label={title}>
+              {list.map((sc, i) => (
+                <option key={sc.label} value={`${g}:${i}`}>
+                  {sc.label.replace("the newest person", newest)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <p className="sim-quote">
+          <span>{pickedAs}:</span> “{picked.text.replace("{newest}", newest)}”
+        </p>
+        <button className="dr-btn p" disabled={sending}>
+          {sending ? "Sending…" : `Send as ${pickedAs}`}
+        </button>
+      </form>
+
+      <div className="sim-group sim-field">
+        <span className="sim-label">Game {data.game ? (data.game.status === "draft" ? "· not posted yet" : `· ${data.game.when}`) : ""}</span>
+        {data.game ? (
+          <div className="sim-acts">
+            <a className="dr-btn" href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">
+              Game page ↗
+            </a>
+            <a className="dr-btn" href={`/g/${data.game.slug}?o=${data.game.organizerToken}`} target="_blank" rel="noreferrer">
+              Organizer ↗
+            </a>
+            <button type="button" className="dr-btn" onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
+              Join as {viewer.name}
+            </button>
+            <button type="button" className="dr-btn" onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
+              Fill, leave 1
+            </button>
+          </div>
+        ) : (
+          <p className="sim-hint">Start a game first: send “Game with full details”.</p>
+        )}
+        <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal.</p>
+      </div>
+
+      <form
+        className="sim-group sim-field"
+        onSubmit={(e) => {
+          e.preventDefault();
+          control({ action: "time", mode: clock }, (r) => `The game is now ${r.label}.`);
+        }}
+      >
+        <label className="sim-label" htmlFor="sim-clock">Move the clock</label>
+        <div className="sim-row">
+          <select id="sim-clock" className="sim-select" value={clock} onChange={(e) => setClock(e.target.value)} disabled={!data.game}>
+            {CLOCK.map(([mode, label]) => (
+              <option key={mode} value={mode}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button className="dr-btn" disabled={!data.game}>
+            Move
+          </button>
+        </div>
+        <button
+          type="button"
+          className="dr-btn"
+          disabled={!data.game}
+          onClick={() => control({ action: "tick" }, (r) => ((r.ran as string[])?.length ? `Ran: ${(r.ran as string[]).join(", ")}.` : "Nothing was due."))}
+        >
+          Run scheduled jobs now
+        </button>
+        <p className="sim-hint">90 min to go + run jobs: game-day reminder. After the game + run jobs: settles up.</p>
+      </form>
+
+    </section>
+  );
+
+  return (
+    <SimShell
+      controls={controls}
+      actions={
+        <button type="button" className="sp-link" onClick={newGroup}>
+          New<span className="sp-wide"> demo</span> group
+        </button>
+      }
+    >
+      <p className="sim-note" role="status">
+        {note}
+      </p>
+      <div className="sim-grid">
+        <section className="phone" aria-label={`Group chat: ${data.group.name}`}>
+          <div className="phone-top">
+            <span className="phone-title">{data.group.name}</span>
+            <span className="phone-sub">{data.people.length} people + Assistant</span>
+          </div>
+          <div className="phone-body" role="log" aria-label="Group messages" ref={groupBody}>
+            {groupMsgs.map((m) => bubble(m))}
+          </div>
+          <form className="phone-compose" onSubmit={send}>
+            <label className="sr-only" htmlFor="compose">
+              Message as {viewer.name}
+            </label>
+            <input
+              id="compose"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={`iMessage as ${viewer.name}`}
+              maxLength={500}
+            />
+            <button type="submit" disabled={sending || !text.trim()} aria-label="Send">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </form>
+        </section>
+
+        <section className="phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
+          <div className="phone-top">
+            <span className="phone-title">Assistant</span>
+            <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
+          </div>
+          <div className="phone-body" role="log" aria-label="Private messages" ref={dmBody}>
+            {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="phone-empty">No private texts yet.</p>}
+          </div>
+        </section>
       </div>
     </SimShell>
   );

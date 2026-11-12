@@ -8,8 +8,7 @@ import Logo from "../Logo";
 // scrolls it shrinks into a black pill shaped like the iPhone's Dynamic Island. Hover, keyboard
 // focus or a tap on the pill opens the links inside it. Below desktop width the side links don't fit around
 // the wordmark, so the top of the page shows a menu button that opens them in a panel instead.
-// base is "" on the landing page and "/" elsewhere, so the section links lead back to the landing page.
-export default function IslandNav({ repo, base = "" }: { repo: string; base?: string }) {
+export default function IslandNav({ repo }: { repo: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -38,11 +37,11 @@ export default function IslandNav({ repo, base = "" }: { repo: string; base?: st
   return (
     <header className={`lp-isle${scrolled ? " scrolled" : ""}${open ? " open" : ""}`}>
       <nav className="lp-isle-side l" aria-label="Sections">
-        <a href={`${base}#screens`}>The app</a>
-        <a href={`${base}#built`}>How it was built</a>
+        <a href="#screens">The app</a>
+        <a href="#built">How it was built</a>
       </nav>
       <div className="lp-isle-pill">
-        <a href={`${base}#top`} className="lp-logo">
+        <a href="#top" className="lp-logo">
           <Logo />
         </a>
         <Link href="/demo" className="lp-isle-peek" tabIndex={scrolled ? 0 : -1}>Try it</Link>
@@ -57,8 +56,8 @@ export default function IslandNav({ repo, base = "" }: { repo: string; base?: st
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14" /></svg>
         </button>
         <span className="lp-isle-more">
-          <a href={`${base}#screens`} tabIndex={scrolled ? 0 : -1}>The app</a>
-          <a href={`${base}#built`} tabIndex={scrolled ? 0 : -1}>Built</a>
+          <a href="#screens" tabIndex={scrolled ? 0 : -1}>The app</a>
+          <a href="#built" tabIndex={scrolled ? 0 : -1}>Built</a>
           <a href={repo} tabIndex={scrolled ? 0 : -1}>GitHub</a>
           <Link href="/demo" className="lp-isle-cta" tabIndex={scrolled ? 0 : -1}>Try it live</Link>
         </span>
@@ -81,8 +80,8 @@ export default function IslandNav({ repo, base = "" }: { repo: string; base?: st
         </svg>
       </button>
       <nav id="lp-isle-menu" className="lp-isle-menu" aria-label="Menu" hidden={!menu}>
-        <a href={`${base}#screens`} onClick={closeMenu}>The app</a>
-        <a href={`${base}#built`} onClick={closeMenu}>How it was built</a>
+        <a href="#screens" onClick={closeMenu}>The app</a>
+        <a href="#built" onClick={closeMenu}>How it was built</a>
         <a href={repo} onClick={closeMenu}>GitHub</a>
         <Link href="/demo" className="lp-isle-cta" onClick={closeMenu}>Try it live</Link>
       </nav>

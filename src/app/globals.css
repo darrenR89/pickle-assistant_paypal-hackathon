@@ -185,36 +185,55 @@ a{color:var(--link)}
 }
 
 /* ---------- full simulator (/play) ----------
-   The landing page's header, mesh band, type, cards and footer (SimShell). Only the two phones keep the
-   iMessage look, so the chats never read as the product itself. */
-.sp-top{position:relative;isolation:isolate;overflow:hidden;padding:128px max(20px,calc((100% - 1180px)/2)) 64px;background:#2a1f5e;color:#fff;border-radius:0 0 44px 44px;clip-path:inset(0 round 0 0 44px 44px)}
-.sp-top-copy{position:relative;z-index:3;max-width:720px}
-.sp-top h1{margin:0;font:800 clamp(48px,5.6vw,80px)/.9 var(--cond);text-transform:uppercase;letter-spacing:-.01em;text-wrap:balance}
-.sp-lead{margin:20px 0 0;max-width:640px;font:500 19px/1.5 var(--sans);color:var(--onm)}
-.sp-body{padding:48px max(20px,calc((100% - 1180px)/2)) 88px}
-.sp-status{margin:0 0 16px;font:600 19px/1.5 var(--sans);color:var(--muted)}
-.sp-status.err{color:var(--danger)}
-.sim-grid{display:grid;grid-template-columns:340px minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
-.sim-panel{display:flex;flex-direction:column;gap:22px;padding:22px;background:#fff;border:2px solid var(--edge);box-shadow:0 5px 0 var(--edge);border-radius:24px}
-.sim-h{margin:0;font:800 30px/1 var(--cond);text-transform:uppercase;color:var(--ink)}
-.sim-field{display:flex;flex-direction:column;gap:10px;margin:0}
-.sim-label{font:700 14px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+   Full screen on the landing hero's mesh, like its video preview: a close button instead of the site header, the
+   controls in a full-width bar across the top, and the two phones below. Only the phones keep the iMessage look. */
+.sp{position:relative;isolation:isolate;min-height:100dvh;background:#2a1f5e;color:#fff;font-family:var(--sans)}
+.sp-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.sp-bar{padding:18px max(20px,calc((100% - 1400px)/2)) 20px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.14)}
+.sp-bar-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:6px 20px;margin-bottom:18px}
+.sp-title{display:contents}
+.sp-title h1{grid-column:1;grid-row:1}
+.sp-title p{grid-column:1;grid-row:2}
+.sp-acts{grid-column:2;grid-row:1;display:flex;align-items:center;gap:6px}
+.sp-link{all:unset;padding:10px 12px;border-radius:99px;color:#E2DAF2;font:600 15px/1 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;transition:opacity .2s}
+.sp-link:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
+@media (hover:hover){.sp-link:hover{opacity:.7}}
+.sp-title h1{margin:0;font:800 30px/1 var(--cond);text-transform:uppercase;letter-spacing:.01em}
+.sp-title p{margin:0;max-width:720px;font:500 15px/1.45 var(--sans);color:#C9BFE3}
+.sp-exit{flex:none;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:99px;background:rgba(18,14,36,.75);color:#fff;font:600 15px/1 var(--sans);text-decoration:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);transition:box-shadow .2s}
+.sp-exit svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.sp-exit:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
+@media (hover:hover){.sp-exit:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 22px rgba(255,255,255,.28)}}
+.sp-main{padding:24px max(20px,calc((100% - 1400px)/2)) 40px}
+.sp-body{max-width:640px}
+.sp-status{margin:0 0 16px;font:600 19px/1.5 var(--sans);color:var(--onm)}
+.sp-status.err{color:#FFC9A8}
+/* the controls: four groups side by side, wrapping to two columns on iPad and one on phones */
+.sim-panel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 28px;align-items:start}
+.sim-group{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sim-field{display:flex;flex-direction:column;gap:8px;margin:0}
+.sim-label{font:700 14px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--onm)}
 .sim-row{display:flex;gap:8px}
 .sim-row>.sim-select,.sim-row>.sim-input{flex:1;min-width:0}
-.sim-select,.sim-input{width:100%;height:48px;padding:0 14px;border:2px solid var(--edge);border-radius:12px;background:#fff;font:500 17px var(--sans);color:var(--ink)}
+.sim-select,.sim-input{width:100%;height:48px;padding:0 14px;border:2px solid transparent;border-radius:12px;background:#fff;font:500 17px var(--sans);color:var(--ink)}
 .sim-select{appearance:none;-webkit-appearance:none;padding-right:42px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%233B2F7A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center/20px 20px;cursor:pointer}
-.sim-select:disabled{opacity:.45;cursor:default}
-.sim-panel .dr-btn{display:flex;align-items:center;justify-content:center;width:100%;text-decoration:none;text-align:center}
+.sim-select:disabled{opacity:.5;cursor:default}
+.sim-select:focus-visible,.sim-input:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
+/* buttons on the dark bar: outlined, with the ball color for the one primary action */
+.sp .dr-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:0 14px;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;text-decoration:none;text-align:center;white-space:nowrap}
+.sp .dr-btn.p{background:var(--ball);border-color:var(--ball);color:#171428;box-shadow:0 4px 0 #D9946B}
+.sp .dr-btn:disabled{opacity:.45}
 .sim-row .dr-btn{width:auto;flex:none}
-.sim-acts{display:flex;flex-direction:column;gap:8px}
-.sim-quote{margin:0;padding:12px 14px;border-radius:12px;background:#f3f1f8;font:500 16px/1.45 var(--sans);color:var(--ink)}
-.sim-quote span{font-weight:700}
-.sim-hint{margin:0;font:500 15px/1.45 var(--sans);color:var(--muted)}
-.sim-note{margin:0;padding:12px 14px;border-radius:12px;background:#e6f4ec;color:var(--ok);font:600 15px/1.4 var(--sans)}
-.sim-reset{align-self:flex-start}
+.sim-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sim-quote{margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.1);font:500 15px/1.45 var(--sans);color:#fff;}
+.sim-quote span{font-weight:700;color:var(--ball)}
+.sim-hint{margin:0;font:500 14px/1.45 var(--sans);color:#C9BFE3}
+/* the result of the last control: a toast at the bottom, as on the phone demo's desktop remote */
+.sim-note{position:fixed;z-index:20;left:50%;bottom:24px;transform:translateX(-50%);width:max-content;max-width:min(640px,calc(100% - 40px));margin:0;padding:14px 18px;border-radius:16px;background:#171428;color:#fff;font:500 16px/1.4 var(--sans);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.14)}
+.sim-note:empty{display:none}
 /* the phones: the landing page's dark frame around an iMessage screen */
-/* on desktop the phones stay in view while the controls scroll past */
-.phone{position:sticky;top:84px;display:flex;flex-direction:column;height:min(780px,calc(100dvh - 120px));min-height:560px;padding:8px;border-radius:42px;background:#14102a;box-shadow:0 24px 48px rgba(10,6,30,.22),inset 0 0 0 1.5px rgba(255,255,255,.12);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--s-text)}
+.sim-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;max-width:1100px;margin:0 auto}
+.phone{display:flex;flex-direction:column;height:min(780px,calc(100dvh - 48px));min-height:520px;padding:8px;border-radius:42px;background:#14102a;box-shadow:0 24px 48px rgba(10,6,30,.35),inset 0 0 0 1.5px rgba(255,255,255,.14);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--s-text)}
 .phone>*{background:#fff}
 .phone-top{display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 16px 10px;border-radius:34px 34px 0 0;border-bottom:1px solid #ececec}
 .phone-title{font-weight:600;font-size:16px}
@@ -226,32 +245,28 @@ a{color:var(--link)}
 .phone-compose button{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--s-blue);color:#fff}
 .phone-compose button:disabled{opacity:.45;cursor:default}
 .phone>.phone-body:last-child{border-radius:0 0 34px 34px}
-/* iPad and small laptops: the controls run across the top in two columns, the two phones side by side below */
-@media (max-width:1240px){
-  .sim-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .sim-panel{grid-column:1/-1;display:block;columns:2;column-gap:32px}
-  .sim-panel>*{break-inside:avoid;margin-bottom:22px}
-  .sim-panel>.sim-h{column-span:all}
-  .sim-panel>.sim-reset{margin-bottom:0}
-  /* under the centered logo and menu button the band's copy is centered too, like the landing's sections */
-  .sp-top-copy{margin:0 auto;text-align:center}
-  .sp-lead{margin-left:auto;margin-right:auto}
-  .phone{position:static;height:min(720px,calc(100dvh - 140px))}
+/* iPad portrait and small laptops: the controls wrap to two columns */
+@media (max-width:1100px){
+  .sim-panel{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .phone{height:min(720px,calc(100dvh - 48px))}
 }
-
-/* phones: one column, controls first, then the group chat and the private texts */
+@media (min-width:1101px) and (max-width:1240px){.sim-panel{column-gap:20px}}
+/* phones: one column of controls, then the group chat and the private texts */
 @media (max-width:760px){
-  .sp-top{padding-top:104px;padding-bottom:48px}
-  .sp-lead{font-size:17px}
-  .sp-body{padding-top:28px}
+  .sp-bar{padding-top:14px}
+  .sp-bar-top{margin-bottom:14px}
+  .sp-title p{grid-column:1/-1}
+  .sp-wide{display:none}
+  .sp-link{padding:10px 8px}
+  .sp-title h1{align-self:center;font-size:24px;white-space:nowrap}
+  .sp-bar-top{column-gap:10px}
+  .sim-panel{grid-template-columns:1fr;gap:18px}
+  .sp-main{padding-top:20px}
   .sim-grid{grid-template-columns:1fr;gap:20px}
-  .sim-panel{display:flex;columns:auto;padding:20px}
-  .sim-panel>*{margin-bottom:0}
-  .phone{height:min(640px,calc(100dvh - 96px));min-height:480px;border-radius:38px;padding:7px}
+  .phone{height:min(640px,calc(100dvh - 40px));min-height:480px;border-radius:38px;padding:7px}
   .phone-top{border-radius:31px 31px 0 0}
   .phone-compose,.phone>.phone-body:last-child{border-radius:0 0 31px 31px}
 }
-
 .im-system {
   align-self: center;
   margin: 6px 0;
