@@ -889,6 +889,7 @@ export async function collectedCents(gameId: string, organizerId: string) {
 /**
  * Call the game off. Holds are released, unless free cancel has passed, the court fee is lost,
  * and the organizer chooses to charge everyone holding a spot their share (never more).
+ * When holds are released, late cancels the organizer already charged are refunded too.
  */
 export async function cancelGame(game: Game, opts: { charge?: boolean } = {}) {
   if (game.status === "draft") {
@@ -933,6 +934,8 @@ export async function cancelGame(game: Game, opts: { charge?: boolean } = {}) {
     for (const personId of await dropSavedMethods(game.id)) {
       await postDm(game.group_id, personId, `${whenLabel(game.starts_at)} is cancelled. No hold had been placed, and your saved PayPal has been removed.`, undefined, { always: true });
     }
+    // Everyone else's money is going back, so a late cancel the organizer already charged goes back too.
+    if (!charge) await refundLateCharges(game, entries);
   } catch (err) {
     // Whatever was captured or released is recorded per player; a retry continues with the rest.
     await q("update games set status = 'open' where id = $1 and status = 'cancelling'", [game.id]);
@@ -959,6 +962,65 @@ export async function cancelGame(game: Game, opts: { charge?: boolean } = {}) {
 }
 
 // ---------- refunds ----------
+
+/**
+ * Charged late cancels to give back when a game is called off and every hold is released: what's
+ * left of each charge. The organizer's own spot never pays, and a charge with no capture id predates
+ * refund tracking, so PayPal can't refund it from here.
+ */
+export function callOffRefunds<T extends Pick<RosterEntry, "person_id" | "late_cancel" | "hold_status" | "captured_cents" | "refunded_cents" | "capture_id">>(
+  entries: T[],
+  organizerId: string,
+) {
+  return entries
+    .filter((e) => e.person_id !== organizerId && e.late_cancel === "charged" && e.hold_status === "captured" && !!e.capture_id)
+    .map((spot) => ({ spot, cents: (spot.captured_cents ?? 0) - spot.refunded_cents }))
+    .filter((r) => r.cents > 0);
+}
+
+/**
+ * The game is called off and holds are released: refund each charged late cancel in full.
+ * Runs while the game is `cancelling`, so a restart finishes it. PayPal is asked first: its request id
+ * comes from the capture, so a retry after a crash gets the same refund back instead of a second one.
+ * A refund PayPal will never take is left to the organizer, so it can't block the call-off.
+ */
+async function refundLateCharges(game: Game, entries: RosterEntry[]) {
+  const refunded: string[] = [];
+  const stuck: string[] = [];
+  for (const { spot, cents } of callOffRefunds(entries, game.organizer_id)) {
+    try {
+      await refundCapture(spot.capture_id!, cents, `Refund for ${whenLabel(game.starts_at)}: the game was called off.`);
+    } catch (err) {
+      if (!isTerminalPayPalError(err)) throw err;
+      await logEvent(game.id, spot.person_id, "refund_failed", { cents, reason: "called_off" });
+      stuck.push(`${spot.name} (${money(cents)})`);
+      continue;
+    }
+    const recorded = await q("update spots set refunded_cents = refunded_cents + $2, updated_at = now() where id = $1 and refunded_cents = $3 returning id", [
+      spot.id,
+      cents,
+      spot.refunded_cents,
+    ]);
+    if (!recorded.length) continue;
+    await q("delete from intents where game_id = $1 and person_id = $2 and kind = 'refund'", [game.id, spot.person_id]);
+    await logEvent(game.id, spot.person_id, "refunded", { cents, reason: "called_off" });
+    await postDm(
+      game.group_id,
+      spot.person_id,
+      `${whenLabel(game.starts_at)} is called off, so your ${money(cents)} late-cancel charge was refunded to your PayPal or Venmo.`,
+    );
+    refunded.push(`${spot.name} (${money(cents)})`);
+  }
+  if (!refunded.length && !stuck.length) return;
+  await postDm(
+    game.group_id,
+    game.organizer_id,
+    (refunded.length ? `Since the game is off, I refunded the late-cancel charge${refunded.length === 1 ? "" : "s"} for ${listWords(refunded)}.` : "") +
+      (stuck.length ? `${refunded.length ? " " : ""}PayPal wouldn't refund ${listWords(stuck)}, so please send that back yourself.` : ""),
+    `${game.slug}?o=${game.organizer_token}`,
+    { always: true },
+  );
+}
 
 /** A charged player says they did show up. The organizer decides privately. */
 export async function requestRefund(game: Game, personId: string) {
