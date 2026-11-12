@@ -66,6 +66,22 @@ const PROOF: Proof[] = [
   { n: 104, k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
 ];
 
+// Inside the judges' fold: what it's built with, grouped by job.
+const STACK: Array<[string, string[]]> = [
+  ["App", ["Next.js", "TypeScript", "Postgres", "Render web service", "Render Workflows and cron"]],
+  ["Payments", ["PayPal Orders v2", "Authorize, capture, void, refund", "Payouts", "Verified webhooks", "JS SDK with Venmo"]],
+  ["AI", ["Claude Haiku 5.5 reads the chat", "Claude Code helped write and review the code"]],
+  ["Messaging", ["iMessage through Blooio", "SMS through Sendblue"]],
+];
+
+// ...and how it came together, day by day, from the git history (42 pull requests, Nov 9 to 12).
+const BUILD_DAYS: Array<{ day: string; date: string; title: string; notes: string[] }> = [
+  { day: "Day 1", date: "Mon Nov 9", title: "The assistant works", notes: ["Claude turns a setup text into a game", "Simulator and phone demo", "First landing page and JUDGES.md"] },
+  { day: "Day 2", date: "Tue Nov 10", title: "Money end to end", notes: ["Payouts, refunds and verified webhooks", "Lint, unit tests and CI on every PR", "Rounding cents stay with the organizer"] },
+  { day: "Day 3", date: "Wed Nov 11", title: "Hardened", notes: ["Edge-case review: no overcharge, survives restarts", "Accessibility pass", "Real iMessage and SMS, Paddles In brand"] },
+  { day: "Day 4", date: "Thu Nov 12", title: "Ready for judges", notes: ["Late cancels: charge, cover or wait", "2-minute walkthrough", "Sandbox proof in the README"] },
+];
+
 // Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
 const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
   {
@@ -163,11 +179,37 @@ export default function Home() {
         <CaseStudy
           eyebrow="For judges"
           title="Built to be trusted"
-          summary="Four numbers: what the AI is never allowed to do, how deep the PayPal work goes, how retries stay safe and how it’s tested."
+          summary="Four numbers that show how the money stays safe, what it’s built with, and how it came together in four days."
           thumb={["04", "proofs"]}
           cta="See the proof"
         >
           <ProofCards items={PROOF} />
+          <div className="lp-build">
+            <div className="lp-build-stack">
+              <h3>Built with</h3>
+              <dl>
+                {STACK.map(([k, items]) => (
+                  <div key={k}>
+                    <dt>{k}</dt>
+                    <dd>{items.map((it) => <span key={it}>{it}</span>)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div className="lp-build-time">
+              <h3>Four days, start to finish</h3>
+              <p className="lp-build-sub">42 pull requests, each one through typecheck, lint, tests and build.</p>
+              <ol>
+                {BUILD_DAYS.map((d) => (
+                  <li key={d.day}>
+                    <span className="lp-build-day">{d.day} · {d.date}</span>
+                    <strong>{d.title}</strong>
+                    <ul>{d.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
           <div className="lp-trust-foot">
             <p>
               <strong>Real:</strong> Claude reading every message, your own PayPal sandbox hold and capture, and the organizer’s payout.{" "}
@@ -177,9 +219,7 @@ export default function Home() {
               <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a>
               <a href={`${REPO}/blob/main/docs/PAYPAL.md`}>Every PayPal call</a>
               <a href={`${REPO}#proof-from-a-real-sandbox-run`}>Sandbox proof</a>
-            </p>
-            <p className="lp-stack">
-              Next.js, TypeScript and Postgres on Render · PayPal Orders v2, Payouts and the JS SDK · Claude Haiku 5.5 · <a href={REPO}>Source on GitHub</a> (MIT)
+              <a href={REPO}>Source on GitHub (MIT)</a>
             </p>
           </div>
         </CaseStudy>

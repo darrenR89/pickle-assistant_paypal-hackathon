@@ -694,13 +694,40 @@ a{color:var(--link)}
 @media (max-width:640px){.lp-proof li{grid-template-columns:104px minmax(0,1fr);gap:10px;padding:18px 16px 18px 6px}.lp-proof-n{font-size:64px}}
 .lp-proof h3{margin:0 0 6px;font:700 20px/1.25 var(--sans);color:var(--ink)}
 .lp-proof p{margin:0;font:500 16px/1.5 var(--sans);color:var(--muted)}
+/* Built with + build timeline: no cards, so they read as a different kind of content. The stack is a two-column
+   list of pills; the timeline is a rail with one stop per day (across on desktop, down the left on phones). */
+.lp-build{display:grid;gap:40px;margin-top:44px;padding-top:36px;border-top:1px solid var(--line)}
+.lp-build h3{margin:0 0 16px;font:800 30px/1 var(--cond);text-transform:uppercase;color:var(--ink)}
+.lp-build-stack dl{margin:0;display:grid;gap:12px}
+.lp-build-stack dl>div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:baseline}
+.lp-build-stack dt{font:700 13px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--link)}
+.lp-build-stack dd{margin:0;display:flex;flex-wrap:wrap;gap:8px}
+.lp-build-stack dd span{padding:6px 12px;border-radius:99px;background:var(--lav);color:var(--btn);font:600 15px/1.3 var(--sans)}
+.lp-build-sub{margin:-6px 0 24px;font:500 17px/1.5 var(--sans)}
+.lp-build-time>ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;position:relative}
+.lp-build-time>ol::before{content:"";position:absolute;left:7px;right:0;top:7px;height:2px;background:linear-gradient(90deg,var(--btn),var(--edge))}
+.lp-build-time>ol>li{position:relative;padding-top:30px}
+.lp-build-time>ol>li::before{content:"";position:absolute;left:0;top:0;width:12px;height:12px;border-radius:50%;background:var(--page);border:2px solid var(--btn)}
+.lp-build-time>ol>li:last-child::before{background:var(--ball);border-color:var(--btn)}
+.lp-build-day{display:block;font:700 13px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--link)}
+.lp-build-time strong{display:block;margin:6px 0 8px;font:700 20px/1.25 var(--sans);color:var(--ink)}
+.lp-build-time ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.lp-build-time ul li{font:500 15px/1.4 var(--sans)}
+@media (max-width:900px){
+  .lp-build-time>ol{grid-template-columns:1fr;gap:22px}
+  .lp-build-time>ol::before{left:7px;right:auto;top:8px;bottom:8px;width:2px;height:auto;background:linear-gradient(180deg,var(--btn),var(--edge))}
+  .lp-build-time>ol>li{padding:0 0 0 32px}
+  .lp-build-time>ol>li::before{top:2px}
+}
+@media (max-width:640px){
+  .lp-build-stack dl>div{grid-template-columns:1fr;gap:8px}
+  .lp-build-stack dd span{font-size:14px}
+}
 .lp-trust-foot{margin-top:30px;font:500 17px/1.5 var(--sans);color:var(--muted)}
 .lp-trust-foot>p{margin:0}
 .lp-trust-foot strong{color:var(--ink)}
 .lp-trust-links{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:14px!important}
 .lp-trust-links a{color:var(--link);font-weight:700;text-underline-offset:3px}
-.lp-stack{margin:24px 0 0!important;padding-top:20px;border-top:1px solid var(--line);font:500 16px/1.6 var(--sans);color:var(--muted)}
-.lp-stack a{color:var(--link)}
 /* Closing section: one dark, glowing slab with a big headline (the ball is its full stop), joined to the footer */
 .lp-final{position:relative;isolation:isolate;margin-top:250px;padding:96px max(20px,calc((100% - 1180px)/2)) 132px;background:#1b1440;color:#fff;border-radius:44px 44px 0 0}
 .lp-final::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 50% at 50% 0%,rgba(140,120,230,.5),transparent 70%),radial-gradient(35% 45% at 10% 80%,rgba(255,201,168,.2),transparent 70%),radial-gradient(35% 45% at 92% 75%,rgba(182,221,228,.18),transparent 70%)}
