@@ -227,7 +227,7 @@ a{color:var(--link)}
 .sim-card.on{border-color:var(--ball);background:rgba(255,201,168,.1)}
 .sim-card-step{font-weight:700;color:var(--ball)}
 .sp .sim-card .dr-btn{height:32px;margin-top:2px}
-.sim-manual{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr);align-items:center;gap:16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
+.sim-manual{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
 .sim-links{display:flex;gap:16px}
 .sim-links a{color:#fff;font:600 14px/1 var(--sans);text-underline-offset:3px;transition:opacity .2s}
 @media (hover:hover){.sim-links a:hover{opacity:.7}}

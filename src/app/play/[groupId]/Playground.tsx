@@ -463,7 +463,7 @@ export default function Playground({ groupId }: { groupId: string }) {
   async function startGame() {
     setNote(null);
     setViewerId(organizerId);
-    if (await sendAs(organizerId, START[0].text)) setNote(`${hostName0} posted the game. Now act as anyone, or fill it and move the clock.`);
+    if (await sendAs(organizerId, START[0].text)) setNote(`${hostName0} posted the game. Now act as anyone, or move the clock.`);
   }
 
   // Top bar: step through a game by hand. The ready-made scenarios are tucked away below, since they change what's set up.
@@ -483,14 +483,6 @@ export default function Playground({ groupId }: { groupId: string }) {
 
       {data.game?.status === "open" ? (
         <div className="sim-manual">
-          <div className="sim-scn-acts">
-            <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
-              Join as {viewer.name}
-            </button>
-            <button type="button" className="dr-btn" disabled={busy} onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
-              Fill, leave 1 spot
-            </button>
-          </div>
           <ol className="sim-track" aria-label="Move the clock">
             {CLOCK.map(([mode, label, what]) => (
               <li key={mode}>
