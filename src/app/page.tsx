@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 const REPO = "https://github.com/darrenR89/pickle-assistant_paypal-hackathon";
-const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID; // YouTube id, set once the walkthrough is uploaded
+const VIDEO_ID = process.env.NEXT_PUBLIC_DEMO_VIDEO_ID || "qMzS6yVeeFY"; // YouTube id of the demo video; the env var can override it
 const VERTICAL_SRC = process.env.NEXT_PUBLIC_DEMO_VERTICAL_SRC; // vertical MP4 of the phone recording; plays on the 3D phone's screen
 
 // Chapters for the hero player. Times follow the demo plan; set them from the final edit.
