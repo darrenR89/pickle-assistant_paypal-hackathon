@@ -640,33 +640,27 @@ a{color:var(--link)}
 .lp-info-ic svg{width:84px;height:84px;fill:none;stroke:currentColor;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
 .lp-info dt{align-self:end;padding-top:28px;font:700 14px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .lp-info dd{margin:10px 0 0;max-width:290px;font:600 21px/1.4 var(--sans)}
-/* Case study: one light card that unfolds (the portfolio's "Open the build" pattern) */
-.lp-built{margin-top:88px;padding:0 max(20px,calc((100% - 1180px)/2))}
-.lp-cs{background:#fff;border-radius:32px;box-shadow:inset 0 0 0 1px var(--line),0 18px 40px rgba(40,30,90,.06);overflow:hidden}
-.lp-cs-row{display:flex;flex-wrap:wrap;align-items:center;gap:20px 28px;padding:24px}
-.lp-cs-thumb{flex:none;display:grid;place-items:center;align-content:center;width:112px;height:112px;border-radius:26px;background:var(--lav);color:var(--btn);font:700 13px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase}
-.lp-cs-thumb b{font:800 52px/.9 var(--cond);letter-spacing:0}
-.lp-cs-txt{flex:1 1 360px;min-width:0}
-.lp-cs-txt .lp-eyebrow{margin-bottom:8px;color:var(--link)}
-.lp-cs-txt h2{margin:0 0 6px;font:800 clamp(34px,3.6vw,48px)/.95 var(--cond);text-transform:uppercase}
-.lp-cs-txt p:last-child{margin:0;max-width:620px;font:500 17px/1.5 var(--sans);color:var(--muted)}
-.lp-cs-cta{display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 24px;border:0;border-radius:18px;background:var(--btn);color:#fff;font:800 21px/1 var(--cond);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;cursor:pointer;box-shadow:0 5px 0 var(--btn-edge);transition:box-shadow .2s,background .2s,color .2s}
-.lp-cs-cta svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:rotate .3s}
-.lp-cs.open .lp-cs-cta svg{rotate:180deg}
-.lp-cs-cta:focus-visible{outline:3px solid var(--link);outline-offset:3px}
-.lp-cs-unfold{display:grid;grid-template-rows:0fr;transition:grid-template-rows .55s cubic-bezier(.2,.8,.2,1)}
-.lp-cs.open .lp-cs-unfold{grid-template-rows:1fr}
-.lp-cs-unfold>div{overflow:hidden;min-height:0}
-.lp-cs-body{padding:0 40px 40px;color:var(--muted)}
-.lp-ch{display:grid;grid-template-columns:96px minmax(0,1fr);gap:20px;padding:34px 0;border-top:1px solid var(--line)}
-.lp-chn{font:800 56px/.9 var(--cond);color:var(--btn)}
-.lp-ch h3{margin:4px 0 12px;font:700 26px/1.2 var(--sans);color:var(--ink)}
-.lp-ch p{margin:0 0 12px;font:500 18px/1.6 var(--sans)}
-.lp-flow{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.lp-flow li{background:var(--lav);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
-.lp-flow strong{font:800 22px/1 var(--cond);text-transform:uppercase;color:var(--btn)}
-.lp-flow span{font:500 15px/1.4 var(--sans)}
-.lp-stack{margin:30px 0 0;padding-top:24px;border-top:1px solid var(--line);font:500 16px/1.6 var(--sans);color:var(--muted)}
+/* The problem: three short beats under a big line, light page, no cards (so it reads as a statement, not a feature) */
+.lp-prob .lp-eyebrow,.lp-trust .lp-eyebrow{color:var(--link)}
+.lp-prob .lp-h2{max-width:900px;text-wrap:balance}
+.lp-beats{list-style:none;margin:32px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 36px}
+.lp-beats li{padding-top:16px;border-top:3px solid var(--btn);font:500 18px/1.5 var(--sans);color:var(--muted)}
+.lp-beats strong{display:block;margin-bottom:4px;font:700 21px/1.25 var(--sans);color:var(--ink)}
+.lp-prob-fix{margin:32px 0 0;font:700 21px/1.4 var(--sans);color:var(--btn)}
+/* Built to be trusted: four proof cards, each led by a number the repo backs up */
+.lp-trust{padding-bottom:56px}
+.lp-trust-lead{margin:0;font:500 19px/1.5 var(--sans);color:var(--muted)}
+.lp-proof{list-style:none;margin:28px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.lp-proof li{background:#fff;border:2px solid var(--edge);box-shadow:0 5px 0 var(--edge);border-radius:24px;padding:26px}
+.lp-proof-n{display:block;font:800 72px/.85 var(--cond);color:var(--btn)}
+.lp-proof h3{margin:10px 0 8px;font:700 21px/1.25 var(--sans)}
+.lp-proof p{margin:0;font:500 17px/1.5 var(--sans);color:var(--muted)}
+.lp-trust-foot{margin-top:28px;font:500 17px/1.5 var(--sans);color:var(--muted)}
+.lp-trust-foot>p{margin:0}
+.lp-trust-foot strong{color:var(--ink)}
+.lp-trust-links{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:14px!important}
+.lp-trust-links a{color:var(--link);font-weight:700;text-underline-offset:3px}
+.lp-stack{margin:24px 0 0!important;padding-top:20px;border-top:1px solid var(--line);font:500 16px/1.6 var(--sans);color:var(--muted)}
 .lp-stack a{color:var(--link)}
 /* Closing section: one dark, glowing slab with a big headline (the ball is its full stop), joined to the footer */
 .lp-final{position:relative;isolation:isolate;margin-top:250px;padding:96px max(20px,calc((100% - 1180px)/2)) 132px;background:#1b1440;color:#fff;border-radius:44px 44px 0 0}
@@ -693,22 +687,17 @@ a{color:var(--link)}
   .lp-info-ic svg{width:66px;height:66px}
   .lp-info dt{padding-top:16px}
   .lp-info dd{font-size:17px}
-  .lp-flow{grid-template-columns:1fr 1fr}
-  .lp-ch{grid-template-columns:1fr;gap:6px}
-  .lp-built{padding:0 16px}
-  .lp-cs{border-radius:28px}
-  .lp-cs-row{padding:18px}
-  .lp-cs-thumb{width:84px;height:84px;border-radius:22px}
-  .lp-cs-thumb b{font-size:40px}
-  .lp-cs-cta{width:100%;justify-content:center}
-  .lp-cs-body{padding:0 20px 28px}
+  .lp-beats{grid-template-columns:1fr}
+  .lp-proof-n{font-size:60px}
   .lp-final{border-radius:28px 28px 0 0;padding-top:72px;padding-bottom:56px;margin-top:130px}
   .lp-final-low{grid-template-columns:1fr;margin-top:32px}
   .lp-final-gl{top:-72px;right:-52px;width:210px;height:330px}
 }
 /* phones and iPad: "How it works" and "The app" text is centered. The app's step list keeps its left rail. */
 @media (max-width:1240px){
-  #how,.lp-steps li{text-align:center}
+  #how,.lp-steps li,.lp-prob,.lp-trust{text-align:center}
+  .lp-prob .lp-h2{margin-left:auto;margin-right:auto}
+  .lp-trust-links{justify-content:center}
   .lp-show .lp-h2,.lp-show-lead,.lp-show-slogan{text-align:center}
   .lp-show-lead{margin-left:auto;margin-right:auto}
 }
@@ -725,13 +714,14 @@ a{color:var(--link)}
 }
 /* phones and iPad: "How it works" and the facts sit in a narrow centered column, well inside the app section */
 @media (max-width:640px){
-  .lp-steps,.lp-info{width:min(460px,calc(100% - 40px));margin-left:auto;margin-right:auto}
+  .lp-steps,.lp-info,.lp-beats,.lp-proof{width:min(460px,calc(100% - 40px));margin-left:auto;margin-right:auto}
+  .lp-proof{grid-template-columns:1fr}
 }
 @media (min-width:641px) and (max-width:900px){
-  .lp-steps,.lp-info{max-width:600px;margin-left:auto;margin-right:auto}
+  .lp-steps,.lp-info,.lp-beats{max-width:600px;margin-left:auto;margin-right:auto}
 }
 @media (min-width:901px) and (max-width:1240px){
-  .lp-steps,.lp-info{max-width:860px;margin-left:auto;margin-right:auto}
+  .lp-steps,.lp-info,.lp-beats,.lp-proof{max-width:860px;margin-left:auto;margin-right:auto}
 }
 /* phones and iPad: each fact is centered, icon above its label, to match the centered sections around it */
 @media (max-width:1240px){
@@ -946,7 +936,6 @@ html:has(.lp-hero.playing){overflow:hidden}
 @media (hover:hover){
   /* primaries: pressed in place */
   .lp-btn:not(.ghost):hover{background:rgba(255,255,255,.75);box-shadow:inset 0 5px 0 #6A5DB3;color:#6A5DB3!important}
-  .lp-cs-cta:hover{background:var(--lav);box-shadow:inset 0 5px 0 var(--btn);color:var(--btn)}
   .dr-btn.p:not(:disabled):hover,.dr-btns .dr-btn:first-child:not(:disabled):hover{background:var(--lav);border-color:var(--lav);box-shadow:inset 0 4px 0 var(--btn);color:var(--btn)}
   .lp-rail-pp:hover{box-shadow:inset 0 4px 0 #6A5DB3;color:#6A5DB3}
   /* secondaries on dark: outer glow */
@@ -960,7 +949,7 @@ html:has(.lp-hero.playing){overflow:hidden}
   /* secondaries on light: fade to 70% */
   .dr-btn:not(:disabled):not(.p):not(.dr-btns .dr-btn:first-child):hover,.dr-link:hover,.dr-back:hover,.dr-onphone:hover{opacity:.7}
 }
-@media (prefers-reduced-motion:reduce){.lp-btn,.lp-rail-pp,.dr-btn,.lp-cs-cta,.lp-cs-cta svg,.lp-cs-unfold{transition:none}}
+@media (prefers-reduced-motion:reduce){.lp-btn,.lp-rail-pp,.dr-btn{transition:none}}
 
 /* Game complete recap: a one-time full-screen celebration over a settled game page */
 .recap{position:fixed;inset:0;z-index:30;display:grid;place-items:center;overflow-y:auto;padding:max(24px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));background:radial-gradient(70% 45% at 50% 22%,rgba(140,120,230,.55),transparent 70%),radial-gradient(50% 40% at 0% 90%,rgba(255,201,168,.2),transparent 70%),#1b1440;color:#fff;font-family:var(--sans);animation:fade .25s ease}

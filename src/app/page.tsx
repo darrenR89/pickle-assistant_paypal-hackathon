@@ -4,7 +4,6 @@ import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
 import Logo from "./Logo";
 import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
-import CaseStudy from "./landing/CaseStudy";
 import FinalPhone from "./landing/FinalPhone";
 import StatusBar from "./landing/StatusBar";
 
@@ -48,6 +47,22 @@ const SHOW: Array<ShowcaseStep & { src: string }> = [
   { src: "paid", tab: "Settle", title: "Charged the real share.", body: "After the game each player pays their share. The rest of the hold is released.", chips: ["Never more than the hold", "Receipts sent privately"] },
 ];
 
+
+// The problem band: three beats of what the organizer goes through today.
+const PROBLEM: Array<[string, string]> = [
+  ["Pays up front.", "The court is booked and paid for by one person."],
+  ["Chases the group.", "Payment requests go out one by one and sit unpaid for days."],
+  ["Covers the no-shows.", "Someone drops out the night before, and the organizer pays their share."],
+];
+
+// "Built to be trusted": what a judge checks first. Every number is backed by the repo (see JUDGES.md):
+// 8 PayPal APIs in src/lib/paypal.ts, 104 tests from `pnpm test`.
+const PROOF: Array<{ n: string; k: string; v: string }> = [
+  { n: "0", k: "amounts chosen by the AI", v: "Claude reads the chat. Plain code makes every hold, charge and refund, and a rules parser takes over if Claude is down." },
+  { n: "8", k: "PayPal APIs in a real game", v: "Create order, authorize, void, reauthorize, partial capture, refund, Payouts to the organizer and verified webhooks. Venmo uses the same SDK." },
+  { n: "1", k: "charge per payment, even on retry", v: "Every PayPal write sends a PayPal-Request-Id. A settle cut off by a restart is finished by the next scheduled run." },
+  { n: "104", k: "tests on every pull request", v: "Money maths, the fallback parser, retries and rate limits, with typecheck, lint and build alongside them in CI." },
+];
 
 // Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
 const INFO: Array<{ k: string; v: string; icon: React.ReactNode }> = [
@@ -110,6 +125,17 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="lp-section lp-al lp-prob" aria-labelledby="problem-h">
+        <p className="lp-eyebrow">The problem</p>
+        <h2 id="problem-h" className="lp-h2">One friend pays for the court. Then they chase seven people for $8.</h2>
+        <ul className="lp-beats">
+          {PROBLEM.map(([k, v]) => (
+            <li key={k}><strong>{k}</strong> {v}</li>
+          ))}
+        </ul>
+        <p className="lp-prob-fix">With Paddles In, a spot is held with PayPal, not promised in a chat.</p>
+      </section>
+
       <section className="lp-section lp-al" aria-labelledby="how">
         <h2 id="how" className="lp-h2">How it works</h2>
         <ol className="lp-steps">
@@ -152,83 +178,33 @@ export default function Home() {
         </dl>
       </section>
 
-      <section className="lp-built" id="built" aria-labelledby="built-h">
-        <CaseStudy summary="Five short chapters: the problem, how Claude reads the chat, the PayPal money flow, the design and how it was tested.">
-
-          <article className="lp-ch">
-            <span className="lp-chn">01</span>
-            <div>
-              <h3>The problem</h3>
-              <p>
-                Rec pickleball runs on group chats. One person books the court and pays up front, then chases everyone for their share. People
-                say “maybe”, drop out the night before, or never pay. The organizer ends up out of pocket, and asking for money in the group feels
-                awkward.
-              </p>
-            </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">02</span>
-            <div>
-              <h3>The AI: reads the chat, never moves money</h3>
-              <p>
-                Claude reads every message with forced tool calls. One turns a setup message into game details. Another decides what a reply
-                means: in, out, maybe, waitlist, give my spot to Lee, or a question for the host. If the request is vague, it starts a draft and
-                asks the organizer privately. Questions like “is there parking?” go to the host, not the whole group.
-              </p>
-              <p>
-                The rule throughout: the AI only works out what people mean. Every hold, charge and release is plain, deterministic code. If
-                Claude is unavailable, a rules-based parser keeps things working.
-              </p>
-            </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">03</span>
-            <div>
-              <h3>The money: authorize now, capture later</h3>
-              <ul className="lp-flow" aria-label="PayPal payment flow">
-                <li><strong>Hold</strong><span>Orders v2 with intent AUTHORIZE. Share plus a small cap.</span></li>
-                <li><strong>Release</strong><span>Void the authorization when someone cancels in time.</span></li>
-                <li><strong>Renew</strong><span>Reauthorize holds past PayPal’s 3-day honor period, so they’re good on game day.</span></li>
-                <li><strong>Charge</strong><span>Capture only the real share after the game. The rest is released.</span></li>
-              </ul>
-              <p>
-                Every payment call carries a PayPal-Request-Id so retries never double charge. Venmo appears through the same PayPal JS SDK. A player can
-                never pay more than the hold they approved.
-              </p>
-            </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">04</span>
-            <div>
-              <h3>The design</h3>
-              <p>
-                Pickleball skews older, so the floor was set first: body text 17px or larger, 7:1 contrast, 56px buttons, and nothing that
-                relies on color alone. The game page went through many rounds, with the time as the hero and money explained in plain words. Its layout
-                borrows from event invites like Partiful and Eventbrite, redrawn from scratch.
-              </p>
-            </div>
-          </article>
-
-          <article className="lp-ch">
-            <span className="lp-chn">05</span>
-            <div>
-              <h3>Testing it without a real group</h3>
-              <p>
-                A simulator plays a full group chat, with controls to add people, fill the game and move the clock. The phone demo builds on it so
-                anyone can run a game from their own phone. What’s real: Claude reading every message, and your own PayPal sandbox hold and
-                capture. What’s simulated: the other players and their holds, which are clearly marked.
-              </p>
-            </div>
-          </article>
-
-          <p className="lp-stack">
-            Built with Next.js, TypeScript and Postgres on Render · PayPal Orders v2 and the PayPal JS SDK · Claude Haiku 5.5 by Anthropic ·{" "}
-            <a href={REPO}>Source on GitHub</a> (MIT)
+      <section className="lp-section lp-al lp-trust" id="built" aria-labelledby="built-h">
+        <p className="lp-eyebrow">For judges</p>
+        <h2 id="built-h" className="lp-h2">Built to be trusted</h2>
+        <p className="lp-trust-lead">What we’d check first if we were judging.</p>
+        <ul className="lp-proof">
+          {PROOF.map(({ n, k, v }) => (
+            <li key={k}>
+              <span className="lp-proof-n">{n}</span>
+              <h3>{k}</h3>
+              <p>{v}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="lp-trust-foot">
+          <p>
+            <strong>Real:</strong> Claude reading every message, your own PayPal sandbox hold and capture, and the organizer’s payout.{" "}
+            <strong>Simulated:</strong> the other players and their holds, marked SIM-.
           </p>
-        </CaseStudy>
+          <p className="lp-trust-links">
+            <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a>
+            <a href={`${REPO}/blob/main/docs/PAYPAL.md`}>Every PayPal call</a>
+            <a href={`${REPO}#proof-from-a-real-sandbox-run`}>Sandbox proof</a>
+          </p>
+          <p className="lp-stack">
+            Next.js, TypeScript and Postgres on Render · PayPal Orders v2, Payouts and the JS SDK · Claude Haiku 5.5 · <a href={REPO}>Source on GitHub</a> (MIT)
+          </p>
+        </div>
       </section>
 
       <section className="lp-final" aria-labelledby="final-h">
