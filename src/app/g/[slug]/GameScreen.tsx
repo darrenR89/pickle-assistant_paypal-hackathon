@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/app/Icon";
+import Logo from "@/app/Logo";
 import type { ViewData } from "./page";
 import GameRecap from "./GameRecap";
 
@@ -161,6 +162,7 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
 
   const header = (
     <header className="hdr">
+      <Logo className="hdr-logo" />
       <div className="eyebrow">
         <span className="d">{v.dateLabel}</span>
         {v.kindLabel && (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import HeroStage, { type Chapter } from "./landing/HeroStage";
 import IslandNav from "./landing/IslandNav";
+import Logo from "./Logo";
 import AppShowcase, { type ShowcaseStep } from "./landing/AppShowcase";
 import CaseStudy from "./landing/CaseStudy";
 import FinalPhone from "./landing/FinalPhone";
@@ -246,6 +247,7 @@ export default function Home() {
       </main>
 
       <footer className="lp-foot">
+        <Logo className="lp-foot-logo" />
         <span>Built for the PayPal AI Hackathon 2026. Sandbox only: no real money moves.</span>
         <span>
           <a href={REPO}>GitHub</a> · <a href={`${REPO}/blob/main/JUDGES.md`}>For judges</a> · <Link href="/play">Full simulator</Link>
