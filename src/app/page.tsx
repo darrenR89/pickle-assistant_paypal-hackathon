@@ -50,11 +50,11 @@ const SHOW: Array<ShowcaseStep & { src: string }> = [
 ];
 
 
-// The problem band: three beats of what the organizer goes through today.
+// The problem band: the awkward part of collecting money for a game, in three beats.
 const PROBLEM: Array<[string, string]> = [
-  ["Pays up front.", "The court is booked and paid for by one person."],
-  ["Chases the group.", "Payment requests go out one by one and sit unpaid for days."],
-  ["Covers the no-shows.", "Someone drops out the night before, and the organizer pays their share."],
+  ["Someone has to ask.", "One person books the court, then has to ask friends for $8 in the group chat. Nobody wants to be that person."],
+  ["Not everyone is a friend.", "Friends bring friends. Sending a payment request to someone you’ve never met feels even worse."],
+  ["The host covers the rest.", "When someone drops out the night before, the organizer quietly pays their share."],
 ];
 
 // "Built to be trusted": what a judge checks first. Every number is backed by the repo (see JUDGES.md):
@@ -74,12 +74,15 @@ const STACK: Array<[string, string[]]> = [
   ["Messaging", ["iMessage through Blooio", "SMS through Sendblue"]],
 ];
 
-// ...and how it came together, day by day, from the git history (42 pull requests, Nov 9 to 12).
-const BUILD_DAYS: Array<{ day: string; date: string; title: string; notes: string[] }> = [
-  { day: "Day 1", date: "Mon Nov 9", title: "The assistant works", notes: ["Claude turns a setup text into a game", "Simulator and phone demo", "First landing page and JUDGES.md"] },
-  { day: "Day 2", date: "Tue Nov 10", title: "Money end to end", notes: ["Payouts, refunds and verified webhooks", "Lint, unit tests and CI on every PR", "Rounding cents stay with the organizer"] },
-  { day: "Day 3", date: "Wed Nov 11", title: "Hardened", notes: ["Edge-case review: no overcharge, survives restarts", "Accessibility pass", "Real iMessage and SMS, Paddles In brand"] },
-  { day: "Day 4", date: "Thu Nov 12", title: "Ready for judges", notes: ["Late cancels: charge, cover or wait", "2-minute walkthrough", "Sandbox proof in the README"] },
+// ...and how it came together, day by day (Pacific time), from Darren's hackathon chats and the git history.
+const BUILD_DAYS: Array<{ date: string; title: string; notes: string }> = [
+  { date: "Fri Nov 6", title: "Research and concept", notes: "Rules, judges and Render Workflows. Two concepts written up; the pickleball one wins." },
+  { date: "Sat Nov 7", title: "Rules for the money", notes: "Late cancels, no-shows and called-off games. That night the repo is created and v1 goes live on Render." },
+  { date: "Sun Nov 8", title: "First real hold", notes: "First PayPal sandbox hold approved. The group-chat flow is settled, and 5 design directions explored." },
+  { date: "Mon Nov 9", title: "The assistant works", notes: "Claude turns a setup text into a game. Simulator, phone demo, first landing page and JUDGES.md." },
+  { date: "Tue Nov 10", title: "Money end to end", notes: "Payouts, refunds and verified webhooks. Lint, unit tests and CI on every pull request." },
+  { date: "Wed Nov 11", title: "Hardened", notes: "Edge-case review: no overcharge, survives restarts. Accessibility pass, real iMessage and SMS, Paddles In brand." },
+  { date: "Thu Nov 12", title: "Ready for judges", notes: "Late cancels can be charged, covered or wait for a replacement. 2-minute walkthrough and sandbox proof." },
 ];
 
 // Each fact gets a large line icon (24px grid, drawn with strokes in currentColor).
@@ -145,13 +148,13 @@ export default function Home() {
 
       <section className="lp-section lp-al lp-prob" aria-labelledby="problem-h">
         <p className="lp-eyebrow">The problem</p>
-        <h2 id="problem-h" className="lp-h2">One friend pays for the court. Then they chase seven people for $8.</h2>
+        <h2 id="problem-h" className="lp-h2">Asking friends to pay you back is awkward. Asking strangers is worse.</h2>
         <ul className="lp-beats">
           {PROBLEM.map(([k, v]) => (
             <li key={k}><strong>{k}</strong> {v}</li>
           ))}
         </ul>
-        <p className="lp-prob-fix">With Paddles In, a spot is held with PayPal, not promised in a chat.</p>
+        <p className="lp-prob-fix">Paddles In takes the asking out of it. Saying you’re in holds your share with PayPal, and everyone pays their real share after the game.</p>
       </section>
 
       <section className="lp-section lp-al" id="screens" aria-labelledby="how">
@@ -179,7 +182,7 @@ export default function Home() {
         <CaseStudy
           eyebrow="For judges"
           title="Built to be trusted"
-          summary="Four numbers that show how the money stays safe, what it’s built with, and how it came together in four days."
+          summary="Four numbers that show how the money stays safe, what it’s built with, and how it came together in seven days."
           thumb={["04", "proofs"]}
           cta="See the proof"
         >
@@ -197,14 +200,19 @@ export default function Home() {
               </dl>
             </div>
             <div className="lp-build-time">
-              <h3>Four days, start to finish</h3>
-              <p className="lp-build-sub">42 pull requests, each one through typecheck, lint, tests and build.</p>
+              <h3>Seven days, start to finish</h3>
+              <p className="lp-build-sub">
+                The idea came first: on Oct 16 an older pickleball app idea became one about money. The build ran through hackathon week, with
+                42 pull requests, each one through typecheck, lint, tests and build.
+              </p>
               <ol>
                 {BUILD_DAYS.map((d) => (
-                  <li key={d.day}>
-                    <span className="lp-build-day">{d.day} · {d.date}</span>
-                    <strong>{d.title}</strong>
-                    <ul>{d.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+                  <li key={d.date}>
+                    <span className="lp-build-day">{d.date}</span>
+                    <div>
+                      <strong>{d.title}</strong>
+                      <p>{d.notes}</p>
+                    </div>
                   </li>
                 ))}
               </ol>
