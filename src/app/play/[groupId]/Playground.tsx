@@ -70,6 +70,7 @@ export default function Playground({ groupId }: { groupId: string }) {
   const [pick, setPick] = useState("");
   const [clock, setClock] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [where, setWhere] = useState<"browser" | "phone">("browser");
   const [running, setRunning] = useState<{ id: string; step: string } | null>(null);
   const groupBody = useRef<HTMLDivElement>(null);
   const dmBody = useRef<HTMLDivElement>(null);
@@ -569,14 +570,24 @@ export default function Playground({ groupId }: { groupId: string }) {
         )}
       </div>
 
+      <div className="sim-where" role="group" aria-label="Where you send messages from">
+        <button type="button" aria-pressed={where === "browser"} onClick={() => setWhere("browser")}>
+          Simulated phone
+        </button>
+        <button type="button" aria-pressed={where === "phone"} onClick={() => setWhere("phone")}>
+          Your own phone
+        </button>
+      </div>
+      {where === "phone" && <PhoneQr groupId={groupId} personId={viewer.id} personName={viewer.name} />}
+
       <form
         className="sim-say"
         onSubmit={(e) => {
           e.preventDefault();
-          runSample(picked);
+          if (where === "browser") runSample(picked);
         }}
       >
-        <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
+        <label className="sim-label" htmlFor="sim-say">{where === "browser" ? "Send a sample message" : "Suggested messages to text"}</label>
         <select id="sim-say" className="sim-select" value={picked.label} onChange={(e) => setPick(e.target.value)}>
           {samples.map(([title, list]) => (
             <optgroup key={title} label={title}>
@@ -592,11 +603,17 @@ export default function Playground({ groupId }: { groupId: string }) {
           <span>{viewer.name}:</span> “{picked.text}”
         </p>
         <p className="sim-hint">
-          {isHost ? `${viewer.name} is the host, so these are host messages.` : `Host messages, like adding someone, are under ${hostName}. Tap their pill.`}
+          {where === "phone"
+            ? `Type it on your phone as ${viewer.name}. This page shows it as soon as it’s sent.`
+            : isHost
+              ? `${viewer.name} is the host, so these are host messages.`
+              : `Host messages, like adding someone, are under ${hostName}. Tap their pill.`}
         </p>
-        <button className="dr-btn p" disabled={busy}>
-          {sending ? "Sending…" : `Send as ${viewer.name}`}
-        </button>
+        {where === "browser" && (
+          <button className="dr-btn p" disabled={busy}>
+            {sending ? "Sending…" : `Send as ${viewer.name}`}
+          </button>
+        )}
       </form>
     </section>
   );
@@ -605,12 +622,9 @@ export default function Playground({ groupId }: { groupId: string }) {
     <SimShell
       controls={scenarios}
       actions={
-        <>
-          <PhoneQr groupId={groupId} personId={viewer.id} personName={viewer.name} />
-          <button type="button" className="sp-link" onClick={newGroup}>
-            New<span className="sp-wide"> demo</span> group
-          </button>
-        </>
+        <button type="button" className="sp-link" onClick={newGroup}>
+          New<span className="sp-wide"> demo</span> group
+        </button>
       }
     >
       <p className="sim-note" role="status">
@@ -635,23 +649,27 @@ export default function Playground({ groupId }: { groupId: string }) {
             <div className="phone-body" role="log" aria-label="Group messages" ref={groupBody}>
               {groupMsgs.map((m) => bubble(m))}
             </div>
-            <form className="phone-compose" onSubmit={send}>
-              <label className="sr-only" htmlFor="compose">
-                Message as {viewer.name}
-              </label>
-              <input
-                id="compose"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={`iMessage as ${viewer.name}`}
-                maxLength={500}
-              />
-              <button type="submit" disabled={sending || !text.trim()} aria-label="Send">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </form>
+            {where === "phone" ? (
+              <p className="phone-compose phone-elsewhere">Sending from your own phone</p>
+            ) : (
+              <form className="phone-compose" onSubmit={send}>
+                <label className="sr-only" htmlFor="compose">
+                  Message as {viewer.name}
+                </label>
+                <input
+                  id="compose"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={`iMessage as ${viewer.name}`}
+                  maxLength={500}
+                />
+                <button type="submit" disabled={sending || !text.trim()} aria-label="Send">
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </form>
+            )}
           </div>
         </section>
 
