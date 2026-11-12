@@ -1015,3 +1015,13 @@ html:has(.lp-hero.playing){overflow:hidden}
 .pi-stacked{flex-direction:column;align-items:flex-start;gap:.18em}
 .pi-stacked svg{width:2.486em;height:2.689em;margin-left:.895em}
 .dp-logo{font-size:34px}
+/* In the landing header the logo runs 15% larger than the link text beside it. */
+.lp-logo .pi{font-size:1.15em}
+/* In the scrolled pill, twice the usual 8px gap between the logo and "Try it". */
+.lp-isle.scrolled .lp-isle-pill .lp-logo{margin-right:8px}
+/* Footer: logo on the left, then the note, with the links pushed to the right. */
+.lp-foot{align-items:center;column-gap:20px}
+.lp-foot-logo{font-size:24px}
+.lp-foot>span:last-child{margin-left:auto}
+/* Small logo at the top of the game page header. */
+.hdr-logo{align-self:center;font-size:17px;margin:-4px 0 14px}
