@@ -32,6 +32,7 @@ import { dropSavedMethods } from "./delayed";
 import { parseGameRequest, zonedTime } from "./parse";
 import { type Decision, type GroupContext, buildContext, resolveMember, understand, worthReading } from "./agent";
 import { KIND_LABEL, perCourt } from "./details";
+import { refilledCount, repostsLink } from "@/lib/limits";
 
 const DEFAULT_CAP_CENTS = 200;
 const CANCEL_BY_HOURS = 24;
@@ -494,7 +495,8 @@ export async function playerJoined(game: Game, personId: string, authorizationId
     await playerOut(game, giver, { replaced: true });
   }
 
-  if (!retried) await postGroup(game.group_id, await rosterLine(game));
+  if (!retried) await postJoinedLine(game);
+  if (!retried) await spotsRefilled(game, personId);
   // First private text to someone who opted in: say who we are before anything else.
   const p = await one<{ name: string; texts_opt_in: boolean; texts_welcomed: boolean }>(
     "select name, texts_opt_in, texts_welcomed from people where id = $1",
@@ -559,7 +561,7 @@ export async function playerOut(game: Game, personId: string, opts: { replaced?:
   await postDm(
     game.group_id,
     game.organizer_id,
-    `${person?.name} cancelled after the free-cancel time. Charge their ${money(game.share_cents)} share or cover it?`,
+    `${person?.name} cancelled after the free-cancel time. Charge their ${money(game.share_cents)} share, cover it, or wait: if someone takes the spot they owe nothing, and if not they're charged after the game.`,
     `${game.slug}?o=${game.organizer_token}`,
     { always: true },
   );
@@ -576,7 +578,70 @@ export async function tagWaitlist(game: Game) {
   await postGroup(game.group_id, `${next.name}, a spot just opened. It's yours if you grab it first:`, game.slug);
 }
 
-export async function resolveLateCancel(game: Game, spotId: string, decision: "charge" | "cover") {
+/**
+ * Someone joined. Each late cancel whose spot is now filled again owes nothing: the new player pays that share.
+ * Undecided ones are released; ones the organizer already charged are offered back to the organizer as a refund.
+ * Oldest late cancel first. The count is how many dropped spots are filled: late cancels minus spots still open.
+ */
+export async function spotsRefilled(game: Game, joinerId: string) {
+  const entries = await roster(game.id);
+  const open = game.spots - inPlayers(entries).length;
+  const late = entries
+    .filter((e) => e.late_cancel === "pending" || (e.late_cancel === "charged" && e.hold_status === "captured"));
+  const filled = refilledCount(late.length, open);
+  if (filled <= 0) return;
+  const joiner = await personById(joinerId);
+  for (const e of late.slice(0, filled)) {
+    const done = await one("select 1 from events where game_id = $1 and person_id = $2 and kind = 'late_spot_filled'", [game.id, e.person_id]);
+    if (done) continue;
+    await logEvent(game.id, e.person_id, "late_spot_filled", { by: joinerId });
+    if (e.late_cancel === "pending") {
+      await resolveLateCancel(game, e.id, "cover", { silent: true });
+      await postDm(game.group_id, e.person_id, `${joiner?.name ?? "Someone"} took your spot for ${whenLabel(game.starts_at)}, so you're not charged. Your hold is released.`);
+      await postDm(
+        game.group_id,
+        game.organizer_id,
+        `${joiner?.name ?? "Someone"} took ${e.name}'s spot, so ${e.name}'s late cancel is covered and their hold released. Nothing for you to do.`,
+        `${game.slug}?o=${game.organizer_token}`,
+        { always: true },
+      );
+    } else {
+      const owed = (e.captured_cents ?? 0) - e.refunded_cents;
+      if (owed <= 0) continue;
+      await q(
+        `insert into intents (game_id, person_id, kind) values ($1, $2, 'refund')
+         on conflict (game_id, person_id) do update set kind = 'refund', said_at = now()`,
+        [game.id, e.person_id],
+      );
+      await postDm(
+        game.group_id,
+        game.organizer_id,
+        `${joiner?.name ?? "Someone"} took ${e.name}'s spot, and you charged ${e.name}'s late cancel. Refund their ${money(owed)}?`,
+        `${game.slug}?o=${game.organizer_token}`,
+        { always: true },
+      );
+    }
+  }
+}
+
+/** The organizer will wait: the late cancel is charged at settle-up unless someone takes the spot first. */
+export async function waitForReplacement(game: Game, spotId: string) {
+  const spot = (await roster(game.id)).find((e) => e.id === spotId && e.late_cancel === "pending");
+  if (!spot) return;
+  await q(
+    `insert into intents (game_id, person_id, kind) values ($1, $2, 'late_wait')
+     on conflict (game_id, person_id) do update set kind = 'late_wait', said_at = now()`,
+    [game.id, spot.person_id],
+  );
+  await logEvent(game.id, spot.person_id, "late_cancel_wait");
+  await postDm(
+    game.group_id,
+    spot.person_id,
+    `The organizer is holding your spot open for ${whenLabel(game.starts_at)}. If someone takes it, you're not charged. If nobody does, your ${money(game.share_cents)} share is charged after the game.`,
+  );
+}
+
+export async function resolveLateCancel(game: Game, spotId: string, decision: "charge" | "cover", opts: { silent?: boolean } = {}) {
   const entries = await roster(game.id);
   const spot = entries.find((e) => e.id === spotId && e.late_cancel === "pending");
   if (!spot || !spot.authorization_id) return;
@@ -597,12 +662,13 @@ export async function resolveLateCancel(game: Game, spotId: string, decision: "c
     } else {
       await releaseHold(spot.authorization_id);
       await q("update spots set hold_status = 'voided', updated_at = now() where id = $1", [spot.id]);
-      await postDm(game.group_id, spot.person_id, `Good news: the organizer covered your late cancel. Your hold is released.`);
+      if (!opts.silent) await postDm(game.group_id, spot.person_id, `Good news: the organizer covered your late cancel. Your hold is released.`);
     }
   } catch (err) {
     await q("update spots set late_cancel = 'pending' where id = $1", [spot.id]);
     throw err;
   }
+  await q("delete from intents where game_id = $1 and person_id = $2 and kind = 'late_wait'", [game.id, spot.person_id]);
   await logEvent(game.id, spot.person_id, `late_cancel_${decision}`);
 }
 
@@ -611,7 +677,7 @@ export async function resolveLateCancel(game: Game, spotId: string, decision: "c
 export async function nudgeUnfinished(game: Game) {
   const rows = await q<{ person_id: string; name: string }>(
     `select i.person_id, p.name from intents i join people p on p.id = i.person_id
-     where i.game_id = $1 and not i.nudged`,
+     where i.game_id = $1 and not i.nudged and i.kind not in ('refund', 'late_wait')`,
     [game.id],
   );
   if (!rows.length) return 0;
@@ -911,8 +977,8 @@ export async function requestRefund(game: Game, personId: string) {
     game.group_id,
     game.organizer_id,
     payoutUnderway(game.payout_status)
-      ? `${spot.name} says they did show up for ${whenLabel(game.starts_at)}. You've already been paid back for this game, so if you agree, send them ${money(owed)} yourself, then tap Keep it to clear the request.`
-      : `${spot.name} says they did show up for ${whenLabel(game.starts_at)}. Refund their ${money(owed)}?`,
+      ? `${spot.name} asked about their late-cancel charge for ${whenLabel(game.starts_at)}. You've already been paid back for this game, so if you agree, send them ${money(owed)} yourself, then tap Keep it to clear the request.`
+      : `${spot.name} asked about their late-cancel charge for ${whenLabel(game.starts_at)}. Refund their ${money(owed)}?`,
     `${game.slug}?o=${game.organizer_token}`,
     { always: true },
   );
@@ -923,6 +989,8 @@ export async function refundSpot(game: Game, spotId: string) {
   const spot = (await roster(game.id)).find((e) => e.id === spotId);
   const owed = spot ? (spot.captured_cents ?? 0) - spot.refunded_cents : 0;
   if (!spot || spot.hold_status !== "captured" || owed <= 0) throw new Error("There's nothing left to refund.");
+  // Refunds are for a late cancel the organizer charged; everyone who played pays their share.
+  if (spot.late_cancel !== "charged") throw new Error("Only a charged late cancel can be refunded.");
   if (!spot.capture_id) throw new Error("This charge was made before refunds were tracked, so it can't be refunded here.");
   // Once the organizer has been paid, a refund here would come out of the app's own balance.
   if (payoutUnderway(game.payout_status)) throw new Error(`You've already been paid back for this game, so send ${spot.name} ${money(owed)} yourself.`);
@@ -1011,6 +1079,14 @@ async function stickyChoice<T extends string>(game: Game, wanted: T, family: rea
   );
   const prior = family.find((c) => c === row?.closing_choice);
   return row?.started && prior ? prior : wanted;
+}
+
+/** The roster after someone joins. Every fourth player, while spots are left, it carries the game link again. */
+export async function postJoinedLine(game: Game) {
+  const n = inPlayers(await roster(game.id)).length;
+  const line = await rosterLine(game);
+  if (repostsLink(n, game.spots)) return postGroup(game.group_id, `${line} Tap to play:`, game.slug);
+  return postGroup(game.group_id, line);
 }
 
 export async function rosterLine(game: Game) {

@@ -12,8 +12,16 @@ type Body =
   | { action: "addPerson"; name?: string }
   | { action: "join"; personId?: string }
   | { action: "fill" }
-  | { action: "time"; mode?: "before" | "gameday" | "soon" | "over" }
+  | { action: "time"; mode?: "week" | "before" | "gameday" | "soon" | "over" }
   | { action: "tick" };
+
+// What players say in the group as they join. Some just tap the link and say nothing, like in a real chat.
+const SAYS = ["I'm in!", "count me in", null, "in 🙌", "yep, in", null, "see you there", "in"];
+
+/** A player's message in the group chat, shown as if they typed it. It isn't read by the assistant. */
+async function say(groupId: string, personId: string, text: string | null) {
+  if (text) await q("insert into messages (group_id, sender_id, text) values ($1, $2, $3)", [groupId, personId, text]);
+}
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -40,7 +48,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
       case "join": {
         if (!game) return NextResponse.json({ error: "Create a game first" }, { status: 409 });
-        const r = await simulatedJoin(game, body.personId ?? "");
+        const pid = body.personId ?? "";
+        const entries = await roster(game.id);
+        const open = !entries.some((e) => e.person_id === pid && e.status === "in") && inPlayers(entries).length < game.spots;
+        if (open && (await isInvited(game, pid))) await say(id, pid, "I'm in");
+        const r = await simulatedJoin(game, pid);
         return r.error ? NextResponse.json(r, { status: 409 }) : NextResponse.json(r);
       }
       case "fill": {
@@ -52,6 +64,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           if (inPlayers(entries).length >= game.spots - 1) break; // leave one spot open for you
           if (entries.some((e) => e.person_id === m.id && e.status === "in")) continue;
           if (!(await isInvited(game, m.id))) continue;
+          if (m.id !== game.organizer_id) await say(id, m.id, SAYS[added % SAYS.length]);
           const r = await simulatedJoin(game, m.id);
           if (!r.error) added++;
         }

@@ -219,7 +219,7 @@ a{color:var(--link)}
 .sim-card.on{border-color:var(--ball);background:rgba(255,201,168,.1)}
 .sim-card-step{font-weight:700;color:var(--ball)}
 .sp .sim-card .dr-btn{height:32px;margin-top:2px}
-.sim-manual{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.4fr);align-items:center;gap:16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
+.sim-manual{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.7fr);align-items:center;gap:16px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
 .sim-links{display:flex;gap:16px}
 .sim-links a{color:#fff;font:600 14px/1 var(--sans);text-underline-offset:3px;transition:opacity .2s}
 @media (hover:hover){.sim-links a:hover{opacity:.7}}
@@ -238,10 +238,15 @@ a{color:var(--link)}
 .sim-pill-x{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;color:var(--muted)}
 .sim-say{display:flex;flex-direction:column;gap:6px;margin-top:16px}
 /* beside the phones: people and the sample message, on the same dark glass as the top bar */
-.sim-people{position:sticky;top:20px;align-self:start;min-width:0;padding:16px;border-radius:20px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);color:#fff}
+.sim-people{min-width:0;padding:16px;border-radius:20px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);color:#fff}
 .sim-scn-acts{display:flex;gap:6px}
 .sp .sim-scn-acts .dr-btn{flex:1;width:auto}
-.sim-track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.sim-side{position:sticky;top:20px;align-self:start;display:grid;gap:16px;min-width:0}
+.sim-clock{padding:14px 16px;border-radius:20px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.14);color:#fff}
+.sim-clock h2{margin:0}
+.sim-clock-time{margin:4px 0 2px;font:700 26px/1.1 var(--sans);color:var(--ball)}
+.sim-clock .sim-hint{margin:0}
+.sim-track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 .sim-track li{position:relative}
 .sim-track li+li::before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:rgba(255,255,255,.28)}
 .sim-track button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:4px 2px;border:0;border-radius:10px;background:none;color:#fff;text-align:center}
@@ -285,7 +290,7 @@ a{color:var(--link)}
 @media (max-width:1240px){
   .sim-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
   .sim-grid{grid-template-columns:repeat(2,minmax(0,390px))}
-  .sim-people{grid-column:1/-1;position:static}
+  .sim-side{grid-column:1/-1;position:static}
   .phone.lp-phone{height:min(760px,calc(100dvh - 48px))}
 }
 @media (max-width:900px){

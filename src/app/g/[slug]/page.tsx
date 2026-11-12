@@ -5,6 +5,7 @@ import {
   type Game,
   TZ,
   cancelRule,
+  gameNow,
   getGame,
   holdCents,
   inPlayers,
@@ -96,7 +97,7 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
   if (mine?.hold_status === "captured" && (mine.captured_cents ?? 0) > 0 && mine.refunded_cents >= (mine.captured_cents ?? 0)) me = "refunded";
 
   // Delayed holds: a far-off game saves the player's PayPal now and holds two days before.
-  const savesFirst = game.status === "open" && mine?.status !== "in" && delaysHold(start, new Date(), delayedHoldsOn());
+  const savesFirst = game.status === "open" && mine?.status !== "in" && delaysHold(start, gameNow(game), delayedHoldsOn());
   const myHold = mine?.status === "in" && (mine.hold_status === "saved" || mine.hold_status === "failed") ? mine.hold_status : null;
 
   const view = {
@@ -110,7 +111,7 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
     o: isOrganizer ? o! : null,
     clientId: process.env.PAYPAL_CLIENT_ID ?? "",
     status: game.status,
-    over: Date.now() > start.getTime(),
+    over: gameNow(game).getTime() > start.getTime(),
     clock,
     meridiem,
     dateLabel: fmt(start, { weekday: "short", month: "short", day: "numeric" }),
@@ -202,9 +203,10 @@ async function organizerData(game: Game) {
         refundedCents: e.refunded_cents,
         lateCharged: e.late_cancel === "charged",
         refundAsked: waiting.some((w) => w.id === e.person_id && w.kind === "refund"),
+        lateWait: waiting.some((w) => w.id === e.person_id && w.kind === "late_wait"),
         personId: e.person_id,
       })),
-    waiting: waiting.filter((w) => w.kind !== "refund").map((w) => ({ id: w.id, name: w.name, kind: w.kind })),
+    waiting: waiting.filter((w) => w.kind !== "refund" && w.kind !== "late_wait").map((w) => ({ id: w.id, name: w.name, kind: w.kind })),
   };
 }
 

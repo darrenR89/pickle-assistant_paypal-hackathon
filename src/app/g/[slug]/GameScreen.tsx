@@ -132,15 +132,6 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
     return true;
   }
 
-  async function askRefund() {
-    setBusy(true);
-    const res = await post("refund", { p: v.p });
-    setBusy(false);
-    if (!res.ok) setToast(res.data.error ?? "Couldn’t send that");
-    else setToast(`Asked ${v.hostName} privately.`);
-    router.refresh();
-  }
-
   async function dropOut() {
     setBusy(true);
     const res = await post("out", { p: v.p });
@@ -367,15 +358,21 @@ export default function GameScreen({ view: v, demo = null }: { view: ViewData; d
         body={
           v.status === "cancelled"
             ? `The game was called off after free cancel and the court fee couldn’t be refunded. The rest of your hold was released.`
-            : v.refundAsked
-              ? `You told ${v.hostName} you did show up. They’ll refund it or keep the charge, and you’ll hear either way.`
-              : `${v.hostName} charged the late cancel. The rest of your hold was released. Came anyway? Tell ${v.hostName} and they can refund it.`
+            : `${v.hostName} charged the late cancel. The rest of your hold was released. If someone takes your spot, ${v.hostName} can refund it.`
         }
-        action={v.refundAsked || v.status === "cancelled" ? undefined : { label: "I did show up", onClick: askRefund }}
       />,
     );
   if (v.me === "refunded") notices.push(<Notice key="rf" icon="check" title={`Refunded ${money(v.myRefundedCents)}`} body={`${v.hostName} refunded your charge. It goes back to your PayPal or Venmo.`} />);
-  if (v.me === "covered") notices.push(<Notice key="co" icon="check" title={`${v.hostName} covered your spot`} body="Your hold was released in full. You weren’t charged." />);
+  if (v.me === "covered")
+    notices.push(
+      <Notice
+        key="co"
+        icon="check"
+        title={`${v.hostName} covered your spot`}
+        body={`Your hold was released in full. You weren’t charged.${v.status === "open" && left > 0 ? " Made it after all? Tap below to pay your share like everyone else." : ""}`}
+        action={v.status === "open" && left > 0 ? { label: "I showed up", onClick: () => { setErr(null); setFormErr(null); setSheet("join"); } } : undefined}
+      />,
+    );
   if (v.myHold === "saved" && v.status === "open" && !org)
     notices.push(<Notice key="sv" icon="check" title="You’re in. No hold yet" body={`Your PayPal is saved. We’ll place your ${money(v.holdCents)} hold on ${v.holdDateLabel} and tell you when we do. Drop out before then and your saved PayPal is removed.`} />);
   if (v.myHold === "failed" && v.status === "open")
@@ -992,7 +989,7 @@ function OrganizerCard({
   busy,
 }: {
   v: ViewData;
-  onLate: (spotId: string, d: "charge" | "cover") => void;
+  onLate: (spotId: string, d: "charge" | "cover" | "wait") => void;
   onInvite: (personId: string, yes: boolean) => void;
   onRefund: (p: RefundTarget) => void;
   onKeep: (personId: string) => void;
@@ -1023,8 +1020,8 @@ function OrganizerCard({
             <div style={{ display: "flex", gap: 14 }}>
               <Icon name="receipt" />
               <div className="tx">
-                <span className="ttl">{p.name} says they did show up</span>
-                <span className="sub">Refund their {money(owed(p))} through PayPal, or keep the charge. Only {p.name} hears what you decide.</span>
+                <span className="ttl">{p.name}’s spot was filled</span>
+                <span className="sub">You charged {p.name}’s late cancel, and someone has taken the spot. Refund their {money(owed(p))} through PayPal, or keep the charge. Only {p.name} hears what you decide.</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
@@ -1057,13 +1054,20 @@ function OrganizerCard({
             <div style={{ display: "flex", gap: 14 }}>
               <Icon name="alert" color="var(--danger)" />
               <div className="tx">
-                <span className="ttl">{p.name} cancelled after free cancel</span>
-                <span className="sub">Charge their {money(v.shareCents)} share, or cover it and release their hold.</span>
+                <span className="ttl">{p.lateWait ? `Waiting for someone to take ${p.name}’s spot` : `${p.name} cancelled after free cancel`}</span>
+                <span className="sub">
+                  {p.lateWait
+                    ? `If someone takes it, ${p.name} owes nothing and their hold is released. If nobody does, their ${money(v.shareCents)} share is charged after the game.`
+                    : `Choose how you want to handle their ${money(v.shareCents)} share.`}
+                </span>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button className="cta" style={{ flex: 1, fontSize: 20 }} disabled={busy} onClick={() => onLate(p.id, "charge")}>Charge {money(v.shareCents)}</button>
               <button className="cta ghost" style={{ flex: 1, fontSize: 20 }} disabled={busy} onClick={() => onLate(p.id, "cover")}>Cover it</button>
+              {!p.lateWait && (
+                <button className="cta ghost" style={{ flex: "1 1 100%", fontSize: 20 }} disabled={busy} onClick={() => onLate(p.id, "wait")}>Wait for a replacement</button>
+              )}
             </div>
           </div>
         ))}
@@ -1108,7 +1112,7 @@ function OrganizerCard({
                           ? "Hold released"
                           : "—"}
               </span>
-              {!p.isHost && owed(p) > 0 && (
+              {!p.isHost && p.lateCharged && owed(p) > 0 && (
                 <button className="lnk" style={{ marginLeft: 4, fontSize: 15 }} disabled={busy} onClick={() => onRefund({ id: p.id, name: p.name, cents: owed(p) })}>
                   Refund
                 </button>

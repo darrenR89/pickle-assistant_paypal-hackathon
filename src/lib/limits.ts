@@ -95,3 +95,15 @@ export function holdBlocked(game: { status: string; spots: number }, inCount: nu
   if (inCount >= game.spots && !offered) return "The game just filled up, so no hold was placed.";
   return null;
 }
+
+// ---------- Keeping the link in view ----------
+
+/** Every fourth player in, while spots are left, the roster update carries the game link again so it isn't buried. */
+export function repostsLink(inCount: number, spots: number) {
+  return inCount > 0 && inCount % 4 === 0 && inCount < spots;
+}
+
+/** How many late cancels a join has replaced: dropped spots that are filled again (late cancels minus spots still open). */
+export function refilledCount(lateCancels: number, spotsOpen: number) {
+  return Math.max(0, Math.min(lateCancels, lateCancels - Math.max(0, spotsOpen)));
+}

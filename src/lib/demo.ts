@@ -3,7 +3,7 @@
 // and the judge's own PayPal sandbox hold are real; the other players and their holds are simulated.
 
 import { one, q } from "./db";
-import { type Game, inPlayers, openGameForGroup, roster } from "./games";
+import { type Game, gameNow, inPlayers, openGameForGroup, roster } from "./games";
 import { DEMO_PLAYER, createPlaygroundGroup, groupPeople } from "./playground";
 import { addContact, sendblueNumber } from "./sendblue";
 import { normalizePhone } from "./phone";
@@ -58,7 +58,7 @@ export async function demoState(groupId: string) {
       status: game.status,
       spots: game.spots,
       inCount: playing.length,
-      over: Date.now() > new Date(game.starts_at).getTime(),
+      over: gameNow(game).getTime() > new Date(game.starts_at).getTime(),
       lateWaiting: entries.some((e) => e.late_cancel === "pending"),
       // The judge's own hold, placed as Jo through the real PayPal sandbox.
       playerHold: joSpot ? { status: joSpot.hold_status, real: !!joSpot.authorization_id && !joSpot.authorization_id.startsWith("SIM-"), cents: joSpot.hold_cents ?? 0, captured: joSpot.captured_cents ?? 0 } : null,

@@ -1,9 +1,9 @@
 // Shared by the landing page screenshots and the simulator phones (/play).
 /** iOS-style status bar (time, Dynamic Island, signal, Wi-Fi, battery) so the shots read as a phone. */
-export default function StatusBar() {
+export default function StatusBar({ time = "9:41" }: { time?: string }) {
   return (
     <span className="lp-status" aria-hidden="true">
-      <span className="lp-status-time">9:41</span>
+      <span className="lp-status-time">{time}</span>
       <span className="lp-status-island" />
       <span className="lp-status-icons">
         <svg viewBox="0 0 18 12" width="18" height="12">

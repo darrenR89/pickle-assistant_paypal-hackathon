@@ -11,6 +11,23 @@ import type { ViewData } from "./page";
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
 
+// The headline, picked per game so it stays the same each time that game's recap opens. The last words are highlighted.
+const HEADLINES: Array<[string, string]> = [
+  ["Hope you didn’t get", "pickled."],
+  ["That’s game,", "point, match."],
+  ["Dinks were", "delivered."],
+  ["You stayed out of", "the kitchen."],
+  ["Zero, zero,", "settled."],
+  ["Nice hands at", "the net."],
+  ["Erne, drop,", "dink, done."],
+  ["Paddles down,", "all paid up."],
+];
+function headlineFor(slug: string) {
+  let h = 7;
+  for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) % 100003;
+  return HEADLINES[h % HEADLINES.length];
+}
+
 export default function GameRecap({ v }: { v: ViewData }) {
   const org = v.organizer;
   const eligible = v.status === "settled" && (v.me === "paid" || Boolean(org));
@@ -54,6 +71,7 @@ export default function GameRecap({ v }: { v: ViewData }) {
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
+  const [lead, hit] = headlineFor(v.slug);
   const rows: Array<[string, string, boolean?]> = org
     ? [["Played", `${v.players.length} of ${v.spots}`], ["Court cost", money(org.totalCents)], ["Collected", money(org.collectedCents), true]]
     : [
@@ -69,7 +87,7 @@ export default function GameRecap({ v }: { v: ViewData }) {
       <canvas ref={canvas} className="recap-fx" aria-hidden="true" />
       <div className="recap-in">
         <p className="recap-eyebrow">Game complete · {v.dateLabel}</p>
-        <h2 id="recap-h">Hope you didn’t get <span>pickled.</span></h2>
+        <h2 id="recap-h">{lead} <span>{hit}</span></h2>
         <p className="recap-sub">{v.place} · {v.players.length} played</p>
         <div className="recap-card">
           <p className="recap-cap">{org ? "Your game" : "Your recap"}</p>

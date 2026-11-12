@@ -11,7 +11,7 @@ PayPal/Venmo popup  buyer approves in PayPal's own window  │  hold for share +
 drops out early     Payments v2 void                         hold released
 game is 3+ days out Payments v2 reauthorize (scheduled)      hold renewed
 after the game      Payments v2 capture, partial             real share only, rest released
-"I did show up"     Payments v2 refund                       organizer approves privately
+Late cancel refund  Payments v2 refund                       organizer approves privately
 all settled         Payouts v1, Venmo or PayPal              organizer paid back once
 any of the above    Webhooks, signature verified             records kept in step
 ```
@@ -26,7 +26,7 @@ any of the above    Webhooks, signature verified             records kept in ste
 | A hold passes PayPal's 3-day honor period before the game | `POST /v2/payments/authorizations/{id}/reauthorize` | `reauthorize` | `reauthorize-{authorizationId}` | `reauthorizeHold` in `src/workflows/tasks.ts` (Render Workflows) |
 | Settle-up after the game | `POST /v2/payments/authorizations/{id}/capture` with a **partial** amount and `final_capture: true` | `captureAuthorization` | `capture-{authorizationId}` | `settleGame` / `chargeHold` in `src/bot/assistant.ts` |
 | Late cancel the organizer chooses to charge | same capture, for the share only | `captureAuthorization` | `capture-{authorizationId}` | `src/bot/assistant.ts` |
-| Charged player says "I did show up" and the organizer agrees | `POST /v2/payments/captures/{id}/refund` | `refundCapture` | `refund-{captureId}` | `refundSpot` in `src/bot/assistant.ts` |
+| A charged late cancel's spot is filled and the organizer refunds it | `POST /v2/payments/captures/{id}/refund` | `refundCapture` | `refund-{captureId}` | `refundSpot` in `src/bot/assistant.ts` |
 | Everything collected goes back to the organizer | `POST /v1/payments/payouts` to a Venmo phone or @handle, or a PayPal email | `createPayout` | the batch id, built from game, address and retry round | `payOrganizer` in [`src/bot/payout.ts`](../src/bot/payout.ts) |
 | Every webhook PayPal sends | `POST /v1/notifications/verify-webhook-signature` | `verifyWebhook` | read only | [`src/app/api/paypal/webhook/route.ts`](../src/app/api/paypal/webhook/route.ts) |
 

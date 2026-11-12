@@ -51,7 +51,7 @@ Rec pickleball is organized in group chats. One person books the court and pays 
 3. **It handles the messy middle:** free-form replies (out, maybe, waitlist, "can Lee take my spot?", "is there parking?"), late cancels (organizer charges or covers), invite-only games and reminders.
 4. **It settles after the game:** each player is captured for their real share; the rest of each hold is released. If the game ran short, the organizer chooses to split the gap (never past the cap players agreed to) or cover it. Money details only ever go to people privately.
 5. **It pays the organizer back:** what was collected goes to the organizer's Venmo (phone or @handle) or PayPal email in one PayPal Payout, with a private note when it lands.
-6. **It fixes mistakes:** a charged player can tap "I did show up"; the organizer refunds through PayPal in one tap. If the game is called off after free cancel and the court fee is lost, the organizer can charge each player their share instead of releasing everyone.
+6. **It fixes mistakes:** on a late cancel the organizer can charge, cover, or wait for a replacement. If someone takes the spot, the dropout owes nothing: an undecided hold is released, and a charge the organizer already took is offered back as a one-tap PayPal refund. A covered player who turns up anyway taps "I showed up" and pays their share. If the game is called off after free cancel and the court fee is lost, the organizer can charge each player their share instead of releasing everyone.
 
 ## How PayPal and AI are used
 

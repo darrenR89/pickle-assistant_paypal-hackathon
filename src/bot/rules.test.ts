@@ -18,7 +18,7 @@ const action = (text: string, over?: Partial<GroupContext>) => withRules(ctx(ove
 
 describe("withRules (the fallback when Claude is unavailable)", () => {
   it("reads joins", () => {
-    for (const t of ["in", "I'm in", "count me in", "im down", "+1"]) assert.equal(action(t), "join", t);
+    for (const t of ["in", "I'm in", "count me in", "im down", "+1", "yeah I'm down", "yes, in", "ok count me in"]) assert.equal(action(t), "join", t);
   });
   it("reads drop-outs", () => {
     for (const t of ["can't make it", "I'm out", "out", "have to bail"]) assert.equal(action(t), "leave", t);
@@ -26,6 +26,7 @@ describe("withRules (the fallback when Claude is unavailable)", () => {
   it("reads maybes and waitlist", () => {
     assert.equal(action("maybe if work lets out"), "maybe");
     assert.equal(action("put me on the waitlist"), "waitlist");
+    assert.equal(action("waitlist me"), "waitlist");
   });
   it("names who gets a spot", () => {
     const d = withRules(ctx(), "can Lee take my spot?");
