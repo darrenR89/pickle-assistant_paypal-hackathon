@@ -55,11 +55,12 @@ const SCENARIOS: Array<[string, Scenario[]]> = [
   ],
 ];
 
-const CLOCK: Array<[string, string]> = [
-  ["before", "3 days out"],
-  ["gameday", "Game day"],
-  ["soon", "90 min to go"],
-  ["over", "After the game"],
+// The clock scenarios, in order: where the game stands and what that stage tests.
+const CLOCK: Array<[string, string, string]> = [
+  ["before", "3 days out", "Free cancel"],
+  ["gameday", "Game day", "Drops are late"],
+  ["soon", "90 min to go", "Reminder"],
+  ["over", "After", "Settle up"],
 ];
 
 export default function Playground({ groupId }: { groupId: string }) {
@@ -71,7 +72,8 @@ export default function Playground({ groupId }: { groupId: string }) {
   const [newName, setNewName] = useState("Dana");
   const [note, setNote] = useState<string | null>(null);
   const [pick, setPick] = useState("0:0");
-  const [clock, setClock] = useState(CLOCK[0][0]);
+  const [clock, setClock] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const groupBody = useRef<HTMLDivElement>(null);
   const dmBody = useRef<HTMLDivElement>(null);
   const counts = useRef({ group: 0, dm: 0 });
@@ -254,117 +256,140 @@ export default function Playground({ groupId }: { groupId: string }) {
   const pickedAs = picked.as === "organizer" ? (people.get(organizerId)?.name ?? "the organizer") : viewer.name;
 
   const controls = (
-    <section className="sim-panel" aria-label="Simulator controls">
-      <div className="sim-group">
-        <div className="sim-field">
-          <label className="sim-label" htmlFor="sim-as">Act as</label>
-          <select id="sim-as" className="sim-select" value={viewerId} onChange={(e) => setViewerId(e.target.value)}>
-            {data.people.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-                {p.id === organizerId ? " (organizer)" : ""}
-              </option>
-            ))}
-          </select>
+    <div className="sim-panel">
+      <section className="sim-sec" aria-labelledby="sim-people-h">
+        <h2 id="sim-people-h" className="sim-label">People · tap to act as them</h2>
+        <div className="sim-pills">
+          {data.people.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="sim-pill"
+              aria-pressed={p.id === viewerId}
+              onClick={() => setViewerId(p.id)}
+            >
+              {p.name}
+              {p.id === organizerId && <small> · host</small>}
+            </button>
+          ))}
+          {adding ? (
+            <form
+              className="sim-pill-add"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const name = newName.trim();
+                if (!name) return;
+                const r = await control({ action: "addPerson", name }, () => `${name} joined the chat. They weren't here when the game was made.`);
+                if (r.personId) {
+                  setViewerId(r.personId as string);
+                  setAdding(false);
+                }
+              }}
+            >
+              <label className="sr-only" htmlFor="sim-new">Name</label>
+              <input id="sim-new" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={20} autoFocus />
+              <button className="sim-pill-ok">Add</button>
+              <button type="button" className="sim-pill-x" aria-label="Cancel" onClick={() => setAdding(false)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+              </button>
+            </form>
+          ) : (
+            <button type="button" className="sim-pill sim-plus" aria-label="Add someone to the chat" onClick={() => setAdding(true)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+          )}
         </div>
+
         <form
-          className="sim-field"
-          onSubmit={async (e) => {
+          className="sim-say"
+          onSubmit={(e) => {
             e.preventDefault();
-            const r = await control({ action: "addPerson", name: newName }, () => `${newName} joined the chat. They weren't here when the game was made.`);
-            if (r.personId) setViewerId(r.personId as string);
+            runScenario(picked);
           }}
         >
-          <label className="sim-label" htmlFor="sim-new">Add someone to the chat</label>
+          <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
           <div className="sim-row">
-            <input id="sim-new" className="sim-input" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={20} />
-            <button className="dr-btn">Add</button>
-          </div>
-        </form>
-      </div>
-
-      <form
-        className="sim-group sim-field"
-        onSubmit={(e) => {
-          e.preventDefault();
-          runScenario(picked);
-        }}
-      >
-        <label className="sim-label" htmlFor="sim-say">Send a sample message</label>
-        <select id="sim-say" className="sim-select" value={pick} onChange={(e) => setPick(e.target.value)}>
-          {SCENARIOS.map(([title, list], g) => (
-            <optgroup key={title} label={title}>
-              {list.map((sc, i) => (
-                <option key={sc.label} value={`${g}:${i}`}>
-                  {sc.label.replace("the newest person", newest)}
-                </option>
+            <select id="sim-say" className="sim-select" value={pick} onChange={(e) => setPick(e.target.value)}>
+              {SCENARIOS.map(([title, list], g) => (
+                <optgroup key={title} label={title}>
+                  {list.map((sc, i) => (
+                    <option key={sc.label} value={`${g}:${i}`}>
+                      {sc.label.replace("the newest person", newest)}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
-            </optgroup>
-          ))}
-        </select>
-        <p className="sim-quote">
-          <span>{pickedAs}:</span> “{picked.text.replace("{newest}", newest)}”
-        </p>
-        <button className="dr-btn p" disabled={sending}>
-          {sending ? "Sending…" : `Send as ${pickedAs}`}
-        </button>
-      </form>
-
-      <div className="sim-group sim-field">
-        <span className="sim-label">Game {data.game ? (data.game.status === "draft" ? "· not posted yet" : `· ${data.game.when}`) : ""}</span>
-        {data.game ? (
-          <div className="sim-acts">
-            <a className="dr-btn" href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">
-              Game page ↗
-            </a>
-            <a className="dr-btn" href={`/g/${data.game.slug}?o=${data.game.organizerToken}`} target="_blank" rel="noreferrer">
-              Organizer ↗
-            </a>
-            <button type="button" className="dr-btn" onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
-              Join as {viewer.name}
-            </button>
-            <button type="button" className="dr-btn" onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
-              Fill, leave 1
+            </select>
+            <button className="dr-btn p" disabled={sending}>
+              {sending ? "Sending…" : `Send as ${pickedAs}`}
             </button>
           </div>
-        ) : (
-          <p className="sim-hint">Start a game first: send “Game with full details”.</p>
-        )}
-        <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal.</p>
-      </div>
+          <p className="sim-quote">
+            <span>{pickedAs}:</span> “{picked.text.replace("{newest}", newest)}”
+          </p>
+        </form>
+      </section>
 
-      <form
-        className="sim-group sim-field"
-        onSubmit={(e) => {
-          e.preventDefault();
-          control({ action: "time", mode: clock }, (r) => `The game is now ${r.label}.`);
-        }}
-      >
-        <label className="sim-label" htmlFor="sim-clock">Move the clock</label>
-        <div className="sim-row">
-          <select id="sim-clock" className="sim-select" value={clock} onChange={(e) => setClock(e.target.value)} disabled={!data.game}>
-            {CLOCK.map(([mode, label]) => (
-              <option key={mode} value={mode}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <button className="dr-btn" disabled={!data.game}>
-            Move
-          </button>
+      <section className="sim-sec sim-game" aria-labelledby="sim-game-h">
+        <div className="sim-sec-head">
+          <h2 id="sim-game-h" className="sim-label">
+            Game scenarios{data.game ? (data.game.status === "draft" ? " · not posted yet" : ` · ${data.game.when}`) : ""}
+          </h2>
+          {data.game && (
+            <span className="sim-links">
+              <a href={`/g/${data.game.slug}?p=${viewer.token}`} target="_blank" rel="noreferrer">Game page ↗</a>
+              <a href={`/g/${data.game.slug}?o=${data.game.organizerToken}`} target="_blank" rel="noreferrer">Organizer ↗</a>
+            </span>
+          )}
         </div>
-        <button
-          type="button"
-          className="dr-btn"
-          disabled={!data.game}
-          onClick={() => control({ action: "tick" }, (r) => ((r.ran as string[])?.length ? `Ran: ${(r.ran as string[]).join(", ")}.` : "Nothing was due."))}
-        >
-          Run scheduled jobs now
-        </button>
-        <p className="sim-hint">90 min to go + run jobs: game-day reminder. After the game + run jobs: settles up.</p>
-      </form>
-
-    </section>
+        {data.game ? (
+          <>
+            <div className="sim-scn">
+              <span className="sim-scn-k">Players</span>
+              <div className="sim-scn-acts">
+                <button type="button" className="dr-btn" onClick={() => control({ action: "join", personId: viewerId }, () => `${viewer.name} is in with a simulated hold.`)}>
+                  Join as {viewer.name}
+                </button>
+                <button type="button" className="dr-btn" onClick={() => control({ action: "fill" }, (r) => `Added ${r.added} players with simulated holds. One spot left.`)}>
+                  Fill, leave 1 spot
+                </button>
+              </div>
+            </div>
+            <div className="sim-scn">
+              <span className="sim-scn-k">Clock</span>
+              <ol className="sim-track">
+                {CLOCK.map(([mode, label, what]) => (
+                  <li key={mode}>
+                    <button
+                      type="button"
+                      aria-pressed={clock === mode}
+                      onClick={async () => {
+                        const r = await control({ action: "time", mode }, (r) => `The game is now ${r.label}.`);
+                        if (r.label) setClock(mode);
+                      }}
+                    >
+                      <span className="sim-dot" aria-hidden="true" />
+                      <strong>{label}</strong>
+                      <span>{what}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <button
+                type="button"
+                className="dr-btn sim-tick"
+                onClick={() => control({ action: "tick" }, (r) => ((r.ran as string[])?.length ? `Ran: ${(r.ran as string[]).join(", ")}.` : "Nothing was due."))}
+              >
+                Run scheduled jobs
+              </button>
+            </div>
+            <p className="sim-hint">Joins and fills use simulated holds. For real sandbox money, open the game page and pay with PayPal. After moving the clock, run the jobs to send reminders or settle up.</p>
+          </>
+        ) : (
+          <p className="sim-hint">No game yet. Send “Game with full details” as the host to start one, then join, fill and move the clock here.</p>
+        )}
+      </section>
+    </div>
   );
 
   return (
