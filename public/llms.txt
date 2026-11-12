@@ -2,10 +2,12 @@
 
 > An AI assistant in a pickleball group chat. Players hold their spot with a PayPal or Venmo authorization; after the game each is captured for their real share and the rest is released. Entry for the PayPal AI Hackathon 2026, running in the PayPal sandbox.
 
+- [Landing page](https://getpaddlesin.com)
 - [Live demo on your phone](https://getpaddlesin.com/demo): you organize a game from your phone while the page plays the rest of the group.
 - [Source code](https://github.com/darrenR89/pickle-assistant_paypal-hackathon) (MIT)
 - [For judges](https://github.com/darrenR89/pickle-assistant_paypal-hackathon/blob/main/JUDGES.md): judging criteria mapped to code.
 - [Every PayPal call](https://github.com/darrenR89/pickle-assistant_paypal-hackathon/blob/main/docs/PAYPAL.md): each API, the moment that triggers it, its idempotency key and file.
+- [For AI reviewers](https://github.com/darrenR89/pickle-assistant_paypal-hackathon/blob/main/docs/AI-REVIEWERS.md): what to read first, the message pipeline, money invariants and recovery.
 - [Playground](https://getpaddlesin.com/play): a private simulated group chat with one-tap game scenarios, no keys needed.
 
 ## PayPal

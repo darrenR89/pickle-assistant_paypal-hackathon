@@ -10,19 +10,27 @@ import { normalizePhone } from "./phone";
 import { moveClock, runDue, simulatedJoin } from "./sim";
 import { handleGroupMessage, playerOut } from "@/bot/assistant";
 
-/** The friends who say they're in, and the one the judge can become to try paying. */
+/**
+ * The friends who say they're in. With the organizer they fill 7 of the 8 spots, leaving one for
+ * the judge to take as Jo, so the late cancel on game day leaves 7 players.
+ */
 const FRIENDS: Array<[string, string]> = [
   ["Sam", "yeah I'm down"],
   ["Priya", "count me in!"],
   ["Mei", "in 🙌"],
+  ["Chris", "I'm in"],
+  ["Lee", "+1"],
+  ["Nia", "me too"],
 ];
+/** Nia isn't in the /play cast; the demo adds her so the game can fill. */
+const DEMO_EXTRA = ["Nia"];
 const PLAYER_ROLE = DEMO_PLAYER;
 const LATE_LINE = "ugh, something came up. I can't make it tonight, sorry!";
 
 export const SETUP_MESSAGE = "@PaddlesIn Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
 
 export async function createDemo() {
-  const groupId = await createPlaygroundGroup();
+  const groupId = await createPlaygroundGroup(DEMO_EXTRA);
   const people = await groupPeople(groupId);
   await q("update groups set demo_viewer = $2 where id = $1", [groupId, people[0].id]);
   return groupId;
@@ -60,6 +68,11 @@ export async function demoState(groupId: string) {
       inCount: playing.length,
       over: gameNow(game).getTime() > new Date(game.starts_at).getTime(),
       lateWaiting: entries.some((e) => e.late_cancel === "pending"),
+      // How the game-day cancel stands: null before it, then pending until the organizer decides.
+      lateCancel: entries.find((e) => e.late_cancel)?.late_cancel ?? null,
+      lateName: entries.find((e) => e.late_cancel)?.name ?? null,
+      friendsIn: FRIENDS.every(([n]) => entries.some((e) => e.name === n && (e.status === "in" || e.late_cancel))),
+      collectedCents: entries.filter((e) => e.hold_status === "captured").reduce((s, e) => s + (e.captured_cents ?? 0) - e.refunded_cents, 0),
       // The judge's own hold, placed as Jo through the real PayPal sandbox.
       playerHold: joSpot ? { status: joSpot.hold_status, real: !!joSpot.authorization_id && !joSpot.authorization_id.startsWith("SIM-"), cents: joSpot.hold_cents ?? 0, captured: joSpot.captured_cents ?? 0 } : null,
     };
@@ -143,7 +156,13 @@ export async function demoAct(groupId: string, a: DemoAction): Promise<{ ok: boo
         const r = await simulatedJoin(fresh, p.id);
         if (!r.error) added++;
       }
-      return { ok: true, note: added ? `${added} friends said they're in and placed simulated holds.` : "They're already in." };
+      const left = game.spots - inPlayers(await roster(game.id)).length;
+      return {
+        ok: true,
+        note: added
+          ? `${added} friends said they're in and placed simulated holds.${left > 0 ? ` ${left} spot${left === 1 ? "" : "s"} left.` : ""}`
+          : "They're already in.",
+      };
     }
     case "player": {
       const jo = byName(PLAYER_ROLE);
@@ -157,8 +176,16 @@ export async function demoAct(groupId: string, a: DemoAction): Promise<{ ok: boo
     case "late": {
       if (!game) return { ok: false, note: "Start the game first." };
       const entries = await roster(game.id);
+      if (entries.some((e) => e.late_cancel)) return { ok: false, note: "Someone already cancelled late in this game." };
       const quitter = FRIENDS.map(([n]) => byName(n)).find((p) => p && entries.some((e) => e.person_id === p.id && e.status === "in"));
       if (!quitter) return { ok: false, note: "Add the friends first, so someone can cancel." };
+      // Fill the game first (Jo too, with a simulated hold, if the judge skipped paying), so one
+      // late cancel leaves a game that's one short: the case the organizer has to decide on.
+      for (const p of people.slice(1)) {
+        const cur = await roster(game.id);
+        if (inPlayers(cur).length >= game.spots) break;
+        if (!cur.some((e) => e.person_id === p.id && e.status === "in")) await simulatedJoin(game, p.id);
+      }
       await moveClock(game, "gameday");
       await handleGroupMessage(groupId, quitter.id, LATE_LINE);
       // The model reads that line, and it can come back unsure and ask "are you out?" instead of
@@ -167,14 +194,18 @@ export async function demoAct(groupId: string, a: DemoAction): Promise<{ ok: boo
       const stillIn = now && (await roster(now.id)).some((e) => e.person_id === quitter.id && e.status === "in");
       if (now && stillIn) await playerOut(now, quitter.id);
       await setViewer(organizer.id);
-      return { ok: true, note: `It's game day and ${quitter.name} dropped out after free cancel. Your phone is the organizer, deciding what happens to their share.` };
+      const playing = now ? inPlayers(await roster(now.id)).length : 0;
+      return {
+        ok: true,
+        note: `It's game day and ${quitter.name} dropped out after free cancel, leaving ${playing} players. Your organizer link is in your private texts: charge ${quitter.name}'s share or cover it.`,
+      };
     }
     case "after": {
       if (!game) return { ok: false, note: "Start the game first." };
       await moveClock(game, "over");
       const ran = await runDue((await openGameForGroup(groupId)) ?? game);
       await setViewer(organizer.id);
-      return { ok: true, note: ran.includes("Settled the game") ? "The game's over. Everyone who played was charged their share, and the rest of each hold was released." : "Nothing to settle yet." };
+      return { ok: true, note: ran.includes("Settled the game") ? "The game's over and settled. Everyone who played was charged their share, the rest of each hold was released, and your phone shows the organizer's summary." : "Nothing to settle yet." };
     }
   }
 }

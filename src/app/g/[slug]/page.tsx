@@ -24,6 +24,7 @@ import { userIdToken } from "@/lib/paypal";
 import { KIND_LABEL } from "@/bot/details";
 import { chargedLateCancels, shortfall } from "@/bot/assistant";
 import { describeReceiver, organizerPayoutTo } from "@/bot/payout";
+import { sendblueNumber } from "@/lib/sendblue";
 import ModalFocus from "@/app/ModalFocus";
 import GameScreen from "./GameScreen";
 
@@ -32,7 +33,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string; o?: string; demo?: string }>;
+  searchParams: Promise<{ p?: string; o?: string; demo?: string; via?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -67,12 +68,19 @@ export type MeStatus = "none" | "in" | "out" | "late" | "charged" | "covered" | 
 
 export default async function GamePage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { p, o, demo } = await searchParams;
+  const { p, o, demo, via } = await searchParams;
   const game = await getGame(slug);
   if (!game) notFound();
+  const demoId = demo && /^grp_[a-f0-9]+$/.test(demo) ? demo : null;
+  // Opened from a real text: "back" means the Messages thread with PaddlesIn, not the on-screen chat.
+  const textNumber = demoId && via === "sms" ? sendblueNumber() : null;
   return (
     <>
-      <GameScreen view={await buildView(game, slug, p, o)} demo={demo && /^grp_[a-f0-9]+$/.test(demo) ? demo : null} />
+      <GameScreen
+        view={await buildView(game, slug, p, o)}
+        demo={demoId}
+        backTo={textNumber ? `sms:${textNumber}` : null}
+      />
       <ModalFocus />
     </>
   );
@@ -110,6 +118,7 @@ async function buildView(game: Game, slug: string, p?: string, o?: string) {
     p: viewer?.token ?? null,
     o: isOrganizer ? o! : null,
     clientId: process.env.PAYPAL_CLIENT_ID ?? "",
+    sandbox: process.env.PAYPAL_ENV !== "live",
     status: game.status,
     over: gameNow(game).getTime() > start.getTime(),
     clock,

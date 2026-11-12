@@ -1,21 +1,37 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import ChatLog, { type Chat } from "../../ChatLog";
 
-type Person = { id: string; name: string; token: string };
-type Msg = { id: string; sender_id: string | null; dm_to: string | null; text: string; game_slug: string | null };
-type Card = { title: string; subtitle: string; when: string; spots: string };
-type Chat = { people: Person[]; messages: Msg[]; cards: Record<string, Card> };
 type State = {
   connected: boolean;
   name: string | null;
   viewer: { id: string; name: string; token: string; role: "organizer" | "player" };
-  game: { slug: string; status: string } | null;
+  organizerToken: string | null;
+  game: {
+    slug: string;
+    status: string;
+    friendsIn: boolean;
+    lateCancel: string | null;
+    lateName: string | null;
+    playerHold: { status: string } | null;
+  } | null;
 };
+
+/** Each demo moment (the late cancel, the settle) moves the phone once, not on every poll or reload. */
+function firstTime(key: string) {
+  try {
+    if (sessionStorage.getItem(key)) return false;
+    sessionStorage.setItem(key, "1");
+  } catch {}
+  return true;
+}
 
 const SETUP = "@PaddlesIn Thu 6-8pm Riverside Park courts 3–4, 1200 Riverside Dr, mixed doubles, 3.0-3.5, $64";
 
 export default function PhoneDemo({ id }: { id: string }) {
+  const router = useRouter();
   const [state, setState] = useState<State | null>(null);
   const [chat, setChat] = useState<Chat | null>(null);
   const [thread, setThread] = useState<"group" | "dm">("group");
@@ -56,12 +72,22 @@ export default function PhoneDemo({ id }: { id: string }) {
       setThread("group");
     }
     lastViewer.current = s.viewer.id;
+    // The game ended and settled: show the organizer what happened to the money.
+    if (s.game?.status === "settled" && s.organizerToken && firstTime(`settled:${s.game.slug}`)) {
+      router.push(`/g/${s.game.slug}?o=${s.organizerToken}&demo=${id}`);
+      return;
+    }
+    // A late cancel: the organizer's link to charge or cover is in their private texts, so open them.
+    if (s.game?.lateCancel === "pending" && s.viewer.role === "organizer" && firstTime(`late:${s.game.slug}`)) {
+      setThread("dm");
+      setBanner(`${s.game.lateName ?? "A player"} cancelled late. Tap your organizer link to charge their share or cover it.`);
+    }
     if (!s.connected) return;
     const c = await fetch(`/api/play/groups/${id}?viewer=${s.viewer.id}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null);
     if (c) setChat(c);
-  }, [id]);
+  }, [id, router]);
 
   useEffect(() => {
     load();
@@ -152,11 +178,13 @@ export default function PhoneDemo({ id }: { id: string }) {
       </main>
     );
 
-  const people = new Map((chat?.people ?? []).map((p) => [p.id, p]));
   const viewer = state.viewer;
   const linkFor = (slugWithQuery: string) =>
     slugWithQuery.includes("?o=") ? `/g/${slugWithQuery}&demo=${id}` : `/g/${slugWithQuery}?p=${viewer.token}&demo=${id}`;
   const list = thread === "group" ? group : dms;
+  const g = state.game;
+  const open = !!g && g.status === "open";
+  const paid = g?.playerHold?.status === "held" || g?.playerHold?.status === "captured";
 
   return (
     <main className="dp sim">
@@ -178,36 +206,9 @@ export default function PhoneDemo({ id }: { id: string }) {
       </header>
       {banner && <p className="dp-banner" role="status">{banner}</p>}
 
-      <div className="dp-body" role="log" aria-label={thread === "group" ? "Group chat" : "Private texts from the assistant"}>
-        {list.length === 0 && <p className="phone-empty">{thread === "dm" ? "Private texts from the assistant land here." : ""}</p>}
-        {list.map((m) => {
-          if (!m.sender_id && / was added to the chat$/.test(m.text)) return <p key={m.id} className="im-system">{m.text}</p>;
-          const mine = m.sender_id === viewer.id;
-          const bot = !m.sender_id;
-          const slug = m.game_slug?.split("?")[0];
-          const card = slug ? chat?.cards[slug] : undefined;
-          const org = m.game_slug?.includes("?o=");
-          return (
-            <div key={m.id} className={`im-msg ${mine ? "mine" : ""} ${bot ? "bot" : ""}`}>
-              {!mine && thread === "group" && <span className="im-sender">{m.sender_id ? people.get(m.sender_id)?.name : "PaddlesIn"}</span>}
-              <div className="im-bubble">
-                {m.text}
-                {card && m.game_slug && (
-                  <a className="im-link" href={linkFor(m.game_slug)}>
-                    <span className="im-link-hero">
-                      <span className="when">{card.when}</span>
-                      <span className="spots">{org ? "organizer" : card.spots}</span>
-                    </span>
-                    <span className="im-link-meta">
-                      <span className="im-link-title">{card.title}</span>
-                      <span className="im-link-sub">{org ? "Organizer view · private link" : card.subtitle}</span>
-                    </span>
-                  </a>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="dp-body" role="log" aria-label={thread === "group" ? "Group chat" : "Private texts from PaddlesIn"}>
+        {list.length === 0 && <p className="phone-empty">{thread === "dm" ? "Private texts from PaddlesIn land here." : ""}</p>}
+        <ChatLog chat={chat} list={list} viewerId={viewer.id} inGroup={thread === "group"} linkFor={linkFor} />
         <div ref={end} />
       </div>
 
@@ -220,11 +221,11 @@ export default function PhoneDemo({ id }: { id: string }) {
             </div>
             <p className="dp-sheet-p">These play the rest of the group. Claude and your PayPal sandbox hold are real; the other players are simulated.</p>
             {[
-              ["start", "1. Set up the game", !state.game],
-              ["friends", "2. Three friends say they’re in", !!state.game && state.game.status === "open"],
-              [viewer.role === "player" ? "organizer" : "player", viewer.role === "player" ? "3. Back to organizer" : "3. Become a player and pay", !!state.game && state.game.status === "open"],
-              ["late", "4. Someone cancels on game day", !!state.game && state.game.status === "open"],
-              ["after", "5. Skip to after the game", !!state.game && state.game.status === "open"],
+              ["start", "1. Set up the game", !g],
+              ["friends", "2. Six friends say they’re in", open && !g.friendsIn],
+              [viewer.role === "player" ? "organizer" : "player", viewer.role === "player" ? "3. Back to organizer" : "3. Become a player and pay", open && (viewer.role === "player" || !paid)],
+              ["late", "4. Someone cancels on game day", open && !g.lateCancel],
+              ["after", "5. Skip to after the game", open],
             ].map(([a, label, on]) => (
               <button key={a as string} className="dp-step" disabled={!on} onClick={() => act(a as string)}>
                 {label as string}

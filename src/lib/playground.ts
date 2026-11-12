@@ -19,9 +19,10 @@ function fakePhone() {
   return `+1555${Math.floor(1000000 + Math.random() * 8999999)}`;
 }
 
-export async function createPlaygroundGroup() {
+/** `extra` adds people after the usual cast (the phone demo needs enough friends to fill a game). */
+export async function createPlaygroundGroup(extra: string[] = []) {
   const groupId = newId("grp");
-  const people = CAST.map((name) => ({ id: newId("per"), name, phone: fakePhone(), token: newToken() }));
+  const people = [...CAST, ...extra].map((name) => ({ id: newId("per"), name, phone: fakePhone(), token: newToken() }));
   await tx(async (c) => {
     await c.query("insert into groups (id, name, playground) values ($1, $2, true)", [groupId, "Thursday crew"]);
     for (const [i, p] of people.entries()) {

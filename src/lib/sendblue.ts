@@ -4,14 +4,25 @@
 // The sandbox has no webhooks, so src/bot/sendblue.ts checks for new texts every few seconds.
 // Off unless the three SENDBLUE_* variables are set.
 
-import { one } from "@/lib/db";
+import { newToken, one, q } from "@/lib/db";
 import { gameUrl } from "@/lib/games";
 import { DEMO_PLAYER } from "@/lib/playground";
 import { normalizePhone } from "@/lib/phone";
 
-/** The text as sent: Messages shows a game link as a rich preview, so put it on its own line. */
-export function outboundText(text: string, gameSlug?: string) {
-  return gameSlug ? `${text}\n${gameUrl(gameSlug)}` : text;
+/** The path a short link stands for, or null for anything that isn't one of our game links. */
+export function shortPath(url: string) {
+  const base = process.env.APP_URL ?? "";
+  if (!url.startsWith(`${base}/g/`)) return null;
+  return url.slice(base.length);
+}
+
+/** A short link (APP_URL/s/code) for a game link, so the text shows one tidy link instead of a wrapped query string. */
+async function shortLink(url: string) {
+  const path = shortPath(url);
+  if (!path) return url;
+  const code = newToken().slice(0, 10);
+  await q("insert into short_links (code, path) values ($1, $2)", [code, path]);
+  return `${process.env.APP_URL}/s/${code}`;
 }
 
 // SENDBLUE_BASE_URL is only for pointing tests at a stand-in server.
@@ -114,9 +125,19 @@ export function joinCode(text: string) {
  */
 export function demoLinks(text: string, groupId: string, token: string) {
   const base = (process.env.APP_URL ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // via=sms makes the page's back button return to the Messages app.
   return text.replace(new RegExp(`${base}/g/([\\w-]+)(\\?[^\\s]*)?`, "g"), (_m, slug: string, query?: string) =>
-    query ? `${process.env.APP_URL}/g/${slug}${query}&demo=${groupId}` : `${process.env.APP_URL}/g/${slug}?p=${token}&demo=${groupId}`,
+    query ? `${process.env.APP_URL}/g/${slug}${query}&demo=${groupId}&via=sms` : `${process.env.APP_URL}/g/${slug}?p=${token}&demo=${groupId}&via=sms`,
   );
+}
+
+/**
+ * Sends a post and its game link as two texts. Messages only draws a rich link preview for a link
+ * sent on its own, and a short link keeps that bubble tidy if the preview isn't loaded.
+ */
+async function sendWithLink(phone: string, text: string, gameSlug: string | undefined, groupId: string, token: string) {
+  await sendText(phone, demoLinks(text, groupId, token));
+  if (gameSlug) await sendText(phone, await shortLink(demoLinks(gameUrl(gameSlug), groupId, token)));
 }
 
 type LinkedDemo = { phone: string; viewer: string; viewer_token: string };
@@ -135,7 +156,7 @@ async function linkedPhone(groupId: string) {
 /** The assistant's group posts, labelled so they read differently from private messages in the same thread. */
 export async function deliverToGroup(groupId: string, text: string, gameSlug?: string) {
   const d = await linkedPhone(groupId);
-  if (d) await sendText(d.phone, demoLinks(outboundText(`[Group] ${text}`, gameSlug), groupId, d.viewer_token));
+  if (d) await sendWithLink(d.phone, `[Group] ${text}`, gameSlug, groupId, d.viewer_token);
 }
 
 /** Private messages to the organizer (the judge) or the player they try paying as. */
@@ -147,5 +168,5 @@ export async function deliverToPerson(groupId: string, personId: string, text: s
      from group_members m join people p on p.id = m.person_id where m.group_id = $1 and p.id = $2`,
     [groupId, personId, DEMO_PLAYER, d.viewer],
   );
-  if (p?.mine) await sendText(d.phone, demoLinks(outboundText(text, gameSlug), groupId, p.token));
+  if (p?.mine) await sendWithLink(d.phone, text, gameSlug, groupId, p.token);
 }
