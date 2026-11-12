@@ -55,8 +55,15 @@ Drop out early and your hold is simply released. Drop out late and the organizer
 
 ## Proof from a real sandbox run
 
-<!-- Before submission: paste the output of `pnpm proof` here, replacing this comment and the line below. -->
-_The table of real sandbox ids from the final run goes here._
+Game `thu-6pm-7f1ff` on 2026-11-13, court $64.00. Every id below is a real PayPal sandbox object.
+
+| Step | PayPal API | PayPal id | Detail |
+|---|---|---|---|
+| Hold placed | Orders v2 `intent: AUTHORIZE` | 09E08340UY454690Y | Jo, $10.00 order |
+| Hold authorized | `/v2/checkout/orders/{id}/authorize` | 3LW67805SM430330M | Jo, $10.00 held |
+| Share charged | `/v2/payments/authorizations/{id}/capture` (partial) | 8B0352900S458142Y | Jo, $10.00 of $10.00 held |
+
+Verified webhooks received: `CHECKOUT.ORDER.APPROVED` (1), `PAYMENT.AUTHORIZATION.CREATED` (1), `PAYMENT.CAPTURE.COMPLETED` (1).
 
 **What's real:** Claude reading every message, the game pages, any hold you approve with a sandbox buyer, and the payout. **What's simulated:** the other players in the demo and their holds (ids start with `SIM-`), so a game can fill in seconds.
 
