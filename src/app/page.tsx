@@ -71,7 +71,7 @@ const STACK: Array<[string, string[]]> = [
   ["App", ["Next.js", "TypeScript", "Postgres", "Render web service", "Render Workflows and cron"]],
   ["Payments", ["PayPal Orders v2", "Authorize, capture, void, refund", "Payouts", "Verified webhooks", "JS SDK with Venmo"]],
   ["AI", ["Claude Haiku 5.5 reads the chat", "Claude Code helped write and review the code"]],
-  ["Messaging", ["iMessage through Blooio", "SMS through Sendblue"]],
+  ["Messaging", ["SMS through Sendblue"]],
 ];
 
 // ...and how it came together, day by day (Pacific time), from Darren's hackathon chats and the git history.
@@ -81,7 +81,7 @@ const BUILD_DAYS: Array<{ date: string; title: string; notes: string }> = [
   { date: "Sun Nov 8", title: "First real hold", notes: "First PayPal sandbox hold approved. The group-chat flow is settled, and 5 design directions explored." },
   { date: "Mon Nov 9", title: "The assistant works", notes: "Claude turns a setup text into a game. Simulator, phone demo, first landing page and JUDGES.md." },
   { date: "Tue Nov 10", title: "Money end to end", notes: "Payouts, refunds and verified webhooks. Lint, unit tests and CI on every pull request." },
-  { date: "Wed Nov 11", title: "Hardened", notes: "Edge-case review: no overcharge, survives restarts. Accessibility pass, real iMessage and SMS, Paddles In brand." },
+  { date: "Wed Nov 11", title: "Hardened", notes: "Edge-case review: no overcharge, survives restarts. Accessibility pass, real SMS, Paddles In brand." },
   { date: "Thu Nov 12", title: "Ready for judges", notes: "Late cancels can be charged, covered or wait for a replacement. 2-minute walkthrough and sandbox proof." },
 ];
 
@@ -148,13 +148,13 @@ export default function Home() {
 
       <section className="lp-section lp-al lp-prob" aria-labelledby="problem-h">
         <p className="lp-eyebrow">The problem</p>
-        <h2 id="problem-h" className="lp-h2">Asking friends to pay you back is awkward. Asking strangers is worse.</h2>
+        <h2 id="problem-h" className="lp-h2">Asking friends to pay you back is awkward. <span className="lp-prob-hi">Asking strangers is <em>worse</em>.</span></h2>
         <ul className="lp-beats">
           {PROBLEM.map(([k, v]) => (
             <li key={k}><strong>{k}</strong> {v}</li>
           ))}
         </ul>
-        <p className="lp-prob-fix">Paddles In takes the asking out of it.</p>
+        <p className="lp-prob-fix">With Paddles In, everyone’s share is held with PayPal the moment they’re in. <strong>Nobody has to ask.</strong></p>
       </section>
 
       <section className="lp-section lp-al" id="screens" aria-labelledby="how">
