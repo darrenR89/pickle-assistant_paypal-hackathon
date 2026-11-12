@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import SimShell from "../SimShell";
+import StatusBar from "../../landing/StatusBar";
 
 // A demo simulator of the group chat. It runs full screen on the landing page's mesh (SimShell) with the controls in a
 // bar across the top; the two phones keep an iMessage look, because in real use the assistant lives in a group chat.
@@ -407,7 +408,9 @@ export default function Playground({ groupId }: { groupId: string }) {
         {note}
       </p>
       <div className="sim-grid">
-        <section className="phone" aria-label={`Group chat: ${data.group.name}`}>
+        <section className="phone lp-phone" aria-label={`Group chat: ${data.group.name}`}>
+          <div className="lp-screen light sim-screen">
+          <StatusBar />
           <div className="phone-top">
             <span className="phone-title">{data.group.name}</span>
             <span className="phone-sub">{data.people.length} people + Assistant</span>
@@ -432,15 +435,19 @@ export default function Playground({ groupId }: { groupId: string }) {
               </svg>
             </button>
           </form>
+          </div>
         </section>
 
-        <section className="phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
+        <section className="phone lp-phone" aria-label={`${viewer.name}'s private texts with the Assistant`}>
+          <div className="lp-screen light sim-screen">
+          <StatusBar />
           <div className="phone-top">
             <span className="phone-title">Assistant</span>
             <span className="phone-sub">{viewer.name}&apos;s private texts · money details only arrive here</span>
           </div>
           <div className="phone-body" role="log" aria-label="Private messages" ref={dmBody}>
             {inbox.length ? inbox.map((m) => bubble(m, true)) : <p className="phone-empty">No private texts yet.</p>}
+          </div>
           </div>
         </section>
       </div>
