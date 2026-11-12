@@ -189,81 +189,81 @@ a{color:var(--link)}
    controls in a full-width bar across the top, and the two phones below. Only the phones keep the iMessage look. */
 .sp{position:relative;isolation:isolate;min-height:100dvh;background:#2a1f5e;color:#fff;font-family:var(--sans)}
 .sp-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.sp-bar{padding:18px max(20px,calc((100% - 1400px)/2)) 20px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.14)}
-.sp-bar-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:6px 20px;margin-bottom:18px}
+.sp-bar{padding:12px max(20px,calc((100% - 1400px)/2)) 14px;background:rgba(18,14,36,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.14)}
+.sp-bar-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:2px 20px;margin-bottom:12px}
 .sp-title{display:contents}
 .sp-title h1{grid-column:1;grid-row:1}
 .sp-title p{grid-column:1;grid-row:2}
 .sp-acts{grid-column:2;grid-row:1;display:flex;align-items:center;gap:6px}
-.sp-link{all:unset;padding:10px 12px;border-radius:99px;color:#E2DAF2;font:600 15px/1 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;transition:opacity .2s}
+.sp-link{all:unset;padding:8px 10px;border-radius:99px;color:#E2DAF2;font:600 14px/1 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;transition:opacity .2s}
 .sp-link:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
 @media (hover:hover){.sp-link:hover{opacity:.7}}
-.sp-title h1{margin:0;font:800 30px/1 var(--cond);text-transform:uppercase;letter-spacing:.01em}
-.sp-title p{margin:0;max-width:720px;font:500 15px/1.45 var(--sans);color:#C9BFE3}
-.sp-exit{flex:none;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:99px;background:rgba(18,14,36,.75);color:#fff;font:600 15px/1 var(--sans);text-decoration:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);transition:box-shadow .2s}
-.sp-exit svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.sp-title h1{margin:0;font:800 24px/1 var(--cond);text-transform:uppercase;letter-spacing:.01em}
+.sp-title p{margin:0;max-width:720px;font:500 14px/1.4 var(--sans);color:#C9BFE3}
+.sp-exit{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:99px;background:rgba(18,14,36,.75);color:#fff;font:600 14px/1 var(--sans);text-decoration:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);transition:box-shadow .2s}
+.sp-exit svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
 .sp-exit:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
 @media (hover:hover){.sp-exit:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 0 22px rgba(255,255,255,.28)}}
-.sp-main{padding:24px max(20px,calc((100% - 1400px)/2)) 40px}
+.sp-main{padding:20px max(20px,calc((100% - 1400px)/2)) 40px}
 .sp-body{max-width:640px}
 .sp-status{margin:0 0 16px;font:600 19px/1.5 var(--sans);color:var(--onm)}
 .sp-status.err{color:#FFC9A8}
 /* the controls: people (who you are, and a sample message to send as them) beside the game scenarios */
-.sim-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 0;align-items:start}
-.sim-sec{min-width:0;padding-right:32px}
-.sim-sec.sim-game{padding:0 0 0 32px;border-left:1px solid rgba(255,255,255,.16)}
+.sim-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 0;align-items:start}
+.sim-sec{min-width:0;padding-right:24px}
+.sim-sec.sim-game{padding:0 0 0 24px;border-left:1px solid rgba(255,255,255,.16)}
 .sim-sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
 .sim-sec h2{margin:0}
 .sim-links{display:flex;gap:16px}
-.sim-links a{color:#fff;font:600 15px/1 var(--sans);text-underline-offset:3px;transition:opacity .2s}
+.sim-links a{color:#fff;font:600 14px/1 var(--sans);text-underline-offset:3px;transition:opacity .2s}
 @media (hover:hover){.sim-links a:hover{opacity:.7}}
 /* people as pills; the current one is filled. The plus at the end opens a name field in its place. */
-.sim-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.sim-pill{display:inline-flex;align-items:center;height:44px;padding:0 16px;border-radius:99px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font:600 16px/1 var(--sans);transition:background .2s,border-color .2s,box-shadow .2s}
-.sim-pill small{font:500 14px/1 var(--sans);opacity:.75;margin-left:.25em}
-.sim-pill[aria-pressed="true"]{background:#fff;border-color:#fff;color:var(--btn);box-shadow:0 4px 0 #C9C1E6}
-.sim-plus{width:44px;padding:0;justify-content:center;border-style:dashed}
-.sim-plus svg,.sim-pill-x svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.sim-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sim-pill{display:inline-flex;align-items:center;height:34px;padding:0 13px;border-radius:99px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font:600 14px/1 var(--sans);transition:background .2s,border-color .2s,box-shadow .2s}
+.sim-pill small{font:500 12px/1 var(--sans);opacity:.75;margin-left:.25em}
+.sim-pill[aria-pressed="true"]{background:#fff;border-color:#fff;color:var(--btn);box-shadow:0 3px 0 #C9C1E6}
+.sim-plus{width:34px;padding:0;justify-content:center;border-style:dashed}
+.sim-plus svg,.sim-pill-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
 @media (hover:hover){.sim-pill:not([aria-pressed="true"]):hover{border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.1),0 0 22px rgba(255,255,255,.25)}}
 .sim-pill:focus-visible,.sim-pill-add button:focus-visible,.sim-track button:focus-visible,.sim-links a:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
-.sim-pill-add{display:inline-flex;align-items:center;gap:4px;height:44px;padding:0 4px 0 16px;border-radius:99px;background:#fff}
-.sim-pill-add input{width:120px;border:0;outline:0;background:none;font:600 16px var(--sans);color:var(--ink)}
-.sim-pill-ok{height:34px;padding:0 14px;border:0;border-radius:99px;background:var(--btn);color:#fff;font:700 15px/1 var(--sans)}
-.sim-pill-x{display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:none;color:var(--muted)}
-.sim-say{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.sim-pill-add{display:inline-flex;align-items:center;gap:2px;height:34px;padding:0 3px 0 13px;border-radius:99px;background:#fff}
+.sim-pill-add input{width:110px;border:0;outline:0;background:none;font:600 14px var(--sans);color:var(--ink)}
+.sim-pill-ok{height:28px;padding:0 12px;border:0;border-radius:99px;background:var(--btn);color:#fff;font:700 13px/1 var(--sans)}
+.sim-pill-x{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;color:var(--muted)}
+.sim-say{display:flex;flex-direction:column;gap:6px;margin-top:12px}
 /* game scenarios: the players row, then the clock as four stages on a line */
-.sim-scn{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:12px;margin-top:14px}
-.sim-scn-k{font:700 14px/1.2 var(--sans);color:#fff}
-.sim-scn-acts{grid-column:2/-1;display:flex;gap:8px}
+.sim-scn{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:8px}
+.sim-scn-k{font:700 13px/1.2 var(--sans);color:#fff}
+.sim-scn-acts{grid-column:2/-1;display:flex;gap:6px}
 .sp .sim-scn-acts .dr-btn{flex:1;width:auto}
 .sp .dr-btn.sim-tick{width:auto}
 .sim-track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 .sim-track li{position:relative}
-.sim-track li+li::before{content:"";position:absolute;top:17px;left:-50%;width:100%;height:2px;background:rgba(255,255,255,.28)}
-.sim-track button{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:8px 2px;border:0;border-radius:12px;background:none;color:#fff;text-align:center}
-.sim-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:#221a46;transition:background .2s,border-color .2s}
-.sim-track strong{font:700 14px/1.15 var(--sans)}
-.sim-track button>span:last-child{font:500 13px/1.2 var(--sans);color:#C9BFE3}
+.sim-track li+li::before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:rgba(255,255,255,.28)}
+.sim-track button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:4px 2px;border:0;border-radius:10px;background:none;color:#fff;text-align:center}
+.sim-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:#221a46;transition:background .2s,border-color .2s}
+.sim-track strong{font:700 13px/1.15 var(--sans)}
+.sim-track button>span:last-child{font:500 12px/1.2 var(--sans);color:#C9BFE3}
 .sim-track button[aria-pressed="true"] .sim-dot{background:var(--ball);border-color:var(--ball);box-shadow:0 0 0 4px rgba(255,201,168,.25)}
 .sim-track button[aria-pressed="true"] strong{color:var(--ball)}
 @media (hover:hover){.sim-track button:hover{background:rgba(255,255,255,.07)}}
-.sim-game .sim-hint{margin-top:14px}
+.sim-game .sim-hint{margin-top:8px}
 .sim-field{display:flex;flex-direction:column;gap:8px;margin:0}
-.sim-label{font:700 14px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--onm)}
+.sim-label{font:700 12px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--onm)}
 .sim-row{display:flex;gap:8px}
 .sim-row>.sim-select,.sim-row>.sim-input{flex:1;min-width:0}
-.sim-select,.sim-input{width:100%;height:48px;padding:0 14px;border:2px solid transparent;border-radius:12px;background:#fff;font:500 17px var(--sans);color:var(--ink)}
-.sim-select{appearance:none;-webkit-appearance:none;padding-right:42px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%233B2F7A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center/20px 20px;cursor:pointer}
+.sim-select,.sim-input{width:100%;height:38px;padding:0 12px;border:2px solid transparent;border-radius:10px;background:#fff;font:500 15px var(--sans);color:var(--ink)}
+.sim-select{appearance:none;-webkit-appearance:none;padding-right:36px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%233B2F7A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center/18px 18px;cursor:pointer}
 .sim-select:disabled{opacity:.5;cursor:default}
 .sim-select:focus-visible,.sim-input:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
 /* buttons on the dark bar: outlined, with the ball color for the one primary action */
-.sp .dr-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:0 14px;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;text-decoration:none;text-align:center;white-space:nowrap}
-.sp .dr-btn.p{background:var(--ball);border-color:var(--ball);color:#171428;box-shadow:0 4px 0 #D9946B}
+.sp .dr-btn{display:flex;align-items:center;justify-content:center;width:100%;height:38px;padding:0 12px;border-radius:10px;font-size:14px;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;text-decoration:none;text-align:center;white-space:nowrap}
+.sp .dr-btn.p{background:var(--ball);border-color:var(--ball);color:#171428;box-shadow:0 3px 0 #D9946B}
 .sp .dr-btn:disabled{opacity:.45}
 .sim-row .dr-btn{width:auto;flex:none}
-.sim-quote{margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.1);font:500 15px/1.45 var(--sans);color:#fff;}
+.sim-quote{margin:0;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.1);font:500 13px/1.4 var(--sans);color:#fff;}
 .sim-quote span{font-weight:700;color:var(--ball)}
-.sim-hint{margin:0;font:500 14px/1.45 var(--sans);color:#C9BFE3}
+.sim-hint{margin:0;font:500 13px/1.4 var(--sans);color:#C9BFE3}
 /* the result of the last control: a toast at the bottom, as on the phone demo's desktop remote */
 .sim-note{position:fixed;z-index:20;left:50%;bottom:24px;transform:translateX(-50%);width:max-content;max-width:min(640px,calc(100% - 40px));margin:0;padding:14px 18px;border-radius:16px;background:#171428;color:#fff;font:500 16px/1.4 var(--sans);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.14)}
 .sim-note:empty{display:none}
@@ -295,7 +295,7 @@ a{color:var(--link)}
   .sp-title p{grid-column:1/-1}
   .sp-wide{display:none}
   .sp-link{padding:10px 8px}
-  .sp-title h1{align-self:center;font-size:24px;white-space:nowrap}
+  .sp-title h1{align-self:center;font-size:22px;white-space:nowrap}
   .sp-bar-top{column-gap:10px}
   .sim-scn{grid-template-columns:1fr;gap:8px}
   .sim-scn-acts{grid-column:1}
