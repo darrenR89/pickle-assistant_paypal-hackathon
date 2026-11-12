@@ -821,22 +821,32 @@ a{color:var(--link)}
   .lp-show-slogan{grid-area:slogan;align-self:end;max-width:none}
   .lp-show-device{grid-area:dev}
 }
-/* phones and iPad: "How it works" and the facts list sit narrower than the app section, with more room at the sides */
+/* phones and iPad: "How it works" and the facts sit in a narrow centered column, well inside the app section */
 @media (max-width:640px){
-  .lp-steps,.lp-info{margin-left:12px;margin-right:12px}
+  .lp-steps,.lp-info{width:min(460px,calc(100% - 40px));margin-left:auto;margin-right:auto}
 }
 @media (min-width:641px) and (max-width:900px){
-  .lp-steps,.lp-info{max-width:640px;margin-left:auto;margin-right:auto}
+  .lp-steps,.lp-info{max-width:600px;margin-left:auto;margin-right:auto}
 }
 @media (min-width:901px) and (max-width:1240px){
   .lp-steps,.lp-info{max-width:860px;margin-left:auto;margin-right:auto}
 }
-/* tablets: two facts per row, and a larger final phone beside the headline */
+/* phones and iPad: each fact is centered, icon above its label, to match the centered sections around it */
+@media (max-width:1240px){
+  .lp-info{grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 24px}
+  .lp-info div{grid-template-columns:1fr;grid-template-rows:none;align-content:start;justify-items:center;text-align:center}
+  .lp-info-ic{grid-row:auto;width:88px;height:88px;border-radius:26px}
+  .lp-info-ic svg{width:48px;height:48px}
+  .lp-info dt{align-self:auto;padding-top:16px}
+  .lp-info dd{max-width:none;margin-top:8px;font-size:17px}
+}
+@media (min-width:641px) and (max-width:1240px){
+  .lp-info{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* anchor links land with the heading below the sticky header */
+#how,#screens,#built{scroll-margin-top:84px}
+/* tablets: a larger final phone beside the headline */
 @media (min-width:641px) and (max-width:900px){
-  .lp-info{grid-template-columns:repeat(2,minmax(0,1fr));gap:48px 32px}
-  .lp-info-ic{width:96px;height:96px;border-radius:28px}
-  .lp-info-ic svg{width:54px;height:54px}
-  .lp-info dt{padding-top:10px}
   .lp-final-gl{top:-120px;right:-36px;width:300px;height:470px}
 }
 /* the final phone takes the right side up to here, so the buttons sit under the text instead of beside it */
