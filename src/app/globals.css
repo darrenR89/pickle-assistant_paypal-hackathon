@@ -994,6 +994,14 @@ html:has(.lp-hero.playing){overflow:hidden}
 .lp-hero.playing .lp-close{opacity:1;pointer-events:auto}
 .lp-close:focus-visible{outline:2px solid var(--ball);outline-offset:3px}
 
+/* YouTube player: fills the hero while the demo plays, and the phone and its chat lines step back */
+.lp-yt{--yt-top:150px;--yt-bot:48px;position:absolute;z-index:4;inset:var(--yt-top) max(20px,calc((100% - 1180px)/2)) var(--yt-bot);display:grid;place-items:center;opacity:0;transition:opacity .45s .15s}
+.lp-yt[hidden]{display:none}
+.lp-hero.playing .lp-yt{opacity:1}
+@starting-style{.lp-hero.playing .lp-yt{opacity:0}}
+.lp-yt iframe{display:block;width:min(100%,calc((100dvh - var(--yt-top) - var(--yt-bot)) * 16 / 9));height:auto;aspect-ratio:16/9;border:0;border-radius:20px;background:#000;box-shadow:0 40px 80px rgba(5,2,20,.55),inset 0 0 0 1.5px rgba(255,255,255,.14)}
+.lp-hero.playing:has(.lp-yt) :is(.lp-gl,.lp-still,.lp-play,.lp-motion){opacity:0;visibility:hidden;pointer-events:none}
+
 /* chapter rail beside the upright phone */
 .lp-rail{position:absolute;z-index:4;top:50%;right:max(20px,calc((100% - 1180px)/2));width:min(420px,40%);translate:24px -50%;display:grid;gap:14px;opacity:0;pointer-events:none;transition:opacity .45s,translate .45s}
 .lp-hero.playing .lp-rail{opacity:1;pointer-events:auto;translate:0 -50%;transition-delay:.3s}
@@ -1021,6 +1029,8 @@ html:has(.lp-hero.playing){overflow:hidden}
   .lp-hero{display:block;min-height:0;padding:100px 20px 500px;border-radius:0 0 28px 28px;clip-path:inset(0 round 0 0 28px 28px)}
   .lp-still{top:auto;bottom:40px;right:50%;translate:50% 0;width:190px;rotate:4deg}
   .lp-close{top:84px;right:16px}
+  .lp-yt{--yt-top:136px;--yt-bot:32px;left:16px;right:16px}
+  .lp-yt iframe{border-radius:14px}
   .lp-rail{top:134px;left:16px;right:16px;width:auto;translate:0 -12px}
   .lp-hero.playing .lp-rail{translate:0 0}
   .lp-hero.playing{height:100vh;height:100dvh;border-radius:0;clip-path:none}
