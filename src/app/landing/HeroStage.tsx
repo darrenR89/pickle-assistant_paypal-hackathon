@@ -7,9 +7,11 @@ import type * as THREE_NS from "three";
 // pointer, and has chat lines from a real game drifting around it. Play keeps the phone upright, moves it
 // aside and plays the demo on its screen while a chapter rail explains each step.
 //
-// With NEXT_PUBLIC_DEMO_VERTICAL_SRC set (a vertical MP4 of the phone screen recording) the video plays on
-// the phone's screen and the chapters follow its time. Without it, the screen steps through the app screens
-// chapter by chapter. three.js loads after the page paints; without WebGL a still phone image is shown.
+// With a YouTube id (and no vertical MP4) Play opens the demo video in a YouTube player that fills the hero,
+// and the phone stays where it is. With NEXT_PUBLIC_DEMO_VERTICAL_SRC set (a vertical MP4 of the phone screen
+// recording) the video plays on the phone's screen and the chapters follow its time. With neither, the screen
+// steps through the app screens chapter by chapter. three.js loads after the page paints; without WebGL a still
+// phone image is shown, and the YouTube player still opens from Watch the demo.
 
 export type Chapter = { t: number; shot: string; title: string; body: string };
 type Props = { chapters: Chapter[]; duration: number; videoSrc?: string; youtubeId?: string };
@@ -31,6 +33,14 @@ const CHAT: Array<[string, string, 0 | 1 | 2 | 3]> = [
   ["PaddlesIn", "Thu 6pm · Courts 3–4", 1],
 ];
 
+// While the demo fills the screen, everything outside the hero (and the hidden play button) is taken out of
+// the tab order and the screen reader's view, so focus stays with the player's controls.
+function setOutside(hero: HTMLElement, play: HTMLElement, off: boolean) {
+  play.inert = off;
+  for (let el: HTMLElement | null = hero; el && el !== document.body; el = el.parentElement)
+    for (const sib of Array.from(el.parentElement?.children ?? [])) if (sib !== el && sib instanceof HTMLElement) sib.inert = off;
+}
+
 const PAUSE_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>';
 const PLAY_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>';
 
@@ -42,6 +52,37 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
   const motionRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mode, setMode] = useState<"pending" | "gl" | "still">("pending");
+  const yt = !videoSrc && youtubeId ? youtubeId : null;
+  const [ytOpen, setYtOpen] = useState(false);
+  const lastTrigger = useRef<HTMLElement | null>(null);
+
+  // YouTube mode: Play and every Watch the demo link open the player in the hero, with or without WebGL.
+  useEffect(() => {
+    if (!yt) return;
+    const triggers = [playRef.current!, ...Array.from(document.querySelectorAll<HTMLElement>("[data-play-demo]"))];
+    const onOpen = (e: Event) => { e.preventDefault(); lastTrigger.current = e.currentTarget as HTMLElement; setYtOpen(true); };
+    triggers.forEach((b) => b.addEventListener("click", onOpen));
+    return () => triggers.forEach((b) => b.removeEventListener("click", onOpen));
+  }, [yt]);
+
+  useEffect(() => {
+    if (!yt || !ytOpen) return;
+    const hero = canvasRef.current!.parentElement as HTMLElement, play = playRef.current!;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setYtOpen(false); };
+    window.scrollTo(0, 0);
+    hero.classList.add("playing");
+    setOutside(hero, play, true);
+    hero.addEventListener("keydown", onKey);
+    closeRef.current!.focus({ preventScroll: true });
+    return () => {
+      hero.removeEventListener("keydown", onKey);
+      hero.classList.remove("playing");
+      setOutside(hero, play, false);
+      // The hero copy fades back in from visibility: hidden, so wait a moment before returning focus to it.
+      const back = lastTrigger.current;
+      setTimeout(() => { if (back?.isConnected && back.offsetParent) back.focus({ preventScroll: true }); }, 80);
+    };
+  }, [yt, ytOpen]);
 
   useEffect(() => {
     let dead = false;
@@ -57,10 +98,8 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
           canvas,
           hero: canvas.parentElement as HTMLElement,
           play: playRef.current!,
-          close: closeRef.current!,
-          rail: railRef.current!,
           motion: motionRef.current!,
-          video: videoRef.current,
+          player: yt ? null : { close: closeRef.current!, rail: railRef.current!, video: videoRef.current },
           chapters,
           duration,
         });
@@ -73,7 +112,7 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
       dead = true;
       stop();
     };
-  }, [chapters, duration]);
+  }, [chapters, duration, yt]);
 
   return (
     <>
@@ -91,12 +130,25 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
         </span>
         <span className="lp-play-label">Play demo</span>
       </button>
-      <button ref={closeRef} type="button" className="lp-close" inert>Close demo</button>
+      <button ref={closeRef} type="button" className="lp-close" inert={yt ? !ytOpen : true} onClick={yt ? () => setYtOpen(false) : undefined}>Close demo</button>
+      {yt && (
+        <div className="lp-yt" hidden={!ytOpen}>
+          {ytOpen && (
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&playsinline=1&rel=0`}
+              title="Paddles In demo video"
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+          )}
+        </div>
+      )}
       <button ref={motionRef} type="button" className="lp-motion" aria-pressed="false" hidden={mode !== "gl"}>
         <span dangerouslySetInnerHTML={{ __html: PAUSE_ICON }} />
         <span className="lp-motion-label">Pause motion</span>
       </button>
-      <div ref={railRef} className="lp-rail" role="group" aria-label="Demo chapters" inert>
+      {!yt && <div ref={railRef} className="lp-rail" role="group" aria-label="Demo chapters" inert>
         <div className="lp-rail-head">
           <button type="button" className="lp-rail-pp" aria-label="Pause" dangerouslySetInnerHTML={{ __html: PAUSE_ICON }} />
           <div>
@@ -122,25 +174,26 @@ export default function HeroStage({ chapters, duration, videoSrc, youtubeId }: P
         {youtubeId && (
           <a className="lp-rail-yt" href={`https://www.youtube.com/watch?v=${youtubeId}`}>Watch the full video on YouTube</a>
         )}
-      </div>
+      </div>}
     </>
   );
 }
 
+// The in-phone player (rail, close, optional MP4). Null in YouTube mode, where HeroStage runs the player.
+type Player = { close: HTMLButtonElement; rail: HTMLDivElement; video: HTMLVideoElement | null };
 type Env = {
   canvas: HTMLCanvasElement;
   hero: HTMLElement;
   play: HTMLButtonElement;
-  close: HTMLButtonElement;
-  rail: HTMLDivElement;
   motion: HTMLButtonElement;
-  video: HTMLVideoElement | null;
+  player: Player | null;
   chapters: Chapter[];
   duration: number;
 };
 
 function start(T: typeof THREE_NS, env: Env): () => void {
-  const { canvas, hero, play, close, rail, motion, video, chapters } = env;
+  const { canvas, hero, play, motion, player, chapters } = env;
+  const video = player?.video ?? null;
   const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
   // WCAG 2.2.2: the idle float and drifting chat cards run forever, so the viewer can stop them. Reduced motion
   // starts with them stopped; CSS hides the button then because there is nothing to pause.
@@ -271,47 +324,49 @@ function start(T: typeof THREE_NS, env: Env): () => void {
   const ro = new ResizeObserver(layout); ro.observe(hero); layout();
 
   /* ---------- player state + rail ---------- */
-  const lis = Array.from(rail.querySelectorAll<HTMLLIElement>(".lp-rail-ch li"));
-  const bars = lis.map((li) => li.querySelector("i") as HTMLElement);
-  const segs = Array.from(rail.querySelectorAll<HTMLElement>(".lp-rail-seg b"));
-  const timeEl = rail.querySelector(".lp-rail-time") as HTMLElement;
-  const pp = rail.querySelector(".lp-rail-pp") as HTMLButtonElement;
   const S = { playing: false, p: 0, sec: 0, paused: false, chi: -1 };
   const dur = () => (video && Number.isFinite(video.duration) && video.duration > 0 ? video.duration : env.duration);
-  const now = () => (video ? video.currentTime : S.sec);
-  const setPaused = (v: boolean) => { S.paused = v; if (video) { if (v) video.pause(); else void video.play().catch(() => { S.paused = true; }); } };
-  const seek = (t: number) => { if (video) video.currentTime = t; else S.sec = t; setPaused(false); };
-  lis.forEach((li, i) => li.querySelector("button")!.addEventListener("click", () => seek(chapters[i].t)));
-  pp.addEventListener("click", () => { if (now() >= dur() - 0.05) seek(0); else setPaused(!S.paused); });
-  // While the demo fills the screen, everything outside the hero (and the hidden play button) is taken out of
-  // the tab order and the screen reader's view, so focus stays with the player's controls.
-  const outside = (off: boolean) => {
-    play.inert = off;
-    for (let el: HTMLElement | null = hero; el && el !== document.body; el = el.parentElement)
-      for (const sib of Array.from(el.parentElement?.children ?? [])) if (sib !== el && sib instanceof HTMLElement) sib.inert = off;
-  };
-  const open = (e?: Event) => {
-    e?.preventDefault(); if (S.playing) return;
-    window.scrollTo(0, 0);
-    S.playing = true; S.sec = 0; S.chi = -1; hero.classList.add("playing"); rail.inert = false; close.inert = false; outside(true);
-    if (video) { video.currentTime = 0; } setPaused(false);
-    close.focus({ preventScroll: true });
-  };
-  const shut = () => { if (!S.playing) return; S.playing = false; if (video) video.pause(); hero.classList.remove("playing"); rail.inert = true; close.inert = true; outside(false); play.focus({ preventScroll: true }); };
-  const triggers = [play, ...Array.from(document.querySelectorAll<HTMLElement>("[data-play-demo]"))];
-  triggers.forEach((b) => b.addEventListener("click", open));
-  close.addEventListener("click", shut);
-  const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") shut(); };
-  hero.addEventListener("keydown", onKey);
-  const syncRail = () => {
-    const sec = now(), D = dur(), i = chapters.reduce((a, c, k) => (sec >= c.t ? k : a), 0);
-    if (i !== S.chi) { lis.forEach((li, k) => li.classList.toggle("on", k === i)); S.chi = i; }
-    chapters.forEach((c, k) => { const end = chapters[k + 1] ? chapters[k + 1].t : D, f = clamp((sec - c.t) / (end - c.t)); bars[k].style.width = k === i ? `${f * 100}%` : "0"; segs[k].style.width = `${f * 100}%`; });
-    const tx = `${fmt(sec)} / ${fmt(D)}`; if (timeEl.textContent !== tx) timeEl.textContent = tx;
-    const lab = S.paused ? "Play" : "Pause"; if (pp.getAttribute("aria-label") !== lab) { pp.setAttribute("aria-label", lab); pp.innerHTML = S.paused ? PLAY_ICON : PAUSE_ICON; }
-    return chapters[i];
-  };
-  if (video) video.addEventListener("ended", () => { S.paused = true; });
+  let syncRail = () => chapters[0];
+  let unwire = () => {};
+  if (player) {
+    const { close, rail } = player;
+    const lis = Array.from(rail.querySelectorAll<HTMLLIElement>(".lp-rail-ch li"));
+    const bars = lis.map((li) => li.querySelector("i") as HTMLElement);
+    const segs = Array.from(rail.querySelectorAll<HTMLElement>(".lp-rail-seg b"));
+    const timeEl = rail.querySelector(".lp-rail-time") as HTMLElement;
+    const pp = rail.querySelector(".lp-rail-pp") as HTMLButtonElement;
+    const now = () => (video ? video.currentTime : S.sec);
+    const setPaused = (v: boolean) => { S.paused = v; if (video) { if (v) video.pause(); else void video.play().catch(() => { S.paused = true; }); } };
+    const seek = (t: number) => { if (video) video.currentTime = t; else S.sec = t; setPaused(false); };
+    lis.forEach((li, i) => li.querySelector("button")!.addEventListener("click", () => seek(chapters[i].t)));
+    pp.addEventListener("click", () => { if (now() >= dur() - 0.05) seek(0); else setPaused(!S.paused); });
+    const open = (e?: Event) => {
+      e?.preventDefault(); if (S.playing) return;
+      window.scrollTo(0, 0);
+      S.playing = true; S.sec = 0; S.chi = -1; hero.classList.add("playing"); rail.inert = false; close.inert = false; setOutside(hero, play, true);
+      if (video) { video.currentTime = 0; } setPaused(false);
+      close.focus({ preventScroll: true });
+    };
+    const shut = () => { if (!S.playing) return; S.playing = false; if (video) video.pause(); hero.classList.remove("playing"); rail.inert = true; close.inert = true; setOutside(hero, play, false); play.focus({ preventScroll: true }); };
+    const triggers = [play, ...Array.from(document.querySelectorAll<HTMLElement>("[data-play-demo]"))];
+    triggers.forEach((b) => b.addEventListener("click", open));
+    close.addEventListener("click", shut);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") shut(); };
+    hero.addEventListener("keydown", onKey);
+    syncRail = () => {
+      const sec = now(), D = dur(), i = chapters.reduce((a, c, k) => (sec >= c.t ? k : a), 0);
+      if (i !== S.chi) { lis.forEach((li, k) => li.classList.toggle("on", k === i)); S.chi = i; }
+      chapters.forEach((c, k) => { const end = chapters[k + 1] ? chapters[k + 1].t : D, f = clamp((sec - c.t) / (end - c.t)); bars[k].style.width = k === i ? `${f * 100}%` : "0"; segs[k].style.width = `${f * 100}%`; });
+      const tx = `${fmt(sec)} / ${fmt(D)}`; if (timeEl.textContent !== tx) timeEl.textContent = tx;
+      const lab = S.paused ? "Play" : "Pause"; if (pp.getAttribute("aria-label") !== lab) { pp.setAttribute("aria-label", lab); pp.innerHTML = S.paused ? PLAY_ICON : PAUSE_ICON; }
+      return chapters[i];
+    };
+    if (video) video.addEventListener("ended", () => { S.paused = true; });
+    unwire = () => {
+      triggers.forEach((b) => b.removeEventListener("click", open)); close.removeEventListener("click", shut);
+      hero.removeEventListener("keydown", onKey); setOutside(hero, play, false); hero.classList.remove("playing");
+    };
+  }
 
   /* ---------- pointer ---------- */
   const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -373,9 +428,7 @@ function start(T: typeof THREE_NS, env: Env): () => void {
 
   return () => {
     cancelAnimationFrame(raf); ro.disconnect(); io.disconnect();
-    triggers.forEach((b) => b.removeEventListener("click", open)); close.removeEventListener("click", shut);
-    outside(false); hero.removeEventListener("keydown", onKey); motion.removeEventListener("click", onMotion); hero.removeEventListener("pointermove", onMove); hero.removeEventListener("pointerleave", onLeave);
-    hero.classList.remove("playing");
+    unwire(); motion.removeEventListener("click", onMotion); hero.removeEventListener("pointermove", onMove); hero.removeEventListener("pointerleave", onLeave);
     scene.traverse((o) => { const m = o as THREE_NS.Mesh; if (m.geometry) m.geometry.dispose(); const mats = m.material ? ([] as THREE_NS.Material[]).concat(m.material) : []; mats.forEach((mt) => { const mm = mt as THREE_NS.MeshBasicMaterial; mm.map?.dispose(); mm.dispose(); }); });
     screenTex.dispose(); mask.dispose(); videoTex?.dispose(); r.dispose();
   };
